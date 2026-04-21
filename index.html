@@ -823,22 +823,22 @@ body {
   /* Level rows */
   .level-row-inner { gap: 6px; margin-bottom: 6px; }
 
-  /* Level stop tiles — 3 per row on narrow screens */
+  /* Level stop tiles — 3 per row on narrow screens; mirror desktop look scaled to width */
   .level-stop {
     width: auto;          /* let flex fill */
-    border-radius: 14px;
-    padding: 8px 5px;
-    border-width: 3px;
-    box-shadow: 0 4px 0 #2ea89e, 0 6px 10px rgba(0,0,0,0.1);
+    border-radius: 18px;
+    padding: 10px 6px;
+    border-width: 4px;
+    box-shadow: 0 5px 0 #2ea89e, 0 7px 12px rgba(0,0,0,0.1);
   }
-  .lnum { font-size: 24px; }
+  .lnum { font-size: 30px; }
   .lname {
-    font-size: 10px; margin-top: 2px; height: auto; max-height: none;
+    font-size: 10px; margin-top: 3px; height: auto; max-height: none;
     -webkit-line-clamp: unset; line-clamp: unset;
     overflow: visible;
     word-break: break-word; hyphens: auto;
   }
-  .stars { font-size: 13px; margin-top: 2px; letter-spacing: 1px; }
+  .stars { font-size: 15px; margin-top: 4px; letter-spacing: 1.5px; }
   .home-footer { padding: 6px; }
 
   /* ── Game screen ── */
@@ -934,10 +934,10 @@ body {
   .home-title { font-size: 20px; }
   .world-map { padding: 6px 10px 10px; }
   .level-row-inner { gap: 5px; margin-bottom: 5px; }
-  .level-stop { padding: 6px 4px; }
-  .lnum { font-size: 22px; }
+  .level-stop { padding: 8px 5px; }
+  .lnum { font-size: 26px; }
   .lname { font-size: 9.5px; max-height: none; -webkit-line-clamp: unset; line-clamp: unset; overflow: visible; }
-  .stars { font-size: 12px; }
+  .stars { font-size: 13px; }
   .tutorial-body { padding: 8px 12px 10px; gap: 7px; }
   .tut-card { padding: 10px 12px 10px; }
   .tut-title { font-size: 18px; margin-bottom: 6px; }
