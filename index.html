@@ -275,8 +275,8 @@ body {
   padding: 12px 16px 48px; gap: 22px; position: relative; z-index: 1;
   overflow-y: auto;
 }
-/* Center vertically only when the clock is hidden (digital-only questions) */
-.game-body.no-clock { justify-content: center; }
+/* Previously centered no-clock screens, but that pushed progress-dots off
+   the top. Now all levels keep progress-dots pinned to the top like L4. */
 /* Extra breathing room between the clock and the answer choices */
 .clock-wrap { margin-bottom: 8px; }
 
@@ -321,8 +321,6 @@ body {
   border-width: 6px;
   margin-bottom: 18px;
 }
-/* Extra breathing room on no-clock question screens */
-.game-body.no-clock { gap: 32px; }
 
 /* Clock wrapper — pillow style.
    Compositor hints (transparent bg, backface-visibility, translateZ) prevent
@@ -403,25 +401,17 @@ body {
 }
 .confirm-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #d94f7e; }
 .feedback-msg { font-size: 20px; font-weight: 700; min-height: 28px; color: #FF6B9D; font-family: 'Nunito', sans-serif; }
-/* "Try again!" — sits in natural DOM position between clock and choices, but
-   taken out of flow so showing/hiding doesn't push layout. */
+/* "Try again!" for read-mode — inline, mirrors the set-mode feedback-msg
+   slot on Level 4 so every level shows the wrong-answer text in the same
+   visual position (right above choices / confirm). Reserve min-height so
+   hiding it doesn't shift any other content. */
 #read-feedback {
-  position: absolute; top: 130px; left: 50%;
-  transform: translateX(-50%);
   color: #FF6B9D;
-  font-family: 'Nunito', sans-serif; font-size: 30px; font-weight: 700;
-  text-shadow: 0 2px 0 rgba(255,255,255,0.7);
-  pointer-events: none; z-index: 4;
-  min-height: 0; margin: 0; padding: 0;
-  white-space: nowrap;
+  font-family: 'Nunito', sans-serif; font-size: 22px; font-weight: 700;
+  text-align: center;
+  min-height: 26px; margin: 4px 0 0; padding: 0;
 }
-#read-feedback.hidden { display: none; }
-/* No-clock screens (L5 digital, L13 match, L14 convert): flow the "Try
-   again!" popup inline above the digital target instead of positioning it
-   absolutely over the clock area. */
-.game-body.no-clock #read-feedback {
-  position: static; transform: none; font-size: 22px; margin: 4px 0 0;
-}
+#read-feedback.hidden { visibility: hidden; }
 .hint-msg { font-size: 16px; color: #888; min-height: 22px; }
 
 /* Read prompt */
@@ -1060,11 +1050,11 @@ body {
     <div class="ultimate-timer hidden" id="ultimate-timer-display"></div>
     <div class="progress-dots" id="progress-dots"></div>
     <div class="question-counter" id="q-counter"></div>
-    <div class="feedback-msg hidden" id="read-feedback"></div>
     <div>
       <div class="digital-target" id="digital-target"></div>
     </div>
     <div class="clock-wrap" id="clock-wrap"></div>
+    <div class="feedback-msg hidden" id="read-feedback"></div>
     <div class="choices hidden" id="choices"></div>
     <div id="read-prompt" style="font-size:22px;font-weight:700;color:#2D3047;text-align:center;min-height:30px;"></div>
     <div class="hidden" id="set-controls">
