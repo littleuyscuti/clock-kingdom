@@ -1657,7 +1657,11 @@ function t(k) { const v = S[state.lang][k]; return v !== undefined ? v : k; }
 // ═══════════════════════════════════════════════════════
 let state = { lang: /^zh/.test(navigator.language) ? 'zh' : 'en', progress: {}, version: 8 };
 
-// CrazyGames SDK Data Module with LocalStorage fallback for local dev
+// Audio mute flag — flipped by ad callbacks so beeps go silent during ads.
+let audioMuted = false;
+
+// CrazyGames SDK wrapper — data module, gameplay lifecycle, ads.
+// Silently no-ops when SDK unavailable (local dev).
 const storage = {
   useSdk: false,
   async init() {
@@ -1677,6 +1681,25 @@ const storage = {
       try { window.CrazyGames.SDK.data.setItem(k, v); return; } catch(e) {}
     }
     localStorage.setItem(k, v);
+  },
+  gameplayStart() {
+    if (this.useSdk) try { window.CrazyGames.SDK.game.gameplayStart(); } catch(e) {}
+  },
+  gameplayStop() {
+    if (this.useSdk) try { window.CrazyGames.SDK.game.gameplayStop(); } catch(e) {}
+  },
+  happytime() {
+    if (this.useSdk) try { window.CrazyGames.SDK.game.happytime(); } catch(e) {}
+  },
+  async requestMidgameAd() {
+    if (!this.useSdk) return;
+    try {
+      await window.CrazyGames.SDK.ad.requestAd('midgame', {
+        adStarted:  () => { audioMuted = true; },
+        adFinished: () => { audioMuted = false; },
+        adError:    () => { audioMuted = false; }
+      });
+    } catch(e) { audioMuted = false; }
   }
 };
 
@@ -1809,6 +1832,7 @@ function getAudio() {
   return audioCtx;
 }
 function playBeep(freq, dur, vol=0.3, type='sine') {
+  if (audioMuted) return;
   try {
     const ctx = getAudio();
     const o = ctx.createOscillator();
@@ -1844,6 +1868,7 @@ function beepChime() { playBeep(800, 0.06, 0.2); }
 // HOME SCREEN
 // ═══════════════════════════════════════════════════════
 function showHome() {
+  storage.gameplayStop();
   stopUltimateTimer();
   hideAllScreens();
   document.getElementById('screen-home').classList.remove('hidden');
@@ -2740,6 +2765,7 @@ function beginLevel(n) {
   renderProgressDots();
   showQuestion(0);
   if (n === 15) startUltimateTimer();
+  storage.gameplayStart();
 }
 
 function renderGameHeader() {
@@ -4080,6 +4106,7 @@ function spawnConfettiRain(duration = 2000) {
 // ═══════════════════════════════════════════════════════
 function endLevel() {
   const n = currentLevel;
+  storage.gameplayStop();
   stopUltimateTimer();
   const stars = wrongCount === 0 ? 3 : wrongCount === 1 ? 2 : 1;
   const prev = starsFor(n);
@@ -4088,6 +4115,7 @@ function endLevel() {
 }
 
 function showCompleteOverlay(stars, n) {
+  storage.happytime();
   const overlay = document.getElementById('overlay-complete');
   overlay.classList.remove('hidden');
   document.getElementById('complete-done-label').textContent = '🎉 ' + t('levelDone');
@@ -4122,8 +4150,13 @@ function showCompleteOverlay(stars, n) {
 
 function goNextLevel() {
   document.getElementById('overlay-complete').classList.add('hidden');
-  if (currentLevel < TOTAL_LEVELS) startLevel(currentLevel + 1);
-  else showHome();
+  if (currentLevel < TOTAL_LEVELS) {
+    // Midgame ad between levels. SDK throttles internally (min interval
+    // enforced by CrazyGames); resolves quickly if no ad is shown.
+    storage.requestMidgameAd().finally(() => startLevel(currentLevel + 1));
+  } else {
+    showHome();
+  }
 }
 
 // ═══════════════════════════════════════════════════════
