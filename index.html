@@ -40,10 +40,9 @@
 * { box-sizing: border-box; margin: 0; padding: 0; touch-action: manipulation; }
 
 html {
-  /* Solid color + gradient so iOS always has something to paint even if
-     gradient rendering lags during rotation. */
+  /* Solid blue so iOS overscroll bounce (top AND bottom) is unified blue,
+     not the gradient's orange bottom. Gradient moved to .sky-bg below. */
   background-color: #B8E1FF;
-  background-image: linear-gradient(180deg, #B8E1FF 0%, #D4EEFF 40%, #FFE5B4 100%);
   min-height: 100dvh;
   overflow-x: hidden;
 }
@@ -57,9 +56,12 @@ body {
   overflow-x: hidden;
 }
 
-/* ── Sky background — cloud overlay only (gradient now on html) ── */
+/* ── Sky background — fixed-viewport gradient + clouds. Fixed so it
+   stays put when inner content scrolls; overscroll bounce past it
+   shows html's solid blue (no orange edge). ── */
 .sky-bg {
   position: fixed; inset: 0; z-index: 0;
+  background: linear-gradient(180deg, #B8E1FF 0%, #D4EEFF 40%, #FFE5B4 100%);
   overflow: hidden;
   pointer-events: none;
 }
