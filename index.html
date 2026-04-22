@@ -3529,7 +3529,8 @@ function checkSetAnswer() {
     wrongCount++; wrongCountThisQ++;
     beepWrong();
     shakeClock();
-    document.getElementById('feedback-msg').textContent = t('wrongMsg');
+    // Ticky already speaks the feedback — no pink/grey text under the button
+    document.getElementById('feedback-msg').textContent = '';
     document.getElementById('hint-msg').textContent = '';
     // Same escalation as read-mode: 1st = oops, 2nd = general concept hint,
     // 3rd = specific direction + target via Ticky.
