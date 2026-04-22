@@ -124,7 +124,12 @@ body {
 /* Home fills viewport on tall screens; scrolls vertically on short viewports
    (e.g. CrazyGames iframe) so level tile text never clips. */
 #screen-home {
-  min-height: 100dvh;
+  /* Lock to viewport: CrazyGames iframes set scrolling="no" so the
+     outer document can't scroll. #screen-home must be the scroll
+     container, which requires a fixed height (not min-height) so its
+     content genuinely overflows it. */
+  height: 100dvh;
+  max-height: 100dvh;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
@@ -183,17 +188,16 @@ body {
   50%      { transform: translateZ(0) scale(1.02); }
 }
 
-/* World map path area — grows to fill tall viewports but refuses to
-   shrink below content on short viewports, so the parent #screen-home
-   grows past the viewport and its overflow-y:auto actually triggers.
-   `flex: 1 0 auto` + no min-height:0 is the key combo; with `1 1 auto`
-   +min-height:0 the block shrinks to 0 and overflowing grid tiles
-   don't count toward parent scrollHeight, killing scroll on phones. */
+/* World map path area — flex-fills remaining vertical space. On tall
+   viewports content visually centers via the margin:auto rule on the
+   grid below. `justify-content: flex-start` (not center) ensures that
+   on short viewports content flows from the top so the parent's
+   overflow scroll can actually reach it. */
 .world-map {
-  flex: 1 0 auto;
+  flex: 1 1 auto; min-height: 0;
   position: relative; padding: 16px 20px 24px;
   display: flex; flex-direction: column; align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   overflow: visible;
 }
 .map-path-svg {
@@ -201,7 +205,10 @@ body {
   pointer-events: none; z-index: 0;
 }
 
-/* Level grid — 3 cols, min 118px tall rows. Fills tall viewports, scrolls when short. */
+/* Level grid — 3 cols, min 118px tall rows. `margin: auto 0` centers
+   the grid within .world-map when there's spare vertical space, but
+   collapses cleanly when content overflows (unlike justify-content:
+   center which clips top-overflow and breaks scroll). */
 .level-stops {
   position: relative; z-index: 1;
   display: grid;
@@ -210,6 +217,7 @@ body {
   gap: 12px;
   width: 100%;
   max-width: min(640px, 100%);
+  margin: auto 0;
 }
 /* Legacy row classes (no longer used by JS but kept for safety) */
 .level-row, .level-row-inner { display: contents; }
