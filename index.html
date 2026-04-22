@@ -188,17 +188,18 @@ body {
   50%      { transform: translateZ(0) scale(1.02); }
 }
 
-/* World map path area — flex-fills remaining vertical space. On tall
-   viewports content visually centers via the margin:auto rule on the
-   grid below. `justify-content: flex-start` (not center) ensures that
-   on short viewports content flows from the top so the parent's
-   overflow scroll can actually reach it. */
+/* World map path area — flex-fills the middle band between sticky
+   header and footer, and scrolls its own grid internally when the
+   grid exceeds available height. Previously used overflow:visible
+   which let tiles spill into the footer and overlap the reset button
+   on short viewports / iframes. */
 .world-map {
   flex: 1 1 auto; min-height: 0;
   position: relative; padding: 16px 20px 24px;
   display: flex; flex-direction: column; align-items: center;
   justify-content: flex-start;
-  overflow: visible;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 .map-path-svg {
   position: absolute; top: 0; left: 0; width: 100%; height: 100%;
@@ -206,9 +207,8 @@ body {
 }
 
 /* Level grid — 3 cols, min 118px tall rows. `margin: auto 0` centers
-   the grid within .world-map when there's spare vertical space, but
-   collapses cleanly when content overflows (unlike justify-content:
-   center which clips top-overflow and breaks scroll). */
+   the grid within .world-map when spare vertical space exists, and
+   gracefully collapses to 0 when the grid has to scroll. */
 .level-stops {
   position: relative; z-index: 1;
   display: grid;
@@ -218,6 +218,7 @@ body {
   width: 100%;
   max-width: min(640px, 100%);
   margin: auto 0;
+  flex-shrink: 0;
 }
 /* Legacy row classes (no longer used by JS but kept for safety) */
 .level-row, .level-row-inner { display: contents; }
