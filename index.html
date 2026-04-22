@@ -324,10 +324,21 @@ body {
 /* Extra breathing room on no-clock question screens */
 .game-body.no-clock { gap: 32px; }
 
-/* Clock wrapper — pillow style */
+/* Clock wrapper — pillow style.
+   Compositor hints (transparent bg, backface-visibility, translateZ) prevent
+   iOS Safari from painting a white layer backing behind the element when the
+   shake animation promotes it to its own compositor layer. */
 .clock-wrap, .tut-visual {
   position: relative; display: inline-block;
-  border-radius: 50%; transition: box-shadow 0.2s;
+  transition: box-shadow 0.2s;
+  background: transparent;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+}
+/* Drop-shadow on an inner wrapper so the shake animation doesn't animate a
+   filtered element (another known iOS compositor artifact source). */
+.clock-wrap svg, .tut-visual svg, #tour-clock-wrap svg {
   filter: drop-shadow(0 8px 24px rgba(0,0,0,0.18));
 }
 /* Make clock SVG scale down on narrow/short screens */
@@ -338,6 +349,8 @@ body {
 }
 .clock-wrap.correct, .tut-visual.correct {
   box-shadow: 0 0 0 10px #6BE86B, 0 0 32px #6BE86B88;
+}
+.clock-wrap.correct svg, .tut-visual.correct svg {
   filter: drop-shadow(0 8px 24px rgba(107,232,107,0.5));
 }
 .clock-wrap.wrong, .tut-visual.wrong { animation: shake 0.4s; }
