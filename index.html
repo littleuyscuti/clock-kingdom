@@ -119,12 +119,11 @@ body {
   display: flex; flex-direction: column;
   position: relative; z-index: 1;
 }
-/* Portrait-only design: home fits viewport exactly, never scrolls.
-   Tiles fill the available vertical space via grid-auto-rows: 1fr. */
+/* Home fills viewport on tall screens; scrolls vertically on short viewports
+   (e.g. CrazyGames iframe) so level tile text never clips. */
 #screen-home {
-  height: 100dvh;
-  max-height: 100dvh;
-  overflow: hidden;
+  min-height: 100dvh;
+  overflow-y: auto;
 }
 .hidden { display: none !important; }
 .hand-hidden { display: none !important; }
@@ -194,16 +193,15 @@ body {
   pointer-events: none; z-index: 0;
 }
 
-/* Level grid — 3 columns × 5 rows, fills available viewport height. */
+/* Level grid — 3 cols, min 118px tall rows. Fills tall viewports, scrolls when short. */
 .level-stops {
   position: relative; z-index: 1;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  grid-auto-rows: 1fr;
+  grid-auto-rows: minmax(118px, 1fr);
   gap: 12px;
   width: 100%;
   max-width: min(640px, 100%);
-  height: 100%;
 }
 /* Legacy row classes (no longer used by JS but kept for safety) */
 .level-row, .level-row-inner { display: contents; }
@@ -982,11 +980,15 @@ body {
    heights, font sizes, or paddings — only the grid scroll changes.
 ══════════════════════════════════════ */
 @media (max-width: 500px), (max-height: 500px) {
-  /* Lock all screens to viewport — portrait-only, no scrolling. */
-  #screen-home, #screen-game, #screen-tutorial, #screen-tour {
+  /* Lock game/tutorial/tour screens to viewport. Home screen scrolls when short. */
+  #screen-game, #screen-tutorial, #screen-tour {
     height: 100dvh;
     max-height: 100dvh;
     overflow: hidden;
+  }
+  #screen-home {
+    min-height: 100dvh;
+    overflow-y: auto;
   }
 
   /* Body base font */
