@@ -183,9 +183,14 @@ body {
   50%      { transform: translateZ(0) scale(1.02); }
 }
 
-/* World map path area — flex-fills remaining vertical space, no scroll */
+/* World map path area — grows to fill tall viewports but refuses to
+   shrink below content on short viewports, so the parent #screen-home
+   grows past the viewport and its overflow-y:auto actually triggers.
+   `flex: 1 0 auto` + no min-height:0 is the key combo; with `1 1 auto`
+   +min-height:0 the block shrinks to 0 and overflowing grid tiles
+   don't count toward parent scrollHeight, killing scroll on phones. */
 .world-map {
-  flex: 1 1 auto; min-height: 0;
+  flex: 1 0 auto;
   position: relative; padding: 16px 20px 24px;
   display: flex; flex-direction: column; align-items: center;
   justify-content: center;
