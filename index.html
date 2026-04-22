@@ -100,10 +100,10 @@ body {
 ══════════════════════════════════════ */
 .home-header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 16px 20px;
+  padding: 12px 20px;
   background: rgba(255,255,255,0.35);
   backdrop-filter: blur(8px);
-  height: 76px; box-sizing: border-box;
+  height: 68px; box-sizing: border-box;
 }
 .home-title {
   font-family: 'Fredoka', 'Noto Sans TC', sans-serif;
@@ -257,11 +257,16 @@ body {
    GAME SCREEN
 ══════════════════════════════════════ */
 .game-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 16px;
+  display: grid; grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  padding: 12px 20px;
+  height: 68px; box-sizing: border-box;
   background: rgba(255,255,255,0.4);
   backdrop-filter: blur(8px);
 }
+.game-header > :first-child { justify-self: start; }
+.game-header > .game-level-label { justify-self: center; text-align: center; }
+.game-header > :last-child { justify-self: end; }
 .back-btn {
   background: #FF6B9D; border: none; color: white;
   border-radius: 20px; padding: 8px 16px; font-size: 18px; cursor: pointer;
@@ -480,11 +485,16 @@ body {
    TUTORIAL SCREEN
 ══════════════════════════════════════ */
 .tutorial-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 16px;
+  display: grid; grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  padding: 12px 20px;
+  height: 68px; box-sizing: border-box;
   background: rgba(255,255,255,0.4);
   backdrop-filter: blur(8px);
 }
+.tutorial-header > :first-child { justify-self: start; }
+.tutorial-header > .game-level-label { justify-self: center; text-align: center; }
+.tutorial-header > :last-child { justify-self: end; }
 .tutorial-body {
   flex: 1; display: flex; flex-direction: column; align-items: center;
   justify-content: center; padding: 20px 16px 48px; gap: 36px; text-align: center;
@@ -940,7 +950,7 @@ body {
   body { font-size: 16px; }
 
   /* ── Home screen ── */
-  .home-header {
+  .home-header, .game-header, .tutorial-header {
     height: 56px;
     padding: 8px 14px;
   }
@@ -970,7 +980,6 @@ body {
   .home-footer { padding: 6px; }
 
   /* ── Game screen ── */
-  .game-header { padding: 8px 16px; }
   .back-btn { font-size: 15px; padding: 6px 12px; min-height: 36px; min-width: 44px; }
   .game-level-label { font-size: 17px; }
   .game-stars-earned { font-size: 16px; min-width: 56px; }
@@ -2338,7 +2347,7 @@ function reviewTutorial() {
 // Level 4 teaches digital-format reading ("3:00" = hour : minute).
 // No clock — just a big "3:00" display with colour-coded hour/minute labels.
 function renderLevel4Tutorial() {
-  document.getElementById('tut-level-label').textContent = t('level') + 4 + t('levelSuffix');
+  document.getElementById('tut-level-label').textContent = t('level') + 5 + t('levelSuffix');
   document.getElementById('tut-start-btn').textContent = t('startPractice');
   document.getElementById('tut-start-btn').onclick = () => { beepTap(); beginLevel(5); };
   const body = document.getElementById('tut-body');
@@ -2696,7 +2705,7 @@ function beginLevel(n) {
 
 function renderGameHeader() {
   const n = currentLevel;
-  document.getElementById('game-level-label').textContent = t('level') + n + t('levelSuffix') + ' — ' + t(LEVEL_NAMES[n]).replace(/\n/g,' ');
+  document.getElementById('game-level-label').textContent = t('level') + n + t('levelSuffix');
   document.getElementById('game-stars-earned').innerHTML = starsStr(n);
   const timerEl = document.getElementById('ultimate-timer-display');
   if (timerEl) {
