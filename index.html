@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>時鐘王國 / Clock Kingdom</title>
-<script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script>
+<script src="https://sdk.crazygames.com/crazygames-sdk-v3.js" defer></script>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Nunito:wght@600;700;800&family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
 <style>
 /* ── Reset ── */
@@ -4091,9 +4091,27 @@ function goNextLevel() {
 // INIT
 // ═══════════════════════════════════════════════════════
 (async () => {
-  await storage.init();
-  await loadState();
+  // Render immediately from localStorage so the screen is never blank
+  // while the CrazyGames SDK is still downloading/initialising.
+  try {
+    const s = localStorage.getItem('clockgame_v8');
+    if (s) { const p = JSON.parse(s); if (p.version === 8) state = p; }
+  } catch(e) {}
   showHome();
+
+  // Upgrade to SDK storage in the background — cap at 2 s so a slow or
+  // offline SDK never leaves the game stuck.
+  const timeout = new Promise(r => setTimeout(r, 2000));
+  await Promise.race([storage.init(), timeout]);
+  if (storage.useSdk) {
+    try {
+      const s = await storage.getItem('clockgame_v8');
+      if (s) {
+        const p = JSON.parse(s);
+        if (p.version === 8) { state = p; renderHome(); }
+      }
+    } catch(e) {}
+  }
 })();
 </script>
 </body>
