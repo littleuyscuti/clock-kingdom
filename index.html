@@ -416,6 +416,12 @@ body {
   white-space: nowrap;
 }
 #read-feedback.hidden { display: none; }
+/* No-clock screens (L5 digital, L13 match, L14 convert): flow the "Try
+   again!" popup inline above the digital target instead of positioning it
+   absolutely over the clock area. */
+.game-body.no-clock #read-feedback {
+  position: static; transform: none; font-size: 22px; margin: 4px 0 0;
+}
 .hint-msg { font-size: 16px; color: #888; min-height: 22px; }
 
 /* Read prompt */
@@ -3473,17 +3479,13 @@ function checkReadAnswer(chosen, q, btn) {
       if (big) tickySay(big, 'thinking', 9000);
       else tickySay(randomOops(), 'sad', 2500);
     }
-    // Skip the floating "Try again!" popup on no-clock screens (L5 digital,
-    // L13 match, L14 convert) — it was positioned over the clock area and
-    // overlaps the digital target when there's no clock to sit on top of.
-    // Ticky already speaks the feedback on those screens.
-    const gameBody = document.querySelector('#screen-game .game-body');
-    const hasClock = !(gameBody && gameBody.classList.contains('no-clock'));
+    // Show "Try again!" either over the clock (clock screens) or inline in
+    // the flow (no-clock screens). The CSS for .game-body.no-clock #read-feedback
+    // flips position from absolute → static so it sits in a clean slot instead
+    // of overlapping the digital target.
     const fb = document.getElementById('read-feedback');
-    if (hasClock) {
-      fb.textContent = t('wrongMsg');
-      fb.classList.remove('hidden');
-    }
+    fb.textContent = t('wrongMsg');
+    fb.classList.remove('hidden');
     setTimeout(() => {
       btn.classList.remove('wrong-ans');
       fb.classList.add('hidden');
