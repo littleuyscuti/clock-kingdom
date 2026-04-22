@@ -385,8 +385,9 @@ body {
 }
 
 #set-controls { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 4px; }
-/* Collapse empty feedback/hint rows so the confirm button sits close to the prompt */
-#set-controls .feedback-msg:empty,
+/* Keep the "Try again!" slot (feedback-msg) at its natural min-height so the
+   text never jumps position between empty/filled states. Hint row stays
+   collapsed when empty since Ticky handles hints now. */
 #set-controls .hint-msg:empty { min-height: 0; margin: 0; padding: 0; line-height: 0; }
 
 /* Confirm / feedback */
@@ -3471,9 +3472,17 @@ function checkReadAnswer(chosen, q, btn) {
       if (big) tickySay(big, 'thinking', 9000);
       else tickySay(randomOops(), 'sad', 2500);
     }
+    // Skip the floating "Try again!" popup on no-clock screens (L5 digital,
+    // L13 match, L14 convert) — it was positioned over the clock area and
+    // overlaps the digital target when there's no clock to sit on top of.
+    // Ticky already speaks the feedback on those screens.
+    const gameBody = document.querySelector('#screen-game .game-body');
+    const hasClock = !(gameBody && gameBody.classList.contains('no-clock'));
     const fb = document.getElementById('read-feedback');
-    fb.textContent = t('wrongMsg');
-    fb.classList.remove('hidden');
+    if (hasClock) {
+      fb.textContent = t('wrongMsg');
+      fb.classList.remove('hidden');
+    }
     setTimeout(() => {
       btn.classList.remove('wrong-ans');
       fb.classList.add('hidden');
@@ -3529,8 +3538,7 @@ function checkSetAnswer() {
     wrongCount++; wrongCountThisQ++;
     beepWrong();
     shakeClock();
-    // Ticky already speaks the feedback — no pink/grey text under the button
-    document.getElementById('feedback-msg').textContent = '';
+    document.getElementById('feedback-msg').textContent = t('wrongMsg');
     document.getElementById('hint-msg').textContent = '';
     // Same escalation as read-mode: 1st = oops, 2nd = general concept hint,
     // 3rd = specific direction + target via Ticky.
