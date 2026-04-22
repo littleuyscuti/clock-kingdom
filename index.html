@@ -330,6 +330,7 @@ body {
    shake animation promotes it to its own compositor layer. */
 .clock-wrap, .tut-visual {
   position: relative; display: inline-block;
+  border-radius: 50%;
   transition: box-shadow 0.2s;
   background: transparent;
   -webkit-backface-visibility: hidden;
@@ -1272,10 +1273,20 @@ const S = {
     l95tutTitle:'🔍 找不同的那個',
     l95tutText:'• 3個鐘顯示同一個時間\n• 1個鐘顯示不同的時間\n• 找出那個不同的鐘！',
     l95tutRule:'找出那個不同的鐘',
+    l1hint:'紅色短針是時針，藍色長針是分針。',
+    l2hint:'紅色短針指向哪個數字，就是幾點。',
+    l3hint:'時針指 3 → 3 點鐘。加「點」就是答案。',
+    l4hint:'看目標時間，把紅色短針拖到那個數字。',
+    l5hint:'「：」前面是時，「：」後面是分。',
     l7hint:'每個數字等於 5 分鐘。指向 6 就是 6×5 = 30 分。',
+    l8hint:'公式：數字 × 5 + 小格數 = 分鐘。例：過 1 再 3 格 = 8 分。',
     l9hint:'時針在兩個數字中間時，讀較小的那個。時針還沒到達下一個數字。',
     l10hint:'時針 + 分針一起看。先看時針是幾點，再看分針是幾分。',
     l11hint:'分針過了一個數字多幾分？公式：數字 × 5 + 多幾分 = 分鐘。',
+    l12hint:'先拖分針到位置，時針會跟著慢慢移動。',
+    l13hint:'先讀上方時間，再找下方顯示相同時間的鐘。',
+    l14hint:'公式：24 小時制數字 − 12 = 下午時間。',
+    l15hint:'慢慢來 — 先看紅色時針幾點，再看藍色分針幾分。',
     oddOneOutPrompt:'找出不同的那個鐘！',
     whatTickMinutes:'分針指向這裡，過了多少分鐘？',
     hintHour:'移動 時針',
@@ -1414,10 +1425,20 @@ const S = {
     l95tutTitle:'🔍 Find the Different One',
     l95tutText:'• 3 clocks show the same time\n• 1 clock shows a different time\n• Find the different clock!',
     l95tutRule:'Find the clock that is different',
+    l1hint:'Red short hand = hour. Blue long hand = minute.',
+    l2hint:'The red short hand points to a number — that is the hour.',
+    l3hint:"Hour hand at 3 → 3 o'clock. Just add 'o'clock' to the number.",
+    l4hint:'Read the target hour, then drag the red short hand to that number.',
+    l5hint:'Before the ":" is hours, after the ":" is minutes.',
     l7hint:'Each number means ×5 minutes. If it points at 6, that is 6×5 = 30.',
+    l8hint:'Formula: number × 5 + extra ticks = minutes. Ex: past 1, +3 ticks = 8 min.',
     l9hint:'When the hour hand is between two numbers, read the SMALLER one. It has not reached the next number yet.',
     l10hint:'Look at both hands. First hour, then minutes.',
     l11hint:'How many ticks past the number? Formula: number × 5 + extra ticks = minutes.',
+    l12hint:'Drag the minute hand first — the hour hand follows along.',
+    l13hint:'Read the time shown at the top, then find the clock that matches it.',
+    l14hint:'Formula: 24-hour number − 12 = PM time.',
+    l15hint:'Take it slow — read the red hour hand first, then the blue minute hand.',
     oddOneOutPrompt:'Find the different clock!',
     whatTickMinutes:'Minute hand here — how many minutes passed?',
     hintHour:'Move hour hand',
