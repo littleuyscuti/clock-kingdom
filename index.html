@@ -3,7 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>時鐘王國 / Clock Kingdom</title>
+<script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Nunito:wght@600;700;800&family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
 <style>
 /* ── Reset ── */
@@ -119,18 +123,31 @@ body {
   animation: btn-breathe 2s ease-in-out infinite;
 }
 .lang-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #d94f7e; }
+/* Compositor hints — prevent iOS Safari from showing a 1px subpixel seam
+   between the button face and its flat "0 Npx 0" drop-shadow when
+   btn-breathe scales the element. Same family of fix as .clock-wrap. */
+.choice-btn, .confirm-btn, .lang-btn, .tut-start-btn, .level-stop {
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  will-change: transform;
+  transform: translateZ(0);
+  -webkit-tap-highlight-color: transparent;
+}
+.choice-btn:focus, .confirm-btn:focus, .lang-btn:focus, .tut-start-btn:focus, .level-stop:focus {
+  outline: none;
+}
 @keyframes btn-breathe {
-  0%,100% { transform: scale(1); }
-  50%      { transform: scale(1.02); }
+  0%,100% { transform: translateZ(0) scale(1); }
+  50%      { transform: translateZ(0) scale(1.02); }
 }
 
 /* World map path area — flex-fills remaining vertical space, no scroll */
 .world-map {
   flex: 1 1 auto; min-height: 0;
-  position: relative; padding: 12px 16px;
+  position: relative; padding: 12px 16px 20px;
   display: flex; flex-direction: column; align-items: center;
   justify-content: center;
-  overflow: hidden;
+  overflow: visible;
 }
 .map-path-svg {
   position: absolute; top: 0; left: 0; width: 100%; height: 100%;
@@ -231,7 +248,10 @@ body {
   background: none; border: none; color: #888; font-size: 14px;
   cursor: pointer; text-decoration: underline; padding: 8px 16px; min-height: 44px;
   font-family: 'Nunito', sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
 }
+.reset-btn:focus { outline: none; }
 
 /* ══════════════════════════════════════
    GAME SCREEN
@@ -254,7 +274,7 @@ body {
 
 .game-level-label {
   font-family: 'Fredoka', sans-serif;
-  font-size: 18px; font-weight: 600; color: #2D3047;
+  font-size: 22px; font-weight: 600; color: #2D3047;
 }
 .game-stars-earned {
   font-size: 22px; letter-spacing: 2px; min-width: 72px; text-align: right;
@@ -272,13 +292,18 @@ body {
 
 .game-body {
   flex: 1; display: flex; flex-direction: column; align-items: center;
+  justify-content: safe center;
   padding: 12px 16px 48px; gap: 22px; position: relative; z-index: 1;
   overflow-y: auto;
+  min-height: 0;
 }
 /* Previously centered no-clock screens, but that pushed progress-dots off
    the top. Now all levels keep progress-dots pinned to the top like L4. */
 /* Extra breathing room between the clock and the answer choices */
 .clock-wrap { margin-bottom: 8px; }
+
+/* No-clock screens now rely on .game-body's justify-content:center to
+   position content vertically — no extra margin needed on the digital target. */
 
 /* Progress dots */
 .progress-dots {
@@ -306,20 +331,26 @@ body {
 }
 .digital-target {
   font-family: 'Fredoka', sans-serif;
-  font-size: 52px; font-weight: 700; color: #2D3047; letter-spacing: 4px;
-  background: white; border-radius: 20px; padding: 8px 28px;
-  border: 4px solid #FFD93D;
+  font-size: 88px; font-weight: 700; color: #2D3047; letter-spacing: 6px;
+  background: white; border-radius: 20px; padding: 18px 48px;
+  border: 6px solid #FFD93D;
   box-shadow: 0 6px 0 #e6c200, 0 8px 20px rgba(0,0,0,0.1);
-  min-width: 180px; min-height: 87px; box-sizing: border-box;
+  min-width: 280px; min-height: 140px; box-sizing: border-box;
   display: flex; align-items: center; justify-content: center;
   text-align: center;
 }
 .digital-target.hidden-target { opacity: 0; pointer-events: none; }
-.digital-target.digital-target--xl {
-  font-size: 88px; letter-spacing: 6px;
-  padding: 18px 48px; min-width: 280px; min-height: 140px;
-  border-width: 6px;
-  margin-bottom: 18px;
+/* When the digital target is hidden (read levels: L1–L3 etc.), collapse its
+   wrapper so the new large (140px) digital block doesn't reserve empty space
+   above the clock. Only the wrapper <div> — no id/class — needs hiding. */
+.game-body > div:has(> .digital-target.hidden-target) { display: none; }
+/* L4 "Set the clock" — the analog clock is the focus (user drags the hands);
+   the digital target is a small reference badge, not the hero element. */
+.digital-target.digital-target--compact {
+  font-size: 56px; letter-spacing: 4px;
+  padding: 10px 32px;
+  min-width: 200px; min-height: 96px;
+  border-width: 4px;
 }
 
 /* Clock wrapper — pillow style.
@@ -334,6 +365,22 @@ body {
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
   transform: translateZ(0);
+}
+/* iOS Safari rasterizes SVG at tile granularity. When the clock hands rotate
+   (transform="rotate(…)" updated per frame), a stale red/blue sliver can
+   linger at tile seams — visible at 1x but disappears the moment you
+   pinch-zoom (forces re-rasterization at higher resolution).
+   Fix: promote each hand to its own compositor layer and force precise
+   geometric rendering so the browser redraws instead of reusing tile caches. */
+.clock-wrap svg, .tut-visual svg, #tour-clock-wrap svg {
+  shape-rendering: geometricPrecision;
+}
+.clock-wrap svg [id^="hand-"], .clock-wrap svg [data-role^="hand-"],
+.tut-visual svg [id^="hand-"], .tut-visual svg [data-role^="hand-"],
+#tour-clock-wrap svg [id^="hand-"], #tour-clock-wrap svg [data-role^="hand-"] {
+  will-change: transform;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
 }
 /* Drop-shadow on an inner wrapper so the shake animation doesn't animate a
    filtered element (another known iOS compositor artifact source). */
@@ -411,7 +458,14 @@ body {
   text-align: center;
   min-height: 26px; margin: 4px 0 0; padding: 0;
 }
-#read-feedback.hidden { visibility: hidden; }
+/* Stay in the flex flow (reserving the min-height slot) when hidden — the
+   generic .hidden { display:none !important } would collapse it and shift
+   choices/confirm up and down as the "Try again!" text toggles. */
+#read-feedback.hidden { display: block !important; visibility: hidden; }
+/* Set mode has its own feedback-msg inside #set-controls, so read-feedback
+   is never shown there — collapse the reserved slot so it doesn't add
+   empty space above the confirm button. */
+.game-body:has(#choices.hidden) #read-feedback.hidden { display: none !important; }
 .hint-msg { font-size: 16px; color: #888; min-height: 22px; }
 
 /* Read prompt */
@@ -447,18 +501,18 @@ body {
   position: relative;
 }
 .tut-level-tag {
-  font-size: 13px; font-weight: 700; color: #4ECDC4;
+  font-size: 15px; font-weight: 700; color: #4ECDC4;
   background: #e8fffe; border-radius: 20px; padding: 4px 14px;
   display: inline-block; margin-bottom: 8px;
 }
 .tut-title {
   font-family: 'Fredoka', sans-serif;
-  font-size: 26px; font-weight: 700; color: #2D3047; line-height: 1.2;
+  font-size: 30px; font-weight: 700; color: #2D3047; line-height: 1.2;
   margin-bottom: 12px;
 }
 .tut-visual { position: relative; display: inline-block; margin-bottom: 4px; }
 .tut-text {
-  font-size: 18px; line-height: 1.7; color: #444; margin-bottom: 8px;
+  font-size: 20px; line-height: 1.7; color: #444; margin-bottom: 8px;
   white-space: pre-line; text-align: left; max-width: 320px; margin-left: auto; margin-right: auto;
 }
 .tut-bullet {
@@ -468,7 +522,7 @@ body {
 }
 .tut-bullet::before {
   content: '•'; position: absolute; left: 4px; top: 0;
-  color: #4ECDC4; font-weight: 700; font-size: 20px; line-height: 1.7;
+  color: #4ECDC4; font-weight: 700; font-size: 22px; line-height: 1.7;
 }
 .tut-bullet.tut-sub { padding-left: 44px; }
 .tut-bullet.tut-sub::before { content: '–'; left: 26px; color: #888; }
@@ -488,7 +542,7 @@ body {
 .num-pairs > span > b:nth-child(3) { text-align: center; color: #FF6B9D; }
 .num-pairs > span > span:last-child { padding-left: 4px; font-size: 16px; color: #555; font-weight: 600; }
 .tut-rule {
-  font-size: 17px; color: #2D3047; background: #FFF8D6;
+  font-size: 19px; color: #2D3047; background: #FFF8D6;
   border-radius: 12px; padding: 14px 18px 16px;
   border-left: 5px solid #FFD93D;
   font-weight: 700; text-align: left;
@@ -622,7 +676,7 @@ body {
 /* Timer pill pinned top-right of the game body for Level 14 Ultimate Test */
 .game-body { position: relative; }
 .ultimate-timer {
-  position: absolute; top: 8px; right: 48px; z-index: 5;
+  position: absolute; top: 8px; right: 8px; z-index: 5;
   font-family: 'Fredoka', sans-serif;
   font-size: 32px; font-weight: 700;
   color: white; background: #FF6B9D;
@@ -693,6 +747,61 @@ body {
   transition: transform 0.1s; display: block; width: 100%;
 }
 .next-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #d94f7e; }
+
+/* ══════════════════════════════════════
+   RESET CONFIRM OVERLAY
+══════════════════════════════════════ */
+#overlay-reset {
+  position: fixed; inset: 0;
+  background: rgba(45,48,71,0.65);
+  display: flex; align-items: center; justify-content: center; z-index: 110;
+  backdrop-filter: blur(4px);
+}
+.reset-card {
+  background: white; border-radius: 32px; padding: 32px 26px 28px;
+  text-align: center; max-width: 360px; width: 92%;
+  border: 5px solid #E63946;
+  box-shadow: 0 12px 0 #b82c38, 0 16px 48px rgba(0,0,0,0.2);
+  animation: complete-slide-in 0.4s cubic-bezier(0.175,0.885,0.32,1.275);
+  position: relative;
+}
+.reset-title {
+  font-family: 'Fredoka', sans-serif;
+  font-size: 28px; font-weight: 700; color: #E63946; margin-bottom: 14px;
+  line-height: 1.15;
+}
+.reset-warning {
+  font-family: 'Fredoka', sans-serif;
+  font-size: 16px; font-weight: 600; color: #2D3047;
+  line-height: 1.45;
+  margin: 4px 8px 22px;
+}
+.reset-actions {
+  display: flex; flex-direction: column; gap: 12px;
+}
+.reset-cancel-btn, .reset-confirm-btn {
+  border: none; border-radius: 24px;
+  font-family: 'Fredoka', sans-serif;
+  font-size: 20px; font-weight: 600; padding: 14px 20px;
+  cursor: pointer; min-height: 58px;
+  transition: transform 0.1s;
+  color: white;
+  width: 100%;
+}
+.reset-cancel-btn {
+  background: #4ECDC4;
+  box-shadow: 0 6px 0 #2ea89e;
+}
+.reset-cancel-btn:active {
+  transform: translateY(4px); box-shadow: 0 2px 0 #2ea89e;
+}
+.reset-confirm-btn {
+  background: #E63946;
+  box-shadow: 0 6px 0 #b82c38;
+}
+.reset-confirm-btn:active {
+  transform: translateY(4px); box-shadow: 0 2px 0 #b82c38;
+}
 
 /* ══════════════════════════════════════
    CONFETTI
@@ -839,7 +948,7 @@ body {
   .lang-btn { font-size: 15px; padding: 6px 12px; min-height: 36px; min-width: 56px; }
 
   /* Shrink the bottom map padding so levels fit */
-  .world-map { padding: 8px 8px; }
+  .world-map { padding: 8px 8px 22px; }
 
   /* Level grid — tighter gutters on narrow screens; tile sizing is driven by the CSS grid */
   .level-stops { gap: 6px 6px; max-width: 100%; }
@@ -863,7 +972,7 @@ body {
   /* ── Game screen ── */
   .game-header { padding: 8px 16px; }
   .back-btn { font-size: 15px; padding: 6px 12px; min-height: 36px; min-width: 44px; }
-  .game-level-label { font-size: 14px; }
+  .game-level-label { font-size: 17px; }
   .game-stars-earned { font-size: 16px; min-width: 56px; }
   .help-btn { width: 30px; height: 30px; font-size: 17px; }
 
@@ -875,18 +984,21 @@ body {
 
   /* Digital time display */
   .digital-target {
-    font-size: 32px;
-    padding: 6px 16px;
-    min-width: 120px;
-    min-height: 58px;
-    border-width: 3px;
-    border-radius: 14px;
-  }
-  .digital-target.digital-target--xl {
     font-size: 50px;
+    letter-spacing: 4px;
     padding: 8px 24px;
     min-width: 180px;
     min-height: 84px;
+    border-width: 4px;
+    border-radius: 14px;
+  }
+  .digital-target.digital-target--compact {
+    font-size: 34px;
+    letter-spacing: 3px;
+    padding: 6px 18px;
+    min-width: 130px;
+    min-height: 60px;
+    border-width: 3px;
   }
 
   /* Choice buttons — narrower grid with side margins so text doesn't hug screen edge */
@@ -912,9 +1024,9 @@ body {
   /* ── Tutorial screen ── */
   .tutorial-body { padding: 12px 16px 90px; gap: 28px; }
   .tut-card { padding: 14px 14px 12px; border-width: 4px; border-radius: 18px; }
-  .tut-title { font-size: 20px; margin-bottom: 8px; }
-  .tut-text { font-size: 15px; line-height: 1.55; }
-  .tut-rule { font-size: 14px; padding: 10px 14px 12px; margin-top: 8px; }
+  .tut-title { font-size: 23px; margin-bottom: 8px; }
+  .tut-text { font-size: 17px; line-height: 1.55; }
+  .tut-rule { font-size: 16px; padding: 10px 14px 12px; margin-top: 8px; }
   .tut-example { font-size: 28px; padding: 6px 16px; border-radius: 12px; }
   .num-pairs { font-size: 18px; padding: 10px 12px; gap: 6px 16px; }
   .num-pairs > span {
@@ -952,12 +1064,12 @@ body {
   .game-body { gap: 7px; padding: 6px 16px 72px; }
   .home-header { height: 50px; padding: 6px 12px; }
   .home-title { font-size: 20px; }
-  .world-map { padding: 4px 8px; }
+  .world-map { padding: 4px 8px 18px; }
   .level-stops { gap: 4px 4px; }
   .tutorial-body { padding: 8px 16px 72px; gap: 20px; }
   .tut-card { padding: 10px 12px 10px; }
-  .tut-title { font-size: 18px; margin-bottom: 6px; }
-  .tut-text { font-size: 14px; }
+  .tut-title { font-size: 21px; margin-bottom: 6px; }
+  .tut-text { font-size: 16px; }
   .tut-footer { padding: 8px 12px; }
   .tour-body { padding: 8px 16px 72px; gap: 8px; }
   .tour-step-text { font-size: 18px; padding: 10px 12px; min-height: 64px; }
@@ -1054,9 +1166,9 @@ body {
       <div class="digital-target" id="digital-target"></div>
     </div>
     <div class="clock-wrap" id="clock-wrap"></div>
-    <div class="feedback-msg hidden" id="read-feedback"></div>
+    <div id="read-prompt"></div>
     <div class="choices hidden" id="choices"></div>
-    <div id="read-prompt" style="font-size:22px;font-weight:700;color:#2D3047;text-align:center;min-height:30px;"></div>
+    <div class="feedback-msg hidden" id="read-feedback"></div>
     <div class="hidden" id="set-controls">
       <div class="feedback-msg" id="feedback-msg"></div>
       <div class="hint-msg" id="hint-msg"></div>
@@ -1092,6 +1204,18 @@ body {
     <div class="complete-title" id="complete-title"></div>
     <div class="complete-stars" id="complete-stars"></div>
     <button class="next-btn" id="next-btn" onclick="goNextLevel()"></button>
+  </div>
+</div>
+
+<!-- RESET CONFIRM OVERLAY -->
+<div id="overlay-reset" class="hidden">
+  <div class="reset-card">
+    <div class="reset-title" id="reset-title"></div>
+    <div class="reset-warning" id="reset-warning"></div>
+    <div class="reset-actions">
+      <button class="reset-confirm-btn" id="reset-confirm-btn" onclick="doReset()"></button>
+      <button class="reset-cancel-btn" id="reset-cancel-btn" onclick="hideResetOverlay()"></button>
+    </div>
   </div>
 </div>
 
@@ -1172,6 +1296,10 @@ const S = {
     locked:'未解鎖',
     reset:'重設進度',
     resetConfirm:'確定重設所有進度？',
+    resetTitle:'⚠️ 重設進度',
+    resetWarning:'這會清除所有關卡星星與進度，無法復原。除非你確定，否則不要按。',
+    resetCancel:'取消',
+    resetConfirmBtn:'確定重設',
     whatTime:'現在是幾點？',
     whatHour:'時針指向哪個數字？',
     whatOclock:'現在幾點？',
@@ -1218,7 +1346,7 @@ const S = {
     l6tutTitle:'分針指哪個數字？',
     l6tutText:'• 分針指 <b>12</b> → <b>0 分</b>\n• 分針指 <b>3</b> → <b>15 分</b>\n• 分針指 <b>6</b> → <b>30 分</b>\n• 分針指 <b>9</b> → <b>45 分</b>',
     l6tutRule:'12→0, 3→15, 6→30, 9→45',
-    l6hint:'答案只有 0、15、30、45。',
+    l6hint:'看藍色長針（分針）：指 12 = 0 分、指 3 = 15 分、指 6 = 30 分、指 9 = 45 分。',
     l7tutTitle:'⭐ 每個數字 = 5 分鐘',
     l7tutText:'• 分針指一個數字 → <b>數字 × 5 = 分</b>\n<div class="num-pairs"><span><b>1</b><i>→</i><b>5</b><span>分</span></span><span><b>2</b><i>→</i><b>10</b><span>分</span></span><span><b>3</b><i>→</i><b>15</b><span>分</span></span><span><b>6</b><i>→</i><b>30</b><span>分</span></span><span><b>9</b><i>→</i><b>45</b><span>分</span></span><span><b>12</b><i>→</i><b>0</b><span>分</span></span></div>',
     l7tutRule:'數字 × 5 = 分',
@@ -1245,13 +1373,13 @@ const S = {
     l13tutRule:'哪個鐘顯示這個時間？',
     l13matchPrompt:'哪個鐘顯示這個時間？',
     l15tutTitle:'🏆 終極測試',
-    l15tutText:'• 10 條題目全都來了\n• 有讀鐘、配對、24小時制\n• 只有 <b>90 秒</b>，時間到就要重來！',
+    l15tutText:'• 10 道題目全都來了\n• 有讀鐘、配對、24小時制\n• 只有 <b>90 秒</b>，時間到就要重來！',
     l15tutRule:'⏱️ 90秒內答完 10 題！',
     timeOutTitle:'⏰ 時間到！',
     timeOutMsg:'再試一次，你可以的！',
     tryAgainBtn:'再試一次',
     l14tutTitle:'🌙 24小時制',
-    l14tutText:'一天有24個小時。上午用 1–12，下午也可以用 13–24 來表示，這叫「24小時制」。',
+    l14tutText:'一天有24個小時。上午用 1–12，下午用 13–24，這叫「24小時制」。',
     l14tutRule:'公式：下午時間 = 24小時數字 − 12',
     l14subtitle1:'把 24小時制 轉成下午時間',
     l14subtitle2:'把下午時間寫成 24小時制',
@@ -1259,7 +1387,7 @@ const S = {
     l14pm:'下午',
     l14am:'上午',
     l14what12:'12小時制是幾點？',
-    l14what24:'24小時制怎樣寫？',
+    l14what24:'24小時制怎麼寫？',
     l14formula:'公式：減 12',
     l14dayHas24:'一天有24個小時',
     l14hint1:'13 = 下午 1 點',
@@ -1269,22 +1397,22 @@ const S = {
     l14setPrompt:'設定時鐘顯示',
     level95name:'找不同',
     l95tutTitle:'🔍 找不同的那個',
-    l95tutText:'• 3個鐘顯示同一個時間\n• 1個鐘顯示不同的時間\n• 找出那個不同的鐘！',
+    l95tutText:'• 3個鐘顯示同一時間\n• 1個鐘顯示不同的時間\n• 找出那個不同的鐘！',
     l95tutRule:'找出那個不同的鐘',
-    l1hint:'紅色短針是時針，藍色長針是分針。',
-    l2hint:'紅色短針指向哪個數字，就是幾點。',
-    l3hint:'時針指 3 → 3 點鐘。加「點」就是答案。',
-    l4hint:'看目標時間，把紅色短針拖到那個數字。',
-    l5hint:'「：」前面是時，「：」後面是分。',
-    l7hint:'每個數字等於 5 分鐘。指向 6 就是 6×5 = 30 分。',
-    l8hint:'公式：數字 × 5 + 小格數 = 分鐘。例：過 1 再 3 格 = 8 分。',
-    l9hint:'時針在兩個數字中間時，讀較小的那個。時針還沒到達下一個數字。',
-    l10hint:'時針 + 分針一起看。先看時針是幾點，再看分針是幾分。',
-    l11hint:'分針過了一個數字多幾分？公式：數字 × 5 + 多幾分 = 分鐘。',
-    l12hint:'先拖分針到位置，時針會跟著慢慢移動。',
-    l13hint:'先讀上方時間，再找下方顯示相同時間的鐘。',
-    l14hint:'公式：24 小時制數字 − 12 = 下午時間。',
-    l15hint:'慢慢來 — 先看紅色時針幾點，再看藍色分針幾分。',
+    l1hint:'紅色短針是時針（看幾點），藍色長針是分針（看幾分）。',
+    l2hint:'找紅色短針。它指向哪個數字，就是幾點。',
+    l3hint:'看紅色短針指哪個數字，把那個數字寫成「數字:00」。例：指 3 → 3:00。',
+    l4hint:'先看題目要的數字，再把紅色短針拖到那個數字上。',
+    l5hint:'找「：」符號。前面的數字是時，後面的數字是分。',
+    l7hint:'看藍色分針指向哪個數字，把那個數字 × 5 就是答案。例：指 4 → 4 × 5 = 20 分。',
+    l8hint:'先看分針剛過了哪個大數字，那個數字 × 5，再加上後面的小格數。例：過了 1 再 3 格 → 1 × 5 + 3 = 8 分。',
+    l9hint:'紅色時針如果在兩個數字中間，讀較小的那個。它還沒走到下一個數字。',
+    l10hint:'先看紅色短針讀出幾點，再看藍色長針讀出幾分，合起來寫成「時:分」。',
+    l11hint:'看分針剛過的大數字，再數後面的小格數。公式：數字 × 5 + 小格 = 分鐘。',
+    l12hint:'先拖藍色分針到正確位置，紅色時針會自己慢慢跟著移動。',
+    l13hint:'先讀上方顯示的時間，再從下方 4 個鐘裡挑出指針對應那個時間的鐘。',
+    l14hint:'數字大於 12 → 減 12 就是下午時間；數字是 12 或以下 → 就是上午時間。',
+    l15hint:'慢慢來，一步一步：先看紅色短針讀幾點，再看藍色長針讀幾分。',
     oddOneOutPrompt:'找出不同的那個鐘！',
     whatTickMinutes:'分針指向這裡，過了多少分鐘？',
     hintHour:'移動 時針',
@@ -1309,7 +1437,6 @@ const S = {
     oops4:'嗯…再想想？',
     oops5:'加油！',
     oops6:'慢慢來～',
-    oops7:'快到了！',
     tickyLetMe:'我教你！',
     tickyThink:'想一想...',
     tickyCheer:'你真棒！',
@@ -1328,6 +1455,10 @@ const S = {
     locked:'Locked',
     reset:'Reset Progress',
     resetConfirm:'Reset all progress?',
+    resetTitle:'⚠️ Reset Progress',
+    resetWarning:"This will erase all your stars and progress. This cannot be undone. Don't do this unless you're sure.",
+    resetCancel:'Cancel',
+    resetConfirmBtn:'Yes, Reset',
     whatTime:'What time is it?',
     whatHour:'Which number does the hour hand point at?',
     whatOclock:'What hour is it?',
@@ -1369,26 +1500,26 @@ const S = {
     l5AskHour:'What is the hour?',
     l5AskMin:'What is the minute?',
     l5tutTitle:'🕒 What Does "3:00" Mean?',
-    l5tutText:'• Before the <b>:</b> = the <b>hour</b>\n• After the <b>:</b> = the <b>minutes</b>\n• Example: <b>3:00</b> = 3 hour, 0 min',
+    l5tutText:'• Before the <b>:</b> = the <b>hour</b>\n• After the <b>:</b> = the <b>minutes</b>\n• Example: <b>3:00</b> = 3 hours, 0 min',
     l5tutRule:'Before ":" = hour, after ":" = minutes',
     l6tutTitle:'Where does the minute hand point?',
     l6tutText:'• Minute hand at <b>12</b> → <b>0 min</b>\n• Minute hand at <b>3</b> → <b>15 min</b>\n• Minute hand at <b>6</b> → <b>30 min</b>\n• Minute hand at <b>9</b> → <b>45 min</b>',
     l6tutRule:'12→0, 3→15, 6→30, 9→45',
-    l6hint:'The answer is 0, 15, 30, or 45.',
+    l6hint:'Look at the long blue minute hand. On 12 = 0 min. On 3 = 15. On 6 = 30. On 9 = 45.',
     l7tutTitle:'⭐ Each Number = 5 Minutes',
     l7tutText:'• Minute hand at a number → <b>number × 5 = min</b>\n<div class="num-pairs"><span><b>1</b><i>→</i><b>5</b><span>min</span></span><span><b>2</b><i>→</i><b>10</b><span>min</span></span><span><b>3</b><i>→</i><b>15</b><span>min</span></span><span><b>6</b><i>→</i><b>30</b><span>min</span></span><span><b>9</b><i>→</i><b>45</b><span>min</span></span><span><b>12</b><i>→</i><b>0</b><span>min</span></span></div>',
     l7tutRule:'number × 5 = minutes',
     l8tutTitle:'⏱ Each Tick = 1 min',
-    l8tutText:'• There are <b>4 ticks</b> between big numbers\n• Each tick = <b>1 min</b>\n• Past a number → <b>number × 5 + ticks</b>\n• Ex: past 1, +3 ticks = 5 + 3 = <b>8 min</b>',
+    l8tutText:'• There are <b>4 ticks</b> between big numbers\n• Each tick = <b>1 min</b>\n• Past a number → <b>number × 5 + ticks</b>\n• Example: past 1, +3 ticks = 5 + 3 = <b>8 min</b>',
     l8tutRule:'number × 5 + ticks = min',
     l9tutTitle:'Hour Hand Between Numbers',
-    l9tutText:'• Hand AT a number → that number ✓\n　(e.g. at 3 = 3 o\'clock)\n• Hand <b>between</b> two numbers → read the <b>smaller</b>\n　(e.g. 3:30 → hand between 3 & 4 → still 3 o\'clock)',
+    l9tutText:'• Hand at a number → that number ✓\n　(e.g. at 3 = 3 o\'clock)\n• Hand <b>between</b> two numbers → read the <b>smaller</b>\n　(e.g. 3:30 → hand between 3 & 4 → still 3 o\'clock)',
     l9tutRule:'Hour hand between two numbers → read the SMALLER one',
     l10tutTitle:'Read the Clock: Both Hands',
     l10tutText:"• Reading a clock means looking at <b>both hands</b>\n• First the <b>hour hand</b> (red short) → what hour\n• Then the <b>minute hand</b> (blue long) → how many minutes\n• Example: hour between 3 and 4, minute at 6 → 3:30",
     l10tutRule:'Both hands together → full time',
     l11tutTitle:'Read Any Time',
-    l11tutText:'• The minute hand may not land exactly on a number\n• Minute hand <b>between</b> numbers: formula = number × 5 + extra\n• Example: 2 past number 3 → 3 × 5 + 2 = <b>17 min</b>\n• Example: 4 past number 8 → 8 × 5 + 4 = <b>44 min</b>',
+    l11tutText:'• The minute hand may not land exactly on a number\n• Minute hand <b>between</b> numbers: formula = number × 5 + extra\n• Example: 2 past the 3 → 3 × 5 + 2 = <b>17 min</b>\n• Example: 4 past the 8 → 8 × 5 + 4 = <b>44 min</b>',
     l11tutRule:'number × 5 + extra = minutes',
     l4tutTitle:'🕐 Set the Hour Hand',
     l4tutText:'Drag the short red hand (hour hand) to the right number.',
@@ -1407,7 +1538,7 @@ const S = {
     timeOutMsg:'Try again — you got this!',
     tryAgainBtn:'Try Again',
     l14tutTitle:'🌙 24-Hour Time',
-    l14tutText:'A day has 24 hours. The morning uses 1–12, and the afternoon can also be written as 13–24. This is called "24-hour time".',
+    l14tutText:'A day has 24 hours. Morning uses 1–12; afternoon uses 13–24. This is called "24-hour time".',
     l14tutRule:'The Rule: PM time = 24-hour number − 12',
     l14subtitle1:'Convert 24-hour to afternoon time',
     l14subtitle2:'Write afternoon time in 24-hour',
@@ -1427,20 +1558,20 @@ const S = {
     l95tutTitle:'🔍 Find the Different One',
     l95tutText:'• 3 clocks show the same time\n• 1 clock shows a different time\n• Find the different clock!',
     l95tutRule:'Find the clock that is different',
-    l1hint:'Red short hand = hour. Blue long hand = minute.',
-    l2hint:'The red short hand points to a number — that is the hour.',
-    l3hint:"Hour hand at 3 → 3 o'clock. Just add 'o'clock' to the number.",
-    l4hint:'Read the target hour, then drag the red short hand to that number.',
-    l5hint:'Before the ":" is hours, after the ":" is minutes.',
-    l7hint:'Each number means ×5 minutes. If it points at 6, that is 6×5 = 30.',
-    l8hint:'Formula: number × 5 + extra ticks = minutes. Ex: past 1, +3 ticks = 8 min.',
-    l9hint:'When the hour hand is between two numbers, read the SMALLER one. It has not reached the next number yet.',
-    l10hint:'Look at both hands. First hour, then minutes.',
-    l11hint:'How many ticks past the number? Formula: number × 5 + extra ticks = minutes.',
-    l12hint:'Drag the minute hand first — the hour hand follows along.',
-    l13hint:'Read the time shown at the top, then find the clock that matches it.',
-    l14hint:'Formula: 24-hour number − 12 = PM time.',
-    l15hint:'Take it slow — read the red hour hand first, then the blue minute hand.',
+    l1hint:'The short red hand is the hour hand. The long blue hand is the minute hand.',
+    l2hint:'Find the short red hand. Whatever number it points to is the hour.',
+    l3hint:"Read the number the short red hand points to, then write it as 'number:00'. Example: points at 3 → 3:00.",
+    l4hint:'Look at the target number, then drag the short red hand until it points at that number.',
+    l5hint:'Find the colon (:). The number before it is the hour. The number after it is the minutes.',
+    l7hint:'Find the number the blue minute hand points to, then multiply it by 5. Example: points at 4 → 4 × 5 = 20 min.',
+    l8hint:'First find the last big number the minute hand passed. Multiply it by 5, then add the small ticks after it. Example: past 1, +3 ticks → 1 × 5 + 3 = 8 min.',
+    l9hint:'If the short red hand sits between two numbers, read the smaller one. It has not reached the next number yet.',
+    l10hint:'Read the hour first from the short red hand. Then read the minutes from the long blue hand. Put them together as hour:minutes.',
+    l11hint:'Find the last big number the minute hand passed, and count the small ticks after it. Minutes = number × 5 + extra ticks.',
+    l12hint:'Drag the blue minute hand to the right spot first. The red hour hand will drift along on its own.',
+    l13hint:'Read the time written at the top. Then pick the clock below whose hands show that same time.',
+    l14hint:'If the number is bigger than 12, subtract 12 → that is the PM time. If it is 12 or less, it is already the AM time.',
+    l15hint:'Take it one step at a time. Read the short red hand for the hour, then the long blue hand for the minutes.',
     oddOneOutPrompt:'Find the different clock!',
     whatTickMinutes:'Minute hand here — how many minutes passed?',
     hintHour:'Move hour hand',
@@ -1465,7 +1596,6 @@ const S = {
     oops4:'Hmm, think again?',
     oops5:'Keep going!',
     oops6:'Take your time~',
-    oops7:'Almost there!',
     tickyLetMe:'Let me show you!',
     tickyThink:'Hmm...',
     tickyCheer:"You're amazing!",
@@ -1477,10 +1607,34 @@ function t(k) { const v = S[state.lang][k]; return v !== undefined ? v : k; }
 // ═══════════════════════════════════════════════════════
 // STATE
 // ═══════════════════════════════════════════════════════
-let state = { lang: 'zh', progress: {}, version: 8 };
-function saveState() { localStorage.setItem('clockgame_v8', JSON.stringify(state)); }
-function loadState() {
-  const s = localStorage.getItem('clockgame_v8');
+let state = { lang: /^zh/.test(navigator.language) ? 'zh' : 'en', progress: {}, version: 8 };
+
+// CrazyGames SDK Data Module with LocalStorage fallback for local dev
+const storage = {
+  useSdk: false,
+  async init() {
+    if (window.CrazyGames?.SDK) {
+      try { await window.CrazyGames.SDK.init(); this.useSdk = true; }
+      catch(e) {}
+    }
+  },
+  async getItem(k) {
+    if (this.useSdk) {
+      try { return await window.CrazyGames.SDK.data.getItem(k); } catch(e) {}
+    }
+    return localStorage.getItem(k);
+  },
+  setItem(k, v) {
+    if (this.useSdk) {
+      try { window.CrazyGames.SDK.data.setItem(k, v); return; } catch(e) {}
+    }
+    localStorage.setItem(k, v);
+  }
+};
+
+function saveState() { storage.setItem('clockgame_v8', JSON.stringify(state)); }
+async function loadState() {
+  const s = await storage.getItem('clockgame_v8');
   if (s) { try { const p = JSON.parse(s); if (p.version === 8) state = p; } catch(e){} }
 }
 
@@ -1594,7 +1748,7 @@ function randomHappy() {
   return t(keys[Math.floor(Math.random() * keys.length)]);
 }
 function randomOops() {
-  const keys = ['oops1','oops2','oops3','oops4','oops5','oops6','oops7'];
+  const keys = ['oops1','oops2','oops3','oops4','oops5','oops6'];
   return t(keys[Math.floor(Math.random() * keys.length)]);
 }
 
@@ -1647,8 +1801,8 @@ function showHome() {
   document.getElementById('screen-home').classList.remove('hidden');
   setMinuteHandVisible(true);
   renderHome();
-  // Ticky greeting
-  setTimeout(() => tickySayKey('tickyHi', 'idle', 3000), 600);
+  // Ticky greeting — no delay so the bubble text swaps instantly on screen switch
+  tickySayKey('tickyHi', 'idle', 3000);
 }
 
 // Map layout: positions for 10 stops in winding path
@@ -1731,16 +1885,44 @@ function renderHome() {
 function toggleLang() {
   state.lang = state.lang === 'zh' ? 'en' : 'zh';
   saveState();
-  if (!document.getElementById('screen-home').classList.contains('hidden')) renderHome();
-  else if (!document.getElementById('screen-game').classList.contains('hidden')) { renderGameHeader(); rerenderChoiceText(); }
-  else if (!document.getElementById('screen-tutorial').classList.contains('hidden')) renderTutorial(currentLevel);
+  if (!document.getElementById('overlay-reset').classList.contains('hidden')) {
+    document.getElementById('reset-title').textContent = t('resetTitle');
+    document.getElementById('reset-warning').textContent = t('resetWarning');
+    document.getElementById('reset-confirm-btn').textContent = t('resetConfirmBtn');
+    document.getElementById('reset-cancel-btn').textContent = t('resetCancel');
+  }
+  if (!document.getElementById('screen-home').classList.contains('hidden')) {
+    renderHome();
+    tickySayKey('tickyHi', 'idle', 3000);
+  }
+  else if (!document.getElementById('screen-game').classList.contains('hidden')) {
+    renderGameHeader(); rerenderChoiceText();
+    tickySayKey('tickyThink', 'thinking', 15000);
+  }
+  else if (!document.getElementById('screen-tutorial').classList.contains('hidden')) {
+    renderTutorial(currentLevel);
+    tickySayKey('tickyLetMe', 'thinking', 5000);
+  }
   else if (!document.getElementById('screen-tour').classList.contains('hidden')) renderTourStep();
 }
 function confirmReset() {
-  if (confirm(t('resetConfirm'))) { state.progress = {}; saveState(); renderHome(); }
+  document.getElementById('reset-title').textContent = t('resetTitle');
+  document.getElementById('reset-warning').textContent = t('resetWarning');
+  document.getElementById('reset-confirm-btn').textContent = t('resetConfirmBtn');
+  document.getElementById('reset-cancel-btn').textContent = t('resetCancel');
+  document.getElementById('overlay-reset').classList.remove('hidden');
+}
+function hideResetOverlay() {
+  document.getElementById('overlay-reset').classList.add('hidden');
+}
+function doReset() {
+  state.progress = {};
+  saveState();
+  hideResetOverlay();
+  renderHome();
 }
 function hideAllScreens() {
-  ['screen-home','screen-game','screen-tutorial','screen-tour','overlay-complete','overlay-correct','overlay-timeout']
+  ['screen-home','screen-game','screen-tutorial','screen-tour','overlay-complete','overlay-correct','overlay-timeout','overlay-reset']
     .forEach(id => { const el = document.getElementById(id); if (el) el.classList.add('hidden'); });
   // Clear tour clock SVG so its duplicate-id hand elements don't shadow the game screen's hand elements
   const tw = document.getElementById('tour-clock-wrap');
@@ -2041,15 +2223,19 @@ function clearTourHighlights() {
   document.querySelectorAll('.hand-ring').forEach(el => el.remove());
 }
 
+function readHandAngle(handEl) {
+  const attr = handEl && handEl.getAttribute('transform');
+  const m = attr && attr.match(/rotate\(([-\d.]+)/);
+  return m ? parseFloat(m[1]) : 0;
+}
+
 function highlightHand(which) {
   const svgEl = document.getElementById('clock-svg');
   if (!svgEl) return;
   const wrap = document.getElementById('tour-clock-wrap');
   const handEl = document.getElementById(which === 'hour' ? 'hand-hour' : 'hand-min');
   if (!handEl || !wrap) return;
-  const svgTransform = handEl.getAttribute('transform') || '';
-  const match = svgTransform.match(/rotate\(([-\d.]+)/);
-  const angleDeg = match ? parseFloat(match[1]) : 0;
+  const angleDeg = readHandAngle(handEl);
   const angleRad = (angleDeg - 90) * Math.PI / 180;
   const len = which === 'hour' ? 55 : 90;
   const svgRect = svgEl.getBoundingClientRect();
@@ -2067,9 +2253,7 @@ function spawnHandSparkles(which) {
   if (!svgEl) return;
   const handEl = document.getElementById(which === 'hour' ? 'hand-hour' : 'hand-min');
   if (!handEl) return;
-  const svgT = handEl.getAttribute('transform') || '';
-  const match = svgT.match(/rotate\(([-\d.]+)/);
-  const angleDeg = match ? parseFloat(match[1]) : 0;
+  const angleDeg = readHandAngle(handEl);
   const angleRad = (angleDeg - 90) * Math.PI / 180;
   const len = which === 'hour' ? 70 : 110;
   const svgRect = svgEl.getBoundingClientRect();
@@ -2127,7 +2311,7 @@ function showTutorial(n) {
   document.getElementById('screen-tutorial').classList.remove('hidden');
   if (n === 5) renderLevel4Tutorial();
   else renderTutorial(n);
-  setTimeout(() => tickySayKey('tickyLetMe', 'thinking', 5000), 400);
+  tickySayKey('tickyLetMe', 'thinking', 5000);
 }
 
 // Reviewing the guide card mid-game — keeps qIndex intact and returns to the
@@ -2618,6 +2802,7 @@ function rerenderChoiceText() {
     else if (q.subtype === 'convert12to24') prompt.textContent = t('l14what24');
     else if (currentLevel === 2) prompt.textContent = t('whatHour');
     else if (currentLevel === 3) prompt.textContent = t('whatOclock');
+    else if (currentLevel === 1) prompt.textContent = '';
     else if (currentLevel === 5 && q.subtype === 'l4_digitalFmt') prompt.textContent = t(q.askType === 'hour' ? 'l5AskHour' : 'l5AskMin');
     else if (currentLevel === 6 || currentLevel === 7) prompt.textContent = t('whatMinutes');
     else if (currentLevel === 8) prompt.textContent = t('whatTickMinutes');
@@ -3186,7 +3371,7 @@ function showQuestion(i) {
   updateProgressDots();
 
   const dt = document.getElementById('digital-target');
-  dt.classList.remove('digital-target--xl');
+  dt.classList.toggle('digital-target--compact', currentLevel === 4);
   const gameBody = document.querySelector('#screen-game .game-body');
   if (gameBody) gameBody.classList.remove('no-clock');
 
@@ -3199,7 +3384,6 @@ function showQuestion(i) {
     dt.style.whiteSpace = 'pre-line';
     dt.textContent = q.displayDigital || '';
     dt.classList.remove('hidden-target');
-    dt.classList.add('digital-target--xl');
     showChoices(q);
     tickySay(t('tickyThink'), 'thinking', 15000);
   } else if (currentLevel === 5 && q.subtype === 'l4_digitalFmt') {
@@ -3208,7 +3392,6 @@ function showQuestion(i) {
     dt.style.whiteSpace = '';
     dt.textContent = q.displayDigital;
     dt.classList.remove('hidden-target');
-    dt.classList.add('digital-target--xl');
     showChoices(q);
     tickySay(t('tickyThink'), 'thinking', 15000);
   } else if (currentLevel === 14 && q.subtype === 'setFromPM') {
@@ -3230,7 +3413,6 @@ function showQuestion(i) {
     dt.innerHTML = '';
     dt.textContent = q.display;
     dt.classList.remove('hidden-target');
-    dt.classList.add('digital-target--xl');
     showClockTiles(q);
     tickySay(t('tickyThink'), 'thinking', 15000);
   } else if (q.type === 'read') {
@@ -3300,6 +3482,7 @@ function showChoices(q) {
   else if (q.subtype === 'convert12to24') prompt.textContent = t('l14what24');
   else if (currentLevel === 2) prompt.textContent = t('whatHour');
   else if (currentLevel === 3) prompt.textContent = t('whatOclock');
+  else if (currentLevel === 1) prompt.textContent = '';
   else if (currentLevel === 5 && q.subtype === 'l4_digitalFmt') prompt.textContent = t(q.askType === 'hour' ? 'l5AskHour' : 'l5AskMin');
   else if (currentLevel === 6 || currentLevel === 7) prompt.textContent = t('whatMinutes');
   else if (currentLevel === 8) prompt.textContent = t('whatTickMinutes');
@@ -3327,7 +3510,26 @@ function showChoices(q) {
   }
 }
 
-function getLevelHint(level) {
+function getLevelHint(level, q) {
+  const zh = state.lang === 'zh';
+  // Level 13 (clock match): teach how to read each hand, not just "pick the clock".
+  if (level === 13 || (q && q.type === 'match')) {
+    return zh
+      ? '短紅針 → 小時。長藍針：鐘面每個數字 = 5 分鐘。'
+      : 'Short red hand → hour. Long blue hand: each clock number = 5 minutes.';
+  }
+  // Level 14: direction-specific hint. Subtract-12 only helps for 24→12;
+  // converting 12→24 needs add-12 for PM times.
+  if (level === 14 && q && q.subtype === 'convert12to24') {
+    return zh
+      ? '上午 → 數字不變。下午 → 加 12（例：下午 1 點 = 13）。'
+      : 'AM → same number. PM → add 12 (e.g. 1 PM = 13).';
+  }
+  if (level === 14 && q && q.subtype === 'setFromPM') {
+    return zh
+      ? '數字大於 12 → 減 12 就是鐘面上的小時（例：15 − 12 = 3）。'
+      : 'Number > 12 → subtract 12 for the clock-face hour (e.g. 15 − 12 = 3).';
+  }
   const hintKey = 'l' + level + 'hint';
   const s = S[state.lang];
   return s[hintKey] || null;
@@ -3362,13 +3564,33 @@ function getSpecificHint(level, q) {
       ? (h24 > 12 ? `下午 ${h12}:00 → 12 + ${h12} = ${h24}，寫成 ${q.correct}。` : `上午 ${h12}:00 → 24 小時制也是 ${q.correct}。`)
       : (h24 > 12 ? `${h12}:00 PM → 12 + ${h12} = ${h24}, written as ${q.correct}.` : `${h12}:00 AM → in 24-hour, ${q.correct}.`);
   }
-  // Clock Match (L13 and L15 match sub-qs): pick the clock whose hands match the target.
+  // Clock Match (L13 and L15 match sub-qs): walk through the hand positions
+  // for THIS exact time, then name the matching clock. Handle times both on
+  // a 5-min tick (e.g. 9:30) and off a tick (e.g. 2:17) — "divide by 5" only
+  // reads cleanly when the minute is a multiple of 5.
   if (q.type === 'match' && q.choices) {
     const idx = parseInt(q.correct, 10);
     const ord = zh ? ['第一','第二','第三','第四'][idx] : ['1st','2nd','3rd','4th'][idx];
+    const h = q.hour, m = q.min;
+    const nextH = (h % 12) + 1;
+    const hourPart = m === 0
+      ? (zh ? `時針指 ${h}` : `hour on ${h}`)
+      : (zh ? `時針在 ${h} 和 ${nextH} 之間` : `hour between ${h} and ${nextH}`);
+    const mDiv5 = Math.floor(m / 5);
+    const mRem = m - mDiv5 * 5;
+    let minPart;
+    if (m === 0) {
+      minPart = zh ? `分針指 12（0 分）` : `minute on 12 (0 min)`;
+    } else if (mRem === 0) {
+      minPart = zh ? `分針指 ${mDiv5}（${m} 分）` : `minute on ${mDiv5} (${m} min)`;
+    } else {
+      minPart = zh
+        ? `分針過 ${mDiv5} 再 ${mRem} 格（${m} 分）`
+        : `minute past ${mDiv5} by ${mRem} ticks (${m} min)`;
+    }
     return zh
-      ? `目標是 ${q.display}。${ord}個鐘的時針和分針就是這個時間。`
-      : `Target is ${q.display}. The ${ord} clock shows exactly this time.`;
+      ? `${q.display} → ${hourPart}；${minPart}。${ord}個鐘。`
+      : `${q.display} → ${hourPart}; ${minPart}. ${ord} clock.`;
   }
 
   // Read-mode clock questions from here on. q.hour + q.min are the clock's hands.
@@ -3378,8 +3600,12 @@ function getSpecificHint(level, q) {
 
   if (level === 2 || level === 3) {
     return zh
-      ? `時針指向 ${h}，所以答案是 ${h}${level === 3 ? ' 點鐘' : ''}。`
-      : `The hour hand points to ${h} — that's ${h}${level === 3 ? " o'clock" : ''}.`;
+      ? (level === 3
+          ? `紅色短針指向 ${h}，所以答案是 ${h}:00。`
+          : `紅色短針指向 ${h}，所以答案是 ${h}。`)
+      : (level === 3
+          ? `The short red hand points to ${h} — so the answer is ${h}:00.`
+          : `The short red hand points to ${h} — that's ${h}.`);
   }
   if (level === 6) {
     // minute hand at one of 12/3/6/9 → 0/15/30/45
@@ -3433,7 +3659,7 @@ function getSpecificHint(level, q) {
     // Route by q.type/subtype to the matching level's hint.
     if (q.type === 'read') return getSpecificHint(10, q);
   }
-  return getLevelHint(level);
+  return getLevelHint(level, q);
 }
 
 function checkReadAnswer(chosen, q, btn) {
@@ -3461,7 +3687,7 @@ function checkReadAnswer(chosen, q, btn) {
     if (wrongCountThisQ === 1) {
       tickySay(randomOops(), 'sad', 2500);
     } else if (wrongCountThisQ === 2) {
-      const hint = getLevelHint(currentLevel);
+      const hint = getLevelHint(currentLevel, q);
       if (hint) tickySay(hint, 'thinking', 5000);
       else tickySay(randomOops(), 'sad', 2500);
     } else {
@@ -3538,7 +3764,7 @@ function checkSetAnswer() {
     if (wrongCountThisQ === 1) {
       tickySay(randomOops(), 'sad', 2500);
     } else if (wrongCountThisQ === 2) {
-      const hint = getLevelHint(currentLevel);
+      const hint = getLevelHint(currentLevel, q);
       tickySay(hint || randomOops(), 'thinking', 5000);
     } else {
       const zh = state.lang === 'zh';
@@ -3554,7 +3780,7 @@ function checkSetAnswer() {
         parts.push(`${t('hintMin')} ${cw(diff)} ${zh ? '到' : 'to'} ${minTarget}`);
       }
       const big = parts.join(zh ? '；' : '; ');
-      tickySay(big || (getLevelHint(currentLevel) || randomOops()), 'thinking', 9000);
+      tickySay(big || (getLevelHint(currentLevel, q) || randomOops()), 'thinking', 9000);
     }
   }
 }
@@ -3586,9 +3812,7 @@ function distToHand(handEl, svg, clientX, clientY) {
   const scaleX = 320 / rect.width, scaleY = 320 / rect.height;
   const px = (clientX - rect.left) * scaleX;
   const py = (clientY - rect.top) * scaleY;
-  const svgT2 = handEl.getAttribute('transform') || '';
-  const match = svgT2.match(/rotate\(([-\d.]+)/);
-  const angleDeg = match ? parseFloat(match[1]) : 0;
+  const angleDeg = readHandAngle(handEl);
   const angleRad = (angleDeg - 90) * Math.PI / 180;
   const len = handEl.id === 'hand-hour' ? 90 : 130;
   const hx = CX + Math.cos(angleRad)*len, hy = CY + Math.sin(angleRad)*len;
@@ -3857,8 +4081,11 @@ function goNextLevel() {
 // ═══════════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════════
-loadState();
-showHome();
+(async () => {
+  await storage.init();
+  await loadState();
+  showHome();
+})();
 </script>
 </body>
 </html>
