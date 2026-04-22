@@ -1308,6 +1308,10 @@ const S = {
     oops1:'差一點！',
     oops2:'再試試！',
     oops3:'沒關係！',
+    oops4:'嗯…再想想？',
+    oops5:'加油！',
+    oops6:'慢慢來～',
+    oops7:'快到了！',
     tickyLetMe:'我教你！',
     tickyThink:'想一想...',
     tickyCheer:'你真棒！',
@@ -1460,6 +1464,10 @@ const S = {
     oops1:'So close!',
     oops2:'Try again!',
     oops3:'No worries!',
+    oops4:'Hmm, think again?',
+    oops5:'Keep going!',
+    oops6:'Take your time~',
+    oops7:'Almost there!',
     tickyLetMe:'Let me show you!',
     tickyThink:'Hmm...',
     tickyCheer:"You're amazing!",
@@ -1588,7 +1596,7 @@ function randomHappy() {
   return t(keys[Math.floor(Math.random() * keys.length)]);
 }
 function randomOops() {
-  const keys = ['oops1','oops2','oops3'];
+  const keys = ['oops1','oops2','oops3','oops4','oops5','oops6','oops7'];
   return t(keys[Math.floor(Math.random() * keys.length)]);
 }
 
@@ -3327,6 +3335,109 @@ function getLevelHint(level) {
   return s[hintKey] || null;
 }
 
+// Big hint on 3rd wrong — walks through THIS question's numbers and explains
+// how to derive the correct answer, effectively giving it away so a child who
+// is stuck can still progress while seeing the reasoning.
+function getSpecificHint(level, q) {
+  const zh = state.lang === 'zh';
+  const wrap12 = x => ((x - 1 + 12) % 12) + 1;
+  const padMin = m => m.toString().padStart(2, '0');
+
+  // Level 5: digital "h:mm" — pick hour-or-minute part. q.askType, q.displayDigital.
+  if (level === 5 && q.subtype === 'l4_digitalFmt') {
+    const which = q.askType === 'hour' ? (zh ? '「：」前面' : "before the ':'") : (zh ? '「：」後面' : "after the ':'");
+    return zh
+      ? `看 ${q.displayDigital}：${which}是 ${q.correct}，所以答案是 ${q.correct}。`
+      : `In ${q.displayDigital}, ${which} is ${q.correct} — that's the answer.`;
+  }
+  // Level 14: 24-hour conversions.
+  if (level === 14 && q.subtype === 'convert24to12') {
+    const h24 = q.h24, pm = h24 >= 12, h12 = h24 > 12 ? h24 - 12 : h24;
+    const period = pm ? (zh ? '下午' : 'PM') : (zh ? '上午' : 'AM');
+    return zh
+      ? (pm ? `${h24} 大於 12 → ${h24} − 12 = ${h12}，所以是下午 ${h12}:${padMin(q.min)}。` : `${h24} 小於 12 → 就是上午 ${h24}:${padMin(q.min)}。`)
+      : (pm ? `${h24} > 12 → ${h24} − 12 = ${h12}, so it's ${h12}:${padMin(q.min)} PM.` : `${h24} is before noon → ${h24}:${padMin(q.min)} AM.`);
+  }
+  if (level === 14 && q.subtype === 'convert12to24') {
+    const h24 = q.h24, h12 = h24 > 12 ? h24 - 12 : h24;
+    return zh
+      ? (h24 > 12 ? `下午 ${h12}:00 → 12 + ${h12} = ${h24}，寫成 ${q.correct}。` : `上午 ${h12}:00 → 24 小時制也是 ${q.correct}。`)
+      : (h24 > 12 ? `${h12}:00 PM → 12 + ${h12} = ${h24}, written as ${q.correct}.` : `${h12}:00 AM → in 24-hour, ${q.correct}.`);
+  }
+  // Clock Match (L13 and L15 match sub-qs): pick the clock whose hands match the target.
+  if (q.type === 'match' && q.choices) {
+    const idx = parseInt(q.correct, 10);
+    const ord = zh ? ['第一','第二','第三','第四'][idx] : ['1st','2nd','3rd','4th'][idx];
+    return zh
+      ? `目標是 ${q.display}。${ord}個鐘的時針和分針就是這個時間。`
+      : `Target is ${q.display}. The ${ord} clock shows exactly this time.`;
+  }
+
+  // Read-mode clock questions from here on. q.hour + q.min are the clock's hands.
+  const h = q.hour, m = q.min;
+  const minNum = Math.floor(m / 5);       // which big number the minute hand is at/past
+  const extra = m % 5;                    // small ticks past that number
+
+  if (level === 2 || level === 3) {
+    return zh
+      ? `時針指向 ${h}，所以答案是 ${h}${level === 3 ? ' 點鐘' : ''}。`
+      : `The hour hand points to ${h} — that's ${h}${level === 3 ? " o'clock" : ''}.`;
+  }
+  if (level === 6) {
+    // minute hand at one of 12/3/6/9 → 0/15/30/45
+    const pos = minNum === 0 ? 12 : minNum;
+    return zh
+      ? `分針指向 ${pos} → ${m} 分。`
+      : `Minute hand at ${pos} → ${m} min.`;
+  }
+  if (level === 7) {
+    const pos = minNum === 0 ? 12 : minNum;
+    return zh
+      ? `分針指 ${pos}：${pos === 12 ? '12' : pos} × 5 = ${m} 分。`
+      : `Minute hand at ${pos}: ${pos === 12 ? 12 : pos} × 5 = ${m} min.`;
+  }
+  if (level === 8) {
+    // m is small (1–9). Decompose: pastNum × 5 + extra.
+    if (minNum === 0) {
+      return zh
+        ? `分針過了 12 ${m} 格，每格 1 分 → ${m} 分。`
+        : `${m} ticks past 12, 1 min each → ${m} min.`;
+    }
+    return zh
+      ? `過了 ${minNum} 再 ${extra} 格 → ${minNum} × 5 + ${extra} = ${m} 分。`
+      : `Past ${minNum}, +${extra} ticks → ${minNum} × 5 + ${extra} = ${m} min.`;
+  }
+  if (level === 9) {
+    if (m === 0 || q.subtype === 'l6_at') {
+      return zh ? `時針正指 ${h} → ${h} 點。` : `Hour hand on ${h} → ${h}.`;
+    }
+    const next = wrap12(h + 1);
+    return zh
+      ? `時針在 ${h} 和 ${next} 中間，讀較小 → ${h}。`
+      : `Hour between ${h} and ${next}, read smaller → ${h}.`;
+  }
+  if (level === 10 || level === 11) {
+    const hourPart = m === 0 ? `${h}` : (zh ? `${h} (時針在 ${h} 和 ${wrap12(h+1)} 中間)` : `${h} (hour between ${h} and ${wrap12(h+1)})`);
+    let minPart;
+    if (extra === 0) {
+      const pos = minNum === 0 ? 12 : minNum;
+      minPart = zh ? `分針指 ${pos} → ${pos === 12 ? '0' : pos} × 5 = ${m} 分` : `minute at ${pos} → ${pos === 12 ? 0 : pos} × 5 = ${m}`;
+    } else {
+      minPart = zh
+        ? `分針過 ${minNum} 再 ${extra} 格 → ${minNum} × 5 + ${extra} = ${m} 分`
+        : `minute past ${minNum}, +${extra} → ${minNum} × 5 + ${extra} = ${m}`;
+    }
+    return zh
+      ? `時${hourPart}，${minPart} → ${q.correct}。`
+      : `Hour ${hourPart}, ${minPart} → ${q.correct}.`;
+  }
+  if (level === 15) {
+    // Route by q.type/subtype to the matching level's hint.
+    if (q.type === 'read') return getSpecificHint(10, q);
+  }
+  return getLevelHint(level);
+}
+
 function checkReadAnswer(chosen, q, btn) {
   const allBtns = document.querySelectorAll('.choice-btn');
   allBtns.forEach(b => b.onclick = null);
@@ -3344,13 +3455,21 @@ function checkReadAnswer(chosen, q, btn) {
     btn.classList.add('wrong-ans');
     beepWrong();
     shakeClock();
-    // On 2nd miss show a Ticky level hint instead of generic oops
-    if (wrongCountThisQ >= 2) {
+    // Wrong-answer escalation:
+    //   1st wrong  → generic oops (no hint)
+    //   2nd wrong  → general level-concept hint
+    //   3rd+ wrong → specific hint for THIS question (gives the answer with
+    //                reasoning) + green glow on the correct choice
+    if (wrongCountThisQ === 1) {
+      tickySay(randomOops(), 'sad', 2500);
+    } else if (wrongCountThisQ === 2) {
       const hint = getLevelHint(currentLevel);
-      if (hint) tickySay(hint, 'thinking', 4000);
+      if (hint) tickySay(hint, 'thinking', 5000);
       else tickySay(randomOops(), 'sad', 2500);
     } else {
-      tickySay(randomOops(), 'sad', 2500);
+      const big = getSpecificHint(currentLevel, q);
+      if (big) tickySay(big, 'thinking', 9000);
+      else tickySay(randomOops(), 'sad', 2500);
     }
     const fb = document.getElementById('read-feedback');
     fb.textContent = t('wrongMsg');
@@ -3359,7 +3478,7 @@ function checkReadAnswer(chosen, q, btn) {
       btn.classList.remove('wrong-ans');
       fb.classList.add('hidden');
       allBtns.forEach(b => { b.onclick = () => { beepTap(); checkReadAnswer(b.dataset.val, q, b); }; });
-      if (wrongCountThisQ >= 2) {
+      if (wrongCountThisQ >= 3) {
         allBtns.forEach(b => {
           if (b.dataset.val === q.correct) b.classList.add('hint-highlight');
         });
