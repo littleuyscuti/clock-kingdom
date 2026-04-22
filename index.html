@@ -385,10 +385,11 @@ body {
 }
 
 #set-controls { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 4px; }
-/* Keep the "Try again!" slot (feedback-msg) at its natural min-height so the
-   text never jumps position between empty/filled states. Hint row stays
-   collapsed when empty since Ticky handles hints now. */
-#set-controls .hint-msg:empty { min-height: 0; margin: 0; padding: 0; line-height: 0; }
+/* Empty hint row is removed from flex flow entirely (display: none) so its
+   flex gap doesn't leave a phantom half-space that shifts the confirm
+   button around. feedback-msg keeps its reserved min-height so the "Try
+   again!" slot is in a stable place whether it has text or not. */
+#set-controls .hint-msg:empty { display: none; }
 
 /* Confirm / feedback */
 .confirm-btn {
