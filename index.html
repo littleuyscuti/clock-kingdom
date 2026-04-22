@@ -3529,20 +3529,30 @@ function checkSetAnswer() {
     wrongCount++; wrongCountThisQ++;
     beepWrong();
     shakeClock();
-    tickySay(randomOops(), 'sad', 2500);
     document.getElementById('feedback-msg').textContent = t('wrongMsg');
-    if (wrongCountThisQ >= 2) {
-      let hint = '';
+    document.getElementById('hint-msg').textContent = '';
+    // Same escalation as read-mode: 1st = oops, 2nd = general concept hint,
+    // 3rd = specific direction + target via Ticky.
+    if (wrongCountThisQ === 1) {
+      tickySay(randomOops(), 'sad', 2500);
+    } else if (wrongCountThisQ === 2) {
+      const hint = getLevelHint(currentLevel);
+      tickySay(hint || randomOops(), 'thinking', 5000);
+    } else {
+      const zh = state.lang === 'zh';
+      const cw = d => (d <= 180 ? t('hintCW') : t('hintCCW'));
+      const parts = [];
       if (!hOk) {
         const diff = ((targetHAngle - curHAngle) % 360 + 360) % 360;
-        hint += t('hintHour') + ' ' + (diff <= 180 ? t('hintCW') : t('hintCCW'));
+        parts.push(`${t('hintHour')} ${cw(diff)} ${zh ? '到' : 'to'} ${q.hour}`);
       }
       if (!mOk && currentLevel !== 9) {
-        if (hint) hint += '  ';
         const diff = ((targetMAngle - curMAngle) % 360 + 360) % 360;
-        hint += t('hintMin') + ' ' + (diff <= 180 ? t('hintCW') : t('hintCCW'));
+        const minTarget = q.min === 0 ? '12' : String(q.min / 5);
+        parts.push(`${t('hintMin')} ${cw(diff)} ${zh ? '到' : 'to'} ${minTarget}`);
       }
-      document.getElementById('hint-msg').textContent = hint;
+      const big = parts.join(zh ? '；' : '; ');
+      tickySay(big || (getLevelHint(currentLevel) || randomOops()), 'thinking', 9000);
     }
   }
 }
