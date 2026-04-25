@@ -268,6 +268,16 @@ body {
   border-color: #FFD93D;
   box-shadow: 0 6px 0 #e6c200, 0 8px 20px rgba(255,217,61,0.35);
 }
+.level-stop.current-level {
+  border-color: #FF6B9D;
+  border-width: 3px;
+  box-shadow: 0 4px 0 #d94f7e, 0 6px 14px rgba(255,107,157,0.35);
+  animation: current-pulse 1.5s ease-in-out infinite;
+}
+@keyframes current-pulse {
+  0%,100% { transform: translateY(0) scale(1); box-shadow: 0 4px 0 #d94f7e, 0 6px 14px rgba(255,107,157,0.35); }
+  50%      { transform: translateY(-3px) scale(1.02); box-shadow: 0 6px 0 #d94f7e, 0 9px 20px rgba(255,107,157,0.45); }
+}
 
 .lnum {
   font-family: 'Fredoka', sans-serif;
@@ -276,6 +286,7 @@ body {
 .level-stop.locked .lnum { color: #B4B8C7; }
 .level-stop.locked .lname { color: #9094A8; }
 .level-stop.completed .lnum { color: #FFD93D; }
+.level-stop.current-level .lnum { color: #FF6B9D; }
 .lname {
   font-size: 14px; color: #555; font-weight: 700;
   margin-top: 6px;
@@ -829,7 +840,6 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
   100%{ transform: scale(1) rotate(0deg); opacity: 1; }
 }
 
-
 /* ══════════════════════════════════════
    LEVEL COMPLETE OVERLAY
 ══════════════════════════════════════ */
@@ -1133,6 +1143,15 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
   }
   .level-stop.locked { box-shadow: 0 3px 0 #C5C9D8, 0 5px 10px rgba(0,0,0,0.06); }
   .level-stop.completed { box-shadow: 0 4px 0 #e6c200, 0 6px 14px rgba(255,217,61,0.35); }
+  .level-stop.current-level {
+    border-width: 2px;
+    box-shadow: 0 2px 0 #d94f7e, 0 3px 6px rgba(255,107,157,0.18);
+    animation: current-pulse-sm 1.5s ease-in-out infinite;
+  }
+  @keyframes current-pulse-sm {
+    0%,100% { transform: translateY(0) scale(1);    box-shadow: 0 2px 0 #d94f7e, 0 3px 6px rgba(255,107,157,0.18); }
+    50%      { transform: translateY(-1px) scale(1.005); box-shadow: 0 3px 0 #d94f7e, 0 4px 8px rgba(255,107,157,0.22); }
+  }
   /* Narrow mobile tiles: shrink number + label so longer names like
      "Minute Hand 1: every 15 min" fit on 2 lines without wrapping the
      first segment onto a second line (which would push content to line 3). */
@@ -1267,7 +1286,6 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
   <div class="cloud cloud-4"></div>
   <div class="cloud cloud-5"></div>
 </div>
-
 
 <!-- Tutor cursor — pink finger-dot with two expanding "tap here" rings.
      Hidden by default; shown by tutorCursorPointAt(...). -->
@@ -2034,6 +2052,11 @@ function renderHome() {
   const grid = document.getElementById('level-grid');
   grid.innerHTML = '';
 
+  // Current level = the lowest unlocked level that has zero stars (the next to play).
+  let currentLvl = null;
+  for (let n = 1; n <= TOTAL_LEVELS; n++) {
+    if (isUnlocked(n) && starsFor(n) === 0) { currentLvl = n; break; }
+  }
 
   // Build rows — 3 stops per row (4 rows for 12 levels, last row having 3)
   const PER_ROW = 3;
@@ -2051,12 +2074,14 @@ function renderHome() {
       const unlocked = isUnlocked(n);
       const stars = starsFor(n);
       const perfect = stars === 3;            // yellow — all 3 stars
+      const isCurrent = n === currentLvl;     // pink — your next level
       // Default teal/blue is used for a level that's been played but isn't perfect yet.
 
       const stop = document.createElement('div');
       stop.className = 'level-stop' +
         (!unlocked ? ' locked' : '') +
-        (perfect ? ' completed' : '');
+        (perfect ? ' completed' : '') +
+        (isCurrent ? ' current-level' : '');
 
       if (unlocked) {
         stop.onclick = () => { beepTap(); startLevel(n); };
@@ -4211,7 +4236,6 @@ function shakeClock() {
   cw.classList.add('wrong');
   setTimeout(() => cw.classList.remove('wrong'), 500);
 }
-
 
 function showCorrectPopup() {
   const overlay = document.getElementById('overlay-correct');
