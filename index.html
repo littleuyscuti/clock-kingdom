@@ -147,18 +147,50 @@ body {
 ══════════════════════════════════════ */
 .home-header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 20px;
-  background: rgba(255,255,255,0.35);
-  backdrop-filter: blur(8px);
-  height: 68px; box-sizing: border-box;
+  padding: 10px 18px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0.25));
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 2px solid rgba(255,255,255,0.55);
+  height: 72px; box-sizing: border-box;
+  gap: 10px;
 }
+.brand-lockup {
+  display: flex; align-items: center; gap: 10px;
+  min-width: 0; flex: 1;
+}
+.brand-ticky-mini {
+  width: 46px; height: 50px; flex-shrink: 0;
+  filter: drop-shadow(0 3px 4px rgba(45,48,71,0.18));
+  animation: brand-bob 3.2s ease-in-out infinite;
+}
+@keyframes brand-bob {
+  0%,100% { transform: translateY(0) rotate(-2deg); }
+  50%     { transform: translateY(-3px) rotate(2deg); }
+}
+.brand-text {
+  display: flex; flex-direction: column; min-width: 0; line-height: 1;
+}
+.brand-stars {
+  display: inline-flex; gap: 3px; margin-bottom: 3px;
+  filter: drop-shadow(0 1px 1px rgba(45,48,71,0.18));
+}
+.brand-stars svg { width: 12px; height: 12px; display: block; }
 .home-title {
   font-family: 'Fredoka', 'Noto Sans TC', sans-serif;
-  font-size: 30px; font-weight: 700; color: #2D3047;
-  letter-spacing: 1px;
-  text-shadow: 0 2px 4px rgba(255,255,255,0.8);
+  font-size: 28px; font-weight: 700; color: #2D3047;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  text-shadow: 0 2px 4px rgba(45,48,71,0.18);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  min-width: 0; flex: 1;
+  min-width: 0;
+}
+/* Chinese title — CJK glyphs render best clean, no uppercase, slightly tighter. */
+.home-title.is-cjk {
+  text-transform: none;
+  font-family: 'Noto Sans TC', 'Fredoka', sans-serif;
+  font-weight: 900;
+  letter-spacing: 2px;
 }
 .lang-btn {
   background: #FF6B9D; color: white; border: none; border-radius: 20px;
@@ -296,8 +328,8 @@ body {
   overflow: hidden; padding: 0 2px; width: 100%; box-sizing: border-box;
 }
 .stars { font-size: 15px; letter-spacing: 2px; margin-top: 4px; }
-.stars .star-on, .game-stars-earned .star-on { color: #FFD93D; -webkit-text-stroke: 1px #d4a017; }
-.stars .star-off, .game-stars-earned .star-off { color: #E2E5EE; -webkit-text-stroke: 1px #B4B8C7; }
+.stars .star-on, .game-stars-earned .star-on, .complete-stars .star-on { color: #FFD93D; -webkit-text-stroke: 1px #d4a017; }
+.stars .star-off, .game-stars-earned .star-off, .complete-stars .star-off { color: #E2E5EE; -webkit-text-stroke: 1px #B4B8C7; }
 
 .home-footer { text-align: center; padding: 12px; position: relative; z-index: 1; }
 .reset-btn {
@@ -354,7 +386,10 @@ body {
 .game-body {
   flex: 1; display: flex; flex-direction: column; align-items: center;
   justify-content: safe center;
-  padding: 12px 16px 48px; gap: 22px; position: relative; z-index: 1;
+  /* Top:6 / Bottom:72 — biases the safe-center upward so the progress
+     dots + 1/N counter sit higher under the header on every level,
+     giving the clock more breathing room below. */
+  padding: 6px 16px 72px; gap: 22px; position: relative; z-index: 1;
   overflow-y: auto;
   min-height: 0;
 }
@@ -664,7 +699,9 @@ body {
 
 /* Desktop scale-up — base CSS stays phone-first. Level grid sizes itself via clamp()+vh, so no per-tile overrides here. */
 @media (min-width: 900px) {
-  .home-title { font-size: 36px; }
+  .home-title { font-size: 34px; }
+  .brand-ticky-mini { width: 54px; height: 58px; }
+  .brand-stars svg { width: 14px; height: 14px; }
   .level-stops { max-width: 720px; }
   .tut-card { max-width: 480px; }
   .reset-btn { font-size: 16px; }
@@ -692,25 +729,31 @@ body {
 /* ══════════════════════════════════════
    GUIDED TOUR SCREEN
 ══════════════════════════════════════ */
+/* Identical to .game-body so the progress dots, counter, and clock all
+   sit at the exact same Y positions as on every other level. */
 .tour-body {
   flex: 1; display: flex; flex-direction: column; align-items: center;
-  justify-content: center; padding: 20px 16px; gap: 16px; text-align: center;
-  position: relative; z-index: 1;
+  justify-content: safe center;
+  /* Same top-biased padding as .game-body so the tour and game screens
+     position their dots/counter/clock identically. */
+  padding: 6px 16px 72px; gap: 22px;
+  text-align: center; position: relative; z-index: 1;
+  overflow-y: auto; min-height: 0;
 }
+/* Reserve the counter's line height even when blank (intro steps). Keeps
+   the progress strip a constant height so the clock below doesn't jump
+   between intro and question steps. */
+#tour-q-counter { min-height: 20px; }
 .tour-step-text {
-  font-family: 'Fredoka', sans-serif;
-  font-size: 24px; font-weight: 700; color: #2D3047; max-width: 360px; line-height: 1.35;
-  background: rgba(255,255,255,0.92);
-  border-radius: 22px;
-  padding: 14px 22px;
-  box-shadow: 0 6px 18px rgba(45,48,71,0.10), 0 1px 0 rgba(255,255,255,0.9) inset;
-  /* Fixed (not min) height so the clock doesn't shift between tour steps
-     when justify-content centers the column. Tall enough to fit a 2-row
-     step (.has-sub) without pushing the clock around between steps. */
-  height: 100px; box-sizing: border-box;
+  font-family: 'Fredoka', 'Nunito', sans-serif;
+  font-size: 30px; font-weight: 700; color: #2D3047; max-width: 420px; line-height: 1.3;
+  /* No background / box — matches #read-prompt on other levels (plain text under clock). */
+  padding: 4px 12px;
+  min-height: 38px;
   display: flex; align-items: center; justify-content: center;
   white-space: pre-line; text-align: center;
   letter-spacing: 0.2px;
+  margin: 0 auto;
 }
 /* Two-row layout for tour steps that need a primary statement + sub-action. */
 .tour-step-text.has-sub { flex-direction: column; gap: 4px; }
@@ -761,7 +804,7 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
    (classic "tap here" pulse).
 ══════════════════════════════════════ */
 .tutor-cursor {
-  /* Wrapper for the dot + the two expanding rings. */
+  /* Wrapper for the dot. */
   position: fixed;
   left: -300px; top: -300px;
   width: 44px; height: 44px;
@@ -771,15 +814,33 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
   transition: left 0.45s cubic-bezier(.4,0,.2,1),
               top  0.45s cubic-bezier(.4,0,.2,1),
               opacity 0.25s ease;
+  --tutor-color-bg: #FF6B9D;
+  --tutor-color-shadow: rgba(255,107,157,0.55);
 }
-.tutor-cursor.show { opacity: 1; }
+.tutor-cursor.show {
+  /* One full cycle = a tap:
+     1) instantly POP in at full opacity
+     2) shrink down (the press)
+     3) spring back to full size
+     4) fade out
+     5) hold invisible for a beat, then loop back to (1) */
+  animation: tutor-tap-cycle 1.6s ease-in-out infinite;
+}
+@keyframes tutor-tap-cycle {
+  0%   { opacity: 1; transform: scale(1);   }  /* instant appear */
+  12%  { opacity: 1; transform: scale(0.65);}  /* shrink — the "tap" */
+  26%  { opacity: 1; transform: scale(1);   }  /* spring back */
+  60%  { opacity: 0; transform: scale(1);   }  /* fade out */
+  100% { opacity: 0; transform: scale(1);   }  /* held invisible — gap before next pop */
+}
 .tutor-dot {
   position: absolute; inset: 0;
   border-radius: 50%;
-  background: #FF6B9D;
+  background: var(--tutor-color-bg);
   border: 4px solid white;
-  box-shadow: 0 5px 14px rgba(255,107,157,0.55);
+  box-shadow: 0 5px 14px var(--tutor-color-shadow);
 }
+.tutor-cursor .tutor-ring { display: none; }
 .tutor-dot::after {
   content: '';
   position: absolute;
@@ -792,31 +853,17 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
 .tutor-ring {
   position: absolute; inset: 0;
   border-radius: 50%;
-  border: 3px solid #FF6B9D;
+  border: 3px solid var(--tutor-color);
   pointer-events: none;
   opacity: 0;
 }
-/* Dot-only press pulse on a 0.85s loop. Rings removed — dot scale alone
-   carries the "tap here" signal.
-     0%      rest — scale 1 (full size; first paint after fade-in)
-     20%     PRESS — scale 0.78 (finger pushing down)
-     65%     released — scale 1
-     100%    rest (loops)
-   animation-delay matches the cursor's opacity transition so the first
-   visible frame is full-size, never mid-shrink. */
-.tutor-cursor.show .tutor-dot {
-  animation: tutor-dot-pulse 0.85s ease-in-out 0.25s infinite;
-}
-.tutor-ring { display: none; }
-@keyframes tutor-dot-pulse {
-  0%, 100% { transform: scale(1); }
-  20%      { transform: scale(0.78); }
-  65%      { transform: scale(1); }
-}
-/* Smaller cursor on small viewports so it doesn't bury the target */
-@media (max-height: 700px), (max-width: 360px) {
-  .tutor-cursor { width: 36px; height: 36px; }
+/* Smaller cursor on phones / short viewports so the pink-purple ring
+   doesn't bury the target. Was max-width:360px which only caught the SE —
+   widened to 500px so iPhone 12/13/14/15 etc. also get the small cursor. */
+@media (max-height: 700px), (max-width: 500px) {
+  .tutor-cursor { width: 26px; height: 26px; }
   .tutor-dot { border-width: 3px; }
+  .tutor-ring { border-width: 2px; }
 }
 
 /* ══════════════════════════════════════
@@ -907,9 +954,8 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
 .complete-stars span {
   display: inline-block; opacity: 0; transform: scale(0);
   transition: opacity 0.3s, transform 0.4s cubic-bezier(0.175,0.885,0.32,1.275);
-  color: #FFD93D;
-  filter: drop-shadow(0 0 8px rgba(255,217,61,0.8));
 }
+.complete-stars .star-on { filter: drop-shadow(0 0 8px rgba(255,217,61,0.8)); }
 .complete-stars span.pop { opacity: 1; transform: scale(1.2); }
 .complete-stars span.pop-settle { opacity: 1; transform: scale(1); }
 
@@ -1128,7 +1174,9 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
     height: 56px;
     padding: 8px 14px;
   }
-  .home-title { font-size: 22px; }
+  .home-title { font-size: 20px; letter-spacing: 1px; }
+  .brand-ticky-mini { width: 38px; height: 42px; }
+  .brand-stars svg { width: 10px; height: 10px; }
   .lang-btn { font-size: 15px; padding: 6px 12px; min-height: 36px; min-width: 56px; }
 
   /* Mobile breathing room: side padding keeps tiles away from screen
@@ -1231,7 +1279,7 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
 
   /* ── Tour screen ── */
   .tour-body { padding: 12px 16px 90px; gap: 10px; }
-  .tour-step-text { font-size: 19px; padding: 10px 16px; height: 78px; border-radius: 18px; }
+  .tour-step-text { font-size: 26px; padding: 4px 12px; min-height: 32px; height: auto; }
   .tour-step-text .ts-sub { font-size: 12px; }
   .tour-continue-btn { font-size: 18px; padding: 10px 28px; min-height: 46px; }
 
@@ -1266,7 +1314,7 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
   .tut-text { font-size: 16px; }
   .tut-footer { padding: 8px 12px; }
   .tour-body { padding: 8px 16px 72px; gap: 8px; }
-  .tour-step-text { font-size: 17px; padding: 8px 14px; height: 68px; }
+  .tour-step-text { font-size: 22px; padding: 2px 10px; min-height: 28px; height: auto; }
   .tour-step-text .ts-sub { font-size: 11px; }
   .digital-target { font-size: 34px; min-height: 56px; }
   .choice-btn { min-height: 44px; font-size: 18px; padding: 8px 6px; }
@@ -1287,13 +1335,16 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
   <div class="cloud cloud-5"></div>
 </div>
 
-<!-- Tutor cursor — pink finger-dot with two expanding "tap here" rings.
+<!-- Tutor cursor — pink dot at the hand tip that fades in and out.
      Hidden by default; shown by tutorCursorPointAt(...). -->
 <div id="tutor-cursor" class="tutor-cursor">
-  <div class="tutor-ring tutor-ring-1"></div>
-  <div class="tutor-ring tutor-ring-2"></div>
   <div class="tutor-dot"></div>
 </div>
+
+<!-- Build stamp: lets us see at a glance whether the page is fresh or cached.
+     Bumped on each iteration; if the number on screen doesn't match what's
+     in the file, the browser is showing a stale cached copy. -->
+<div id="build-stamp" style="position:fixed;bottom:6px;right:8px;font:600 11px 'Fredoka',sans-serif;color:rgba(45,48,71,0.45);background:rgba(255,255,255,0.7);padding:2px 8px;border-radius:8px;pointer-events:none;z-index:300;">v15</div>
 
 <script>
 // Debug mode: ?debug=1 in URL makes tap-target hitboxes visible (pink dashed).
@@ -1314,7 +1365,28 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
 <!-- HOME SCREEN -->
 <div id="screen-home">
   <div class="home-header">
-    <span class="home-title" id="home-title"></span>
+    <div class="brand-lockup">
+      <svg class="brand-ticky-mini" viewBox="0 0 90 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <ellipse cx="45" cy="96" rx="22" ry="4" fill="rgba(0,0,0,0.12)"/>
+        <rect x="30" y="84" width="10" height="14" rx="5" fill="#FFD93D"/>
+        <rect x="50" y="84" width="10" height="14" rx="5" fill="#FFD93D"/>
+        <rect x="4" y="46" width="14" height="8" rx="4" fill="#FFD93D" transform="rotate(-20,11,50)"/>
+        <rect x="72" y="46" width="14" height="8" rx="4" fill="#FFD93D" transform="rotate(20,79,50)"/>
+        <circle cx="45" cy="48" r="40" fill="#FFD93D"/>
+        <circle cx="45" cy="48" r="34" fill="white"/>
+        <line x1="45" y1="48" x2="45" y2="34" stroke="#E63946" stroke-width="3" stroke-linecap="round"/>
+        <line x1="45" y1="48" x2="58" y2="48" stroke="#457B9D" stroke-width="2.5" stroke-linecap="round"/>
+        <circle cx="45" cy="48" r="3" fill="#2D3047"/>
+        <ellipse cx="35" cy="40" rx="4" ry="5" fill="#2D3047"/>
+        <ellipse cx="55" cy="40" rx="4" ry="5" fill="#2D3047"/>
+        <circle cx="36.5" cy="38.5" r="1.4" fill="white"/>
+        <circle cx="56.5" cy="38.5" r="1.4" fill="white"/>
+        <path d="M34,56 Q45,64 56,56" fill="none" stroke="#2D3047" stroke-width="2.6" stroke-linecap="round"/>
+      </svg>
+      <div class="brand-text">
+        <span class="home-title" id="home-title"></span>
+      </div>
+    </div>
     <button class="lang-btn" id="lang-btn" onclick="toggleLang()"></button>
   </div>
   <div class="world-map">
@@ -1343,11 +1415,16 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
   <div class="game-header">
     <button class="back-btn" onclick="showHome()">←</button>
     <span class="game-level-label" id="tour-level-label"></span>
-    <span style="min-width:60px"></span>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span class="game-stars-earned" id="tour-stars-earned"></span>
+      <button class="help-btn" onclick="startTour()" aria-label="Restart tour">?</button>
+    </div>
   </div>
   <div class="tour-body" id="tour-body">
-    <div class="tour-step-text" id="tour-text"></div>
+    <div class="progress-dots" id="tour-progress-dots"></div>
+    <div class="question-counter" id="tour-q-counter"></div>
     <div class="tut-visual" id="tour-clock-wrap"></div>
+    <div class="tour-step-text" id="tour-text"></div>
     <div class="tour-bottom-slot">
       <div class="tour-tap-hint" id="tour-hint"></div>
       <button class="tour-continue-btn hidden" id="tour-continue-btn" onclick="tourNext()"></button>
@@ -1491,7 +1568,7 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
 // ═══════════════════════════════════════════════════════
 const S = {
   zh: {
-    title:'⏰ 時鐘王國', langBtn:'EN',
+    title:'時鐘王國', langBtn:'EN',
     level:'第', levelSuffix:'關',
     qOf:'題', qOfTotal:'/',
     back:'←',
@@ -1650,7 +1727,7 @@ const S = {
     tickyHi:'你好！',
   },
   en: {
-    title:'⏰ Clock Kingdom', langBtn:'中',
+    title:'Clock Kingdom', langBtn:'中',
     level:'Level ', levelSuffix:'',
     qOf:'Q', qOfTotal:'/',
     back:'←',
@@ -1896,6 +1973,9 @@ function starsStr(n) {
   }
   return html;
 }
+function emptyStarsStr() {
+  return '<span class="star-off">★</span>'.repeat(3);
+}
 
 // ═══════════════════════════════════════════════════════
 // TICKY MASCOT
@@ -2045,7 +2125,9 @@ const STOP_LAYOUT = [
 ];
 
 function renderHome() {
-  document.getElementById('home-title').textContent = t('title');
+  const titleEl = document.getElementById('home-title');
+  titleEl.textContent = t('title');
+  titleEl.classList.toggle('is-cjk', state.lang === 'zh');
   document.getElementById('lang-btn').textContent = t('langBtn');
   document.getElementById('reset-btn').textContent = t('reset');
 
@@ -2421,10 +2503,9 @@ function tutorCursorPointAtHandTip(handId) {
   if (!hand) return;
   const angleDeg = readHandAngle(hand);
   // Visible hand lengths (see buildClockSVG): hour=88, minute=128.
-  // Place cursor about 75% along each hand — between the middle and the
-  // tip, still inside the tap hitbox so the tap registers wherever the
-  // ring is pulsing.
-  const len = handId === 'hand-hour' ? 65 : 95;
+  // Sit at ~78% along the hand — slightly closer to center than the tip,
+  // so the dot clearly reads as "on the hand" rather than at its edge.
+  const len = handId === 'hand-hour' ? 68 : 100;
   const rad = angleDeg * Math.PI / 180;
   const tipX = CX + Math.sin(rad) * len;
   const tipY = CY - Math.cos(rad) * len;
@@ -2443,15 +2524,81 @@ function tutorCursorAnchorEl(el)         { tutorCursorAnchor = { type: 'el', el 
 function tutorCursorAnchorHandTip(handId){ tutorCursorAnchor = { type: 'tip', handId }; tutorCursorPointAtHandTip(handId); }
 function tutorCursorClearAnchor()        { tutorCursorAnchor = null; tutorCursorHide(); }
 
+function tutorCursorSetColor(color) {
+  const c = tutorCursorEl();
+  if (!c) return;
+  if (color === 'purple') {
+    c.style.setProperty('--tutor-color-bg', '#9C6FD8');
+    c.style.setProperty('--tutor-color-shadow', 'rgba(156,111,216,0.55)');
+  } else if (color === 'pink') {
+    c.style.setProperty('--tutor-color-bg', '#FF6B9D');
+    c.style.setProperty('--tutor-color-shadow', 'rgba(255,107,157,0.55)');
+  }
+}
+
 // ═══════════════════════════════════════════════════════
 // LEVEL 1 — GUIDED TOUR
 // ═══════════════════════════════════════════════════════
 let tourStep = 0;
-const TOUR_STEPS = 5;
+const TOUR_STEPS = 6;
+// Four interactive tap-questions in the tour (steps 2..5). Steps 0/1 are
+// just intro "continue" taps and don't count toward the question dots.
+const TOUR_QUESTIONS = 4;
+const TOUR_FIRST_QUESTION_STEP = 2;
+
+function renderTourProgressDots() {
+  const dotsEl    = document.getElementById('tour-progress-dots');
+  const counterEl = document.getElementById('tour-q-counter');
+  if (!dotsEl) return;
+  const qIdx = tourStep - TOUR_FIRST_QUESTION_STEP; // <0 on intro steps
+  // Intro steps (0, 1) have no question — hide the strip but RESERVE its
+  // space (visibility, not display) so the clock's Y position stays fixed
+  // across all 6 steps. Display:none would collapse the slot and shift
+  // the clock down on intros / up on questions.
+  const onIntro = qIdx < 0;
+  dotsEl.style.visibility    = onIntro ? 'hidden' : '';
+  if (counterEl) counterEl.style.visibility = onIntro ? 'hidden' : '';
+  dotsEl.innerHTML = '';
+  // On intros, still render placeholder dots (just invisible) so the row
+  // height matches the question steps exactly.
+  for (let i = 0; i < TOUR_QUESTIONS; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'progress-dot'
+      + (!onIntro && i === qIdx ? ' current' : '')
+      + (!onIntro && i < qIdx  ? ' done'    : '');
+    dotsEl.appendChild(dot);
+  }
+  if (counterEl) {
+    // Always set placeholder text on intros (e.g. "1 / 4") so the line
+    // height equals the question-step height; visibility:hidden makes it
+    // invisible to the user.
+    counterEl.textContent = onIntro
+      ? `1 ${t('qOfTotal')} ${TOUR_QUESTIONS}`
+      : `${qIdx + 1} ${t('qOfTotal')} ${TOUR_QUESTIONS}`;
+  }
+}
+
+// Live star indicator in tour header — same widget used in game screens.
+// 3 stars at start, drops to 2 on first wrong, 1 on second+.
+function renderTourStars() {
+  const el = document.getElementById('tour-stars-earned');
+  if (!el) return;
+  el.innerHTML = emptyStarsStr();
+}
+
+// Wrong-tap handler for unguided steps (4, 5). Same shake/beep/star-drop
+// the game uses, so Level 1 grades like every other level.
+function tourHandleWrongTap() {
+  wrongCount++;
+  beepWrong();
+  shakeClock();
+  renderTourStars();
+}
 
 function startTour() {
   stopTutorialLoop(); // Cancel any leftover loop from a previous tour/tutorial session
   tourStep = 0;
+  wrongCount = 0; // reset star count for this run
   hideAllScreens();
   document.getElementById('screen-tour').classList.remove('hidden');
   document.getElementById('tour-clock-wrap').innerHTML = buildClockSVG(false, true);
@@ -2470,6 +2617,8 @@ function renderTourStep() {
   hintEl.textContent = '';
   tutorCursorClearAnchor(); // each step decides whether to show cursor
   textEl.classList.remove('has-sub'); // each step decides whether to show 2-row layout
+  renderTourProgressDots();
+  renderTourStars();
   // Tap-targets off by default; steps that need taps re-enable them.
   setTapTargetVisible('hour', false);
   setTapTargetVisible('min',  false);
@@ -2500,7 +2649,6 @@ function renderTourStep() {
       : '<span class="clr-red">Tap the hour hand</span>';
     setClockHands(3, 0); setMinuteHandVisible(false);
     setTapTargetVisible('hour', true); // hour-hand is the action target
-    // Cursor + tap rings make the action obvious — no redundant text hint.
     btn.classList.add('hidden');
     tickySayKey('tickyThink', 'thinking', 8000);
     const tapH = document.getElementById('tap-hour-hand');
@@ -2528,7 +2676,6 @@ function renderTourStep() {
     if (hh) hh.classList.add('hand-hidden');
     if (thh) thh.classList.add('hand-hidden');
     setTapTargetVisible('min', true); // minute-hand is the action target
-    // Cursor + tap rings make the action obvious — no redundant text hint.
     btn.classList.add('hidden');
     tickySayKey('tickyThink', 'thinking', 8000);
     const tapM = document.getElementById('tap-min-hand');
@@ -2545,16 +2692,60 @@ function renderTourStep() {
       };
     }
   } else if (tourStep === 4) {
-    textEl.textContent = state.lang === 'zh'
-      ? '你認識時鐘了！'
-      : 'You know the clock now!';
-    // Keep the clock exactly where it was after the minute-hand tap — don't reset it.
-    // Also remove any leftover green "correct" ring from step 3's tap and skip the sound
+    // Recognition test: BOTH hands visible, plain text, NO pink cursor,
+    // NO color cue. BOTH hands are tappable so we can detect a wrong tap
+    // (kid taps minute when prompted to tap hour) and dock a star, just
+    // like every other level.
+    textEl.textContent = state.lang === 'zh' ? '輕按時針' : 'Tap the hour hand';
+    const hh = document.getElementById('hand-hour');
+    const thh = document.getElementById('tap-hour-hand');
+    if (hh)  hh.classList.remove('hand-hidden');
+    if (thh) thh.classList.remove('hand-hidden');
+    setClockHands(9, 15);
+    setMinuteHandVisible(true);
+    setTapTargetVisible('hour', true);
+    setTapTargetVisible('min',  true);
+    btn.classList.add('hidden');
+    tickySayKey('tickyThink', 'thinking', 8000);
+    const tapH = document.getElementById('tap-hour-hand');
+    const tapM = document.getElementById('tap-min-hand');
+    if (tapH) {
+      tapH.onclick = () => {
+        tapH.onclick = null;
+        if (tapM) tapM.onclick = null;
+        beepCorrect();
+        glowClock(true);
+        spawnHandSparkles('hour');
+        showCorrectPopup();
+        setTimeout(() => { hideCorrectPopup(); tourNext(); }, 1100);
+      };
+    }
+    if (tapM) tapM.onclick = () => tourHandleWrongTap();
+  } else if (tourStep === 5) {
+    // Same clock, now minute hand. Both tappable for wrong-tap detection.
+    textEl.textContent = state.lang === 'zh' ? '輕按分針' : 'Tap the minute hand';
     const cw = document.getElementById('tour-clock-wrap');
     if (cw) cw.classList.remove('correct');
-    btn.textContent = t('tourFinish');
-    btn.classList.remove('hidden');
-    tickySayKey('tickyCheer', 'cheering', 5000);
+    setClockHands(9, 15);
+    setMinuteHandVisible(true);
+    setTapTargetVisible('hour', true);
+    setTapTargetVisible('min',  true);
+    btn.classList.add('hidden');
+    tickySayKey('tickyThink', 'thinking', 8000);
+    const tapH = document.getElementById('tap-hour-hand');
+    const tapM = document.getElementById('tap-min-hand');
+    if (tapM) {
+      tapM.onclick = () => {
+        tapM.onclick = null;
+        if (tapH) tapH.onclick = null;
+        beepCorrect();
+        glowClock(true);
+        spawnHandSparkles('min');
+        showCorrectPopup();
+        setTimeout(() => { hideCorrectPopup(); tourNext(); }, 1100);
+      };
+    }
+    if (tapH) tapH.onclick = () => tourHandleWrongTap();
   }
 }
 
@@ -2607,11 +2798,16 @@ function tourNext() {
   stopTutorialLoop();
   tourStep++;
   if (tourStep >= TOUR_STEPS) {
-    wrongCount = 0;
-    state.progress[1] = 3;
+    // Star calc mirrors the game (wrongCount=0→3, 1→2, 2+→1). Save the
+    // BEST run we've seen for Level 1 progress so a later replay doesn't
+    // overwrite a higher score with a lower one.
+    const stars = wrongCount === 0 ? 3 : wrongCount === 1 ? 2 : 1;
+    state.progress[1] = Math.max(state.progress[1] || 0, stars);
     saveState();
-    hideAllScreens();
-    showCompleteOverlay(3, 1);
+    wrongCount = 0;
+    // Don't hide the tour screen — let the clock/dots show through the
+    // translucent overlay, matching how every other level finishes.
+    showCompleteOverlay(stars, 1);
   } else {
     renderTourStep();
   }
@@ -2623,6 +2819,9 @@ function tourNext() {
 function showTutorial(n) {
   hideAllScreens();
   document.getElementById('screen-tutorial').classList.remove('hidden');
+  // Reset cursor color to pink (Level 4 uses purple, others use pink or none)
+  tutorCursorSetColor('pink');
+  tutorCursorClearAnchor();
   if (n === 5) renderLevel4Tutorial();
   else renderTutorial(n);
   tickySayKey('tickyLetMe', 'thinking', 5000);
@@ -2650,7 +2849,8 @@ function reviewTutorial() {
 }
 
 // Level 4 teaches digital-format reading ("3:00" = hour : minute).
-// No clock — just a big "3:00" display with colour-coded hour/minute labels.
+// Shows a big "3:00" display with colour-coded hour/minute labels and a purple cursor
+// animation demonstrating how to drag the clock hands.
 function renderLevel4Tutorial() {
   document.getElementById('tut-level-label').textContent = t('level') + 5 + t('levelSuffix');
   document.getElementById('tut-start-btn').textContent = t('startPractice');
@@ -2665,7 +2865,7 @@ function renderLevel4Tutorial() {
     <div class="tut-card">
       <div class="tut-level-tag">${t('level')}4${t('levelSuffix')} — ${t(LEVEL_NAMES[4]).replace(/\n/g,' ')}</div>
       <div class="tut-title">${title}</div>
-      <div class="tut-viz">
+      <div class="tut-viz" id="l4-viz">
         <div style="font-family:'Fredoka',sans-serif;font-size:64px;font-weight:700;letter-spacing:3px;line-height:1;text-align:center;">
           <span style="color:#FF6B9D;">3</span><span style="color:#888;">:</span><span style="color:#4ECDC4;">00</span>
         </div>
@@ -3012,7 +3212,7 @@ function beginLevel(n) {
 function renderGameHeader() {
   const n = currentLevel;
   document.getElementById('game-level-label').textContent = t('level') + n + t('levelSuffix');
-  document.getElementById('game-stars-earned').innerHTML = starsStr(n);
+  document.getElementById('game-stars-earned').innerHTML = emptyStarsStr();
   const timerEl = document.getElementById('ultimate-timer-display');
   if (timerEl) {
     if (n === 15) { timerEl.classList.remove('hidden'); timerEl.textContent = '⏱ ' + ULTIMATE_SECS; }
@@ -3674,7 +3874,9 @@ function showQuestion(i) {
   if (i >= questions.length) { endLevel(); return; }
   const q = questions[i];
   wrongCountThisQ = 0;
-  document.getElementById('q-counter').textContent = `${i+1} ${t('qOfTotal')} ${questions.length}`;
+  const qc = document.getElementById('q-counter');
+  qc.textContent = `${i+1} ${t('qOfTotal')} ${questions.length}`;
+  qc.style.fontSize = `${15 + (currentLevel - 1) * 0.5}px`;
   const rfb = document.getElementById('read-feedback');
   rfb.classList.add('hidden');
   rfb.style.cssText = '';
@@ -4174,32 +4376,12 @@ function onPointerMove(e) {
     document.getElementById('hand-min').setAttribute('transform', `rotate(${setMin*6} ${CX} ${CY})`);
     const hAngle = (setHour % 12) * 30 + setMin * 0.5;
     document.getElementById('hand-hour').setAttribute('transform', `rotate(${hAngle} ${CX} ${CY})`);
-    // sparkle trail
-    spawnDragSparkle(e.clientX, e.clientY);
   } else {
-    {
-      const fracHour = angle / 30;
-      setHour = Math.floor(fracHour) % 12;
-      if (setHour <= 0) setHour = 12;
-      document.getElementById('hand-hour').setAttribute('transform', `rotate(${(setHour%12)*30 + setMin*0.5} ${CX} ${CY})`);
-    }
-    spawnDragSparkle(e.clientX, e.clientY);
+    const fracHour = angle / 30;
+    setHour = Math.floor(fracHour) % 12;
+    if (setHour <= 0) setHour = 12;
+    document.getElementById('hand-hour').setAttribute('transform', `rotate(${(setHour%12)*30 + setMin*0.5} ${CX} ${CY})`);
   }
-}
-
-let lastSparkleTime = 0;
-function spawnDragSparkle(x, y) {
-  const now = Date.now();
-  if (now - lastSparkleTime < 80) return;
-  lastSparkleTime = now;
-  const s = document.createElement('div');
-  s.className = 'sparkle-trail';
-  s.textContent = ['✨','⭐','💫'][Math.floor(Math.random()*3)];
-  s.style.left = (x - 8) + 'px';
-  s.style.top  = (y - 8) + 'px';
-  s.style.fontSize = '12px';
-  document.body.appendChild(s);
-  setTimeout(() => s.remove(), 650);
 }
 
 function onPointerUp(e) {
@@ -4357,7 +4539,7 @@ function showCompleteOverlay(stars, n) {
 
   const starsEl = document.getElementById('complete-stars');
   let html = '';
-  for (let i = 1; i <= 3; i++) html += `<span id="cstar-${i}">${i <= stars ? '★' : '☆'}</span>`;
+  for (let i = 1; i <= 3; i++) html += `<span id="cstar-${i}" class="${i <= stars ? 'star-on' : 'star-off'}">★</span>`;
   starsEl.innerHTML = html;
 
   // Stars pop in sequence
