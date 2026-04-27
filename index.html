@@ -624,30 +624,63 @@ body {
   overflow-y: auto; position: relative; z-index: 1; min-height: 0;
 }
 
-/* Tutorial card */
+/* Tutorial card — unified guide card across every level.
+   Clean 3-section design: Introduction, Examples, Remember.
+   No nested boxes — just clear horizontal-rule sections. */
 .tut-card {
-  background: white; border-radius: 24px;
+  background: white; border-radius: 28px;
   border: 5px solid #4ECDC4;
-  box-shadow: 0 8px 0 #2ea89e, 0 12px 32px rgba(0,0,0,0.12);
-  padding: 20px 20px 16px;
-  max-width: 360px; width: 100%;
+  box-shadow: 0 8px 0 #2ea89e, 0 14px 36px rgba(0,0,0,0.14);
+  padding: 26px 24px 22px;
+  max-width: 440px; width: 100%;
   position: relative;
-}
-.tut-level-tag {
-  font-size: 15px; font-weight: 700; color: #4ECDC4;
-  background: #e8fffe; border-radius: 20px; padding: 4px 14px;
-  display: inline-block; margin-bottom: 8px;
+  text-align: center;
 }
 .tut-title {
   font-family: 'Fredoka', sans-serif;
-  font-size: 30px; font-weight: 700; color: #2D3047; line-height: 1.2;
-  margin-bottom: 12px;
+  font-size: 32px; font-weight: 700; color: #2D3047; line-height: 1.15;
+  margin-bottom: 14px;
+  letter-spacing: 0.2px;
 }
-.tut-visual { position: relative; display: inline-block; margin-bottom: 4px; }
+.tut-visual {
+  position: relative; display: inline-block;
+  margin: 4px auto 6px;
+}
+.tut-section {
+  text-align: left;
+  max-width: 380px; margin: 18px auto 0;
+  padding-top: 18px;
+  border-top: 1.5px solid #E8EEF1;
+}
+.tut-section:first-of-type {
+  border-top: 1.5px solid #E8EEF1;
+}
+.tut-section-title {
+  font-family: 'Fredoka', sans-serif;
+  font-size: 13px; font-weight: 800; color: #4ECDC4;
+  text-transform: uppercase; letter-spacing: 1.6px;
+  margin-bottom: 10px;
+}
 .tut-text {
-  font-size: 20px; line-height: 1.7; color: #444; margin-bottom: 8px;
-  white-space: pre-line; text-align: left; max-width: 320px; margin-left: auto; margin-right: auto;
+  font-size: 19px; line-height: 1.65; color: #2D3047;
+  white-space: pre-line; margin: 0;
 }
+.tut-rule {
+  font-size: 19px; line-height: 1.5; color: #2D3047;
+  font-weight: 700; margin: 0;
+  white-space: pre-line;
+}
+.tut-example b { color: #FF6B9D; font-weight: 800; }
+.tut-example .tut-ex-q {
+  display: block; color: #6B7388; font-weight: 600;
+  font-size: 17px; line-height: 1.45; margin-bottom: 4px;
+}
+.tut-example .tut-ex-a {
+  display: block; color: #2D3047; font-weight: 800;
+  font-size: 19px; line-height: 1.45;
+}
+/* Space between consecutive Q/A pairs in the Examples section */
+.tut-example .tut-ex-a + .tut-ex-q { margin-top: 14px; }
 .tut-bullet {
   position: relative; padding-left: 22px; line-height: 1.7;
   text-spacing-trim: trim-start;
@@ -674,13 +707,7 @@ body {
 .num-pairs > span > i { text-align: center; font-style: normal; color: #888; }
 .num-pairs > span > b:nth-child(3) { text-align: center; color: #FF6B9D; }
 .num-pairs > span > span:last-child { padding-left: 4px; font-size: 16px; color: #555; font-weight: 600; }
-.tut-rule {
-  font-size: 19px; color: #2D3047; background: #FFF8D6;
-  border-radius: 12px; padding: 14px 18px 16px;
-  border-left: 5px solid #FFD93D;
-  font-weight: 700; text-align: left;
-  margin-top: 12px;
-}
+/* (Old .tut-rule golden box removed — section style is unified above.) */
 /* Visual block used for any custom illustration (big digital display, mapping
    grid, etc.) — gives every tutorial the same rhythm so the layout feels
    consistent across levels. */
@@ -689,13 +716,8 @@ body {
   border-radius: 16px; padding: 14px 16px;
   margin: 10px auto; max-width: 320px;
 }
-.tut-example {
-  font-family: 'Fredoka', sans-serif;
-  font-size: 36px; font-weight: 700; color: #FF6B9D;
-  background: white; border-radius: 16px; padding: 8px 24px;
-  border: 4px solid #FF6B9D;
-  box-shadow: 0 4px 0 #d94f7e;
-}
+/* (Legacy .tut-example pink-box style removed — class is reused as the
+   Examples section content holder, styled via .tut-example .tut-ex-* above.) */
 
 /* Desktop scale-up — base CSS stays phone-first. Level grid sizes itself via clamp()+vh, so no per-tile overrides here. */
 @media (min-width: 900px) {
@@ -703,7 +725,12 @@ body {
   .brand-ticky-mini { width: 54px; height: 58px; }
   .brand-stars svg { width: 14px; height: 14px; }
   .level-stops { max-width: 720px; }
-  .tut-card { max-width: 480px; }
+  .tut-card { max-width: 560px; padding: 32px 32px 26px; }
+  .tut-title { font-size: 36px; }
+  .tut-section { max-width: 480px; }
+  .tut-text, .tut-rule { font-size: 20px; }
+  .tut-example .tut-ex-a { font-size: 20px; }
+  .tut-example .tut-ex-q { font-size: 18px; }
   .reset-btn { font-size: 16px; }
 }
 
@@ -1265,10 +1292,14 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
   /* ── Tutorial screen ── */
   .tutorial-body { padding: 12px 16px 20px; gap: 18px; }
   .tut-card { padding: 14px 14px 12px; border-width: 4px; border-radius: 18px; }
-  .tut-title { font-size: 23px; margin-bottom: 8px; }
+  .tut-card { padding: 20px 18px 18px; }
+  .tut-title { font-size: 26px; margin-bottom: 10px; }
   .tut-text { font-size: 17px; line-height: 1.55; }
-  .tut-rule { font-size: 16px; padding: 10px 14px 12px; margin-top: 8px; }
-  .tut-example { font-size: 28px; padding: 6px 16px; border-radius: 12px; }
+  .tut-rule { font-size: 17px; }
+  .tut-section { margin-top: 14px; padding-top: 14px; }
+  .tut-section-title { font-size: 12px; letter-spacing: 1.4px; margin-bottom: 8px; }
+  .tut-example .tut-ex-q { font-size: 15px; }
+  .tut-example .tut-ex-a { font-size: 17px; }
   .num-pairs { font-size: 18px; padding: 10px 12px; gap: 6px 16px; margin: 4px auto; }
   .num-pairs > span {
     grid-template-columns: 28px 20px 36px auto;
@@ -1585,7 +1616,6 @@ const S = {
     resetCancel:'取消',
     resetConfirmBtn:'確定重設',
     whatTime:'現在是幾點？',
-    whatHour:'時針指向哪個數字？',
     whatOclock:'現在幾點？',
     whatMinutes:'已經過了幾分鐘？',
     whatHourPos:'時針現在指向哪裡？',
@@ -1602,103 +1632,123 @@ const S = {
     tourContinue:'繼續',
     tourFinish:'完成！',
     level1name:'認識\n時鐘',
-    level2name:'時針 1：\n讀',
-    level3name:'時針 2：\n幾點',
-    level4name:'時針 3：\n設定',
-    level5name:'時 : 分',
-    level6name:'分針 1：\n每 15 分',
-    level7name:'分針 2：\n每 5 分',
-    level8name:'分針 3：\n每 1 分',
-    level9name:'時針\n在中間',
-    level10name:'讀時間 1：\n簡單',
-    level11name:'讀時間 2：\n困難',
-    level12name:'設兩針',
-    level13name:'配對\n時鐘',
-    level14name:'24 小時',
-    level15name:'終極\n測試',
-    l2tutTitle:'🕐 時針指向哪個數字，就是幾點',
-    l2tutText:'• 紅色短針叫「時針」\n• 它指向哪個數字，就是幾點',
-    l2tutRule:'時針指 3 → 3點',
-    l3tutTitle:'🕒 3點 = 3:00',
-    l3tutText:'• 「3點」寫成 <b>3:00</b>\n• 「:」 後面的 00 = 0 分鐘',
-    l3tutRule:'3點 → 寫成 3:00',
+    level2name:'讀數字\n時鐘',
+    level3name:'時針：\n讀',
+    level4name:'時針：\n撥動',
+    level5name:'時針：\n之間',
+    level6name:'分針：\n每 15 分',
+    level7name:'分針：\n每 5 分',
+    level8name:'分針：\n每 1 分',
+    level9name:'撥時間：\n簡單',
+    level10name:'撥時間：\n進階',
+    level11name:'配對\n時鐘',
+    level12name:'24 小時：\n第一部',
+    level13name:'24 小時：\n第二部',
+    level14name:'終極\n測試',
+    l2tutTitle:'🔢 讀數字時鐘',
+    l2tutText:'數字時鐘寫法：<b>時:分</b>\n• <b>:</b> 前面 = 時\n• <b>:</b> 後面 = 分',
+    l2tutRule:'「:」前 = 時\n「:」後 = 分',
+    l3tutTitle:'🕐 時針指向哪個數字，就是幾點',
+    l3tutText:'<b>時針</b>指哪個數字，現在就是幾點。',
+    l3tutRule:'時針指哪個數字，就是幾點',
     l5AskHour:'這是幾點？',
     l5AskMin:'這是幾分？',
-    l5tutTitle:'🕒 「3:00」是甚麼意思？',
-    l5tutText:'• <b>:</b> 前面的數字 = <b>幾點</b>（時）\n• <b>:</b> 後面的數字 = <b>幾分</b>（分）\n• 例：<b>3:00</b> = 3 點 0 分',
-    l5tutRule:': 前面是時，: 後面是分',
+    l4tutTitle:'🕐 設定時針',
+    l4tutText:'<b>拖動時針</b>，讓它指到題目要的數字。',
+    l4tutRule:'要撥幾點，就把時針拖到那個數字',
+    l5tutTitle:'時針在兩個數字之間',
+    l5tutText:'時針停在兩個數字<b>之間</b>時，讀<b>較小</b>那個。\n（分針一動，就把時針推到兩個數字之間。）',
+    l5tutRule:'時針在兩個數字之間 → 讀較小的那個',
     l6tutTitle:'分針指哪個數字？',
-    l6tutText:'• 分針指 <b>12</b> → <b>0 分</b>\n• 分針指 <b>3</b> → <b>15 分</b>\n• 分針指 <b>6</b> → <b>30 分</b>\n• 分針指 <b>9</b> → <b>45 分</b>',
-    l6tutRule:'12→0, 3→15, 6→30, 9→45',
-    l6hint:'看藍色長針（分針）：指 12 = 0 分、指 3 = 15 分、指 6 = 30 分、指 9 = 45 分。',
+    l6tutText:'<b>分針</b>指的位置 → 分鐘：\n• 12 → 0 分\n• 3 → 15 分\n• 6 → 30 分\n• 9 → 45 分',
+    l6tutRule:'12→0、3→15、6→30、9→45',
+    l6hint:'分針：12=0分，3=15分，6=30分，9=45分。',
     l7tutTitle:'⭐ 每個數字 = 5 分鐘',
-    l7tutText:'• 分針指一個數字 → <b>數字 × 5 = 分</b>\n<div class="num-pairs"><span><b>1</b><i>→</i><b>5</b><span>分</span></span><span><b>2</b><i>→</i><b>10</b><span>分</span></span><span><b>3</b><i>→</i><b>15</b><span>分</span></span><span><b>6</b><i>→</i><b>30</b><span>分</span></span><span><b>9</b><i>→</i><b>45</b><span>分</span></span><span><b>12</b><i>→</i><b>0</b><span>分</span></span></div>',
+    l7tutText:'每個<b>大數字</b>之間 = <b>5 分鐘</b>。\n分針指的數字 <b>× 5</b> = 分鐘。',
     l7tutRule:'數字 × 5 = 分',
     l8tutTitle:'⏱ 每個小格 = 1 分',
-    l8tutText:'• 兩個大數字之間<b>有 4 小格</b>\n• 每格 = <b>1 分</b>\n• 過了數字 → <b>數字 × 5 + 小格</b>\n• 例：過 1 再 3 格 = 5 + 3 = <b>8 分</b>',
+    l8tutText:'兩個大數字之間有 <b>4 個小格</b>，每格 = <b>1 分鐘</b>。\n讀分鐘：大數字 × 5，再加上多走的小格。',
     l8tutRule:'數字 × 5 + 小格 = 分',
-    l9tutTitle:'時針在兩個數字中間',
-    l9tutText:'• 時針指向數字 → 就是那個數字 ✓\n　（例：指向 3 = 3 點）\n• 時針在兩個數字<b>中間</b> → 讀<b>較小</b>那個\n　（例：3:30 時，時針在 3 和 4 中間 → 還是 3 點）',
-    l9tutRule:'時針在兩個數字中間 → 讀較小的那個',
-    l10tutTitle:'讀時鐘：時針 + 分針',
-    l10tutText:'• 讀時鐘要看<b>兩根針</b>\n• 先看<b>時針</b>(紅色短針) → 現在是幾點\n• 再看<b>分針</b>(藍色長針) → 過了幾分\n• 例：時針在 3 和 4 中間，分針在 6 → 3:30',
-    l10tutRule:'時針 + 分針一起看 → 讀出完整時間',
-    l11tutTitle:'讀任何時間',
-    l11tutText:'• 分針不一定正好指向數字\n• 分針在兩個數字<b>中間</b>：公式 = 數字 × 5 + 多幾分\n• 例：分針過了 3 多 2 分 = 3 × 5 + 2 = <b>17 分</b>\n• 例：分針過了 8 多 4 分 = 8 × 5 + 4 = <b>44 分</b>',
-    l11tutRule:'數字 × 5 + 多幾分 = 分鐘',
-    l4tutTitle:'🕐 設定時針',
-    l4tutText:'拖動紅色短針（時針）到正確的數字。',
-    l4tutRule:'見到「4:00」→ 拖時針到 4',
-    l12tutTitle:'🕖 設定兩針',
-    l12tutText:'• 先移動分針\n• 時針會跟著移動\n• 記住：7:45 時，時針差不多已經到 8',
-    l12tutRule:'先設分針，再設時針',
-    l13tutTitle:'⏰ 配對時鐘',
-    l13tutText:'• 看上面的時間（例：3:15）\n• 下面有 4 個時鐘\n• 選出顯示同一時間的時鐘',
-    l13tutRule:'哪個鐘顯示這個時間？',
-    l13matchPrompt:'哪個鐘顯示這個時間？',
-    l15tutTitle:'🏆 終極測試',
-    l15tutText:'• 10 道題目全都來了\n• 有讀鐘、配對、24小時制\n• 只有 <b>90 秒</b>，時間到就要重來！',
-    l15tutRule:'⏱️ 90秒內答完 10 題！',
+    l9tutTitle:'🕖 撥到一刻鐘',
+    l9tutText:'<b>兩支針都要撥</b>。\n先撥時針，再撥分針。',
+    l9tutRule:'先撥時針，再撥分針',
+    l10tutTitle:'🕖 設定兩針',
+    l10tutText:'這關分鐘可以是 <b>0–59</b> 任何一個（包括小格）。',
+    l10tutRule:'先撥時針，再撥分針',
+    l11tutTitle:'⏰ 配對時鐘',
+    l11tutText:'上面會顯示一個<b>數字時間</b>。\n從下面 4 個鐘中，挑出指針相符的那個。',
+    l11tutRule:'時針位置和分針位置都要對',
+    l11matchPrompt:'哪個鐘顯示這個時間？',
+    l12tutTitle:'🌙 24 小時制：第一部',
+    l12tutText:'24 小時制：<b>0–23</b> 點，不分上下午。\n數字大於 12 → <b>減 12</b> = 下午幾點。',
+    l12tutRule:'24 小時數字 − 12 = 下午時間',
+    l13tutTitle:'🌙 24 小時制：第二部',
+    l13tutText:'下午時間 → 24 小時：<b>加 12</b>。\n例如下午 5 點 = 17:00。',
+    l13tutRule:'下午 → +12；24 小時 → −12',
+    l14tutTitle:'🏆 終極測試',
+    l14tutText:'挑戰：<b>10 題、90 秒</b>。\n全部技能都會用上：讀鐘、撥鐘、配對、24 小時制。',
+    l14tutRule:'90 秒內答完 10 題',
+    // Unified guide-card section labels + sample question per level
+    tutIntro:'介紹',
+    tutExample:'例題',
+    tutRemember:'記住',
+    l2example:'<span class="tut-ex-q">問：<b>3:45</b> 是幾點幾分？</span><span class="tut-ex-a">答：3 點 45 分</span>',
+    l3example:'<span class="tut-ex-q">問：時針指著 <b>8</b>，現在幾點？</span><span class="tut-ex-a">答：8 點</span>',
+    l4example:'<span class="tut-ex-q">問：要撥到 <b>4 點</b>，時針拖到哪？</span><span class="tut-ex-a">答：拖到 <b>4</b></span>',
+    l5example:'<span class="tut-ex-q">問：時針在 <b>3 和 4</b> 之間，現在幾點？</span><span class="tut-ex-a">答：3 點（讀較小的）</span>',
+    l6example:'<span class="tut-ex-q">問：分針指著 <b>6</b>，現在幾分？</span><span class="tut-ex-a">答：30 分</span>',
+    l7example:'<span class="tut-ex-q">問：分針指著 <b>4</b>，現在幾分？</span><span class="tut-ex-a">答：20 分</span>',
+    l8example:'<span class="tut-ex-q">問：分針已過 <b>1</b>，再走 <b>3</b> 個小格，現在幾分？</span><span class="tut-ex-a">答：8 分</span>',
+    l9example:'<span class="tut-ex-q">問：撥到 <b>6:15</b></span><span class="tut-ex-a">答：時針 → 6，分針 → 3</span>',
+    l10example:'<span class="tut-ex-q">問：撥到 <b>4:25</b></span><span class="tut-ex-a">答：時針 → 4，分針 → 5</span>',
+    l11example:'<span class="tut-ex-q">問：上面顯示 <b>7:15</b></span><span class="tut-ex-a">答：選時針在 7 和 8 之間、分針指 3 的鐘</span>',
+    l12example:'<span class="tut-ex-q">問：<b>14:00</b> 是？</span><span class="tut-ex-a">答：14 − 12 = <b>下午 2 點</b></span>',
+    l13example:'<span class="tut-ex-q">問：<b>下午 5 點</b> 寫成 24 小時？</span><span class="tut-ex-a">答：5 + 12 = <b>17:00</b></span>',
+    l14example:'<span class="tut-ex-q">挑戰：10 題、限時 <b>90 秒</b>（每題約 9 秒）</span><span class="tut-ex-a">提示：先看時針，再看分針，不要慌</span>',
     timeOutTitle:'⏰ 時間到！',
     timeOutMsg:'再試一次，你可以的！',
     tryAgainBtn:'再試一次',
-    l14tutTitle:'🌙 24小時制',
-    l14tutText:'一天有24個小時。上午用 1–12，下午用 13–24，這叫「24小時制」。',
-    l14tutRule:'公式：下午時間 = 24小時數字 − 12',
-    l14subtitle1:'把 24小時制 轉成下午時間',
-    l14subtitle2:'把下午時間寫成 24小時制',
-    l14subtitle3:'把時鐘設定到這個時間',
-    l14pm:'下午',
-    l14am:'上午',
-    l14what12:'12小時制是幾點？',
-    l14what24:'24小時制怎麼寫？',
-    l14formula:'公式：減 12',
-    l14dayHas24:'一天有24個小時',
-    l14hint1:'13 = 下午 1 點',
-    l14hint2:'14 = 下午 2 點',
-    l14hint3:'15 = 下午 3 點',
-    l14hint4:'16 = 下午 4 點',
-    l14setPrompt:'設定時鐘顯示',
+    l12matchPrompt:'哪個鐘顯示這個時間？',
+    l15tutTitle:'🌙 24小時制',
+    l15tutText:'一天有24個小時。上午用 1–12，下午用 13–24，這叫「24小時制」。',
+    l15tutRule:'公式：下午時間 = 24小時數字 − 12',
+    l15subtitle1:'把 24小時制 轉成下午時間',
+    l15subtitle2:'把下午時間寫成 24小時制',
+    l15subtitle3:'把時鐘設定到這個時間',
+    l15pm:'下午',
+    l15am:'上午',
+    l15what12:'12小時制是幾點？',
+    l15what24:'24小時制怎麼寫？',
+    l15formula:'公式：減 12',
+    l15dayHas24:'一天有24個小時',
+    l15hint1:'13 = 下午 1 點',
+    l15hint2:'14 = 下午 2 點',
+    l15hint3:'15 = 下午 3 點',
+    l15hint4:'16 = 下午 4 點',
+    l15setPrompt:'設定時鐘顯示',
+    l13pm:'下午',
+    l13am:'上午',
     level95name:'找不同',
     l95tutTitle:'🔍 找不同的那個',
     l95tutText:'• 3個鐘顯示同一時間\n• 1個鐘顯示不同的時間\n• 找出那個不同的鐘！',
     l95tutRule:'找出那個不同的鐘',
     l1hint:'紅色短針是時針（看幾點），藍色長針是分針（看幾分）。',
-    l2hint:'找紅色短針。它指向哪個數字，就是幾點。',
-    l3hint:'看紅色短針指哪個數字，把那個數字寫成「數字:00」。例：指 3 → 3:00。',
-    l4hint:'先看題目要的數字，再把紅色短針拖到那個數字上。',
-    l5hint:'找「：」符號。前面的數字是時，後面的數字是分。',
-    l7hint:'看藍色分針指向哪個數字，把那個數字 × 5 就是答案。例：指 4 → 4 × 5 = 20 分。',
-    l8hint:'先看分針剛過了哪個大數字，那個數字 × 5，再加上後面的小格數。例：過了 1 再 3 格 → 1 × 5 + 3 = 8 分。',
-    l9hint:'紅色時針如果在兩個數字中間，讀較小的那個。它還沒走到下一個數字。',
-    l10hint:'先看紅色短針讀出幾點，再看藍色長針讀出幾分，合起來寫成「時:分」。',
-    l11hint:'看分針剛過的大數字，再數後面的小格數。公式：數字 × 5 + 小格 = 分鐘。',
-    l12hint:'先拖藍色分針到正確位置，紅色時針會自己慢慢跟著移動。',
-    l13hint:'先讀上方顯示的時間，再從下方 4 個鐘裡挑出指針對應那個時間的鐘。',
-    l14hint:'數字大於 12 → 減 12 就是下午時間；數字是 12 或以下 → 就是上午時間。',
-    l15hint:'慢慢來，一步一步：先看紅色短針讀幾點，再看藍色長針讀幾分。',
+    l2hint:'「:」前面 = 時，「:」後面 = 分。',
+    l3hint:'時針指的數字 = 幾點。',
+    l4hint:'把時針拖到題目的數字。',
+    l5hint:'時針在兩個數字之間 → 讀較小那個。',
+    l7hint:'分針指的數字 × 5 = 分鐘。',
+    l8hint:'大數字 × 5，再加上後面的小格數。',
+    l9hint:'先撥時針到「點」，再撥分針到 12/3/6/9。',
+    l10hint:'先撥時針到「點」，再撥分針。',
+    l11hint:'看時針讀「點」，看分針讀「分」，兩個都要對。',
+    l12hint:'數字 > 12 → 減 12 = 下午。否則 = 上午。',
+    l13hint:'下午 + 12 = 24 小時。',
+    l14hint:'時針：兩數字之間 → 較小。分針：大數字 × 5 + 小格。',
     oddOneOutPrompt:'找出不同的那個鐘！',
     whatTickMinutes:'分針指向這裡，過了多少分鐘？',
+    whatHourPart:'這個時間是幾點？',
+    whatMinutePart:'這個時間是幾分？',
     hintHour:'移動 時針',
     hintMin:'移動 分針',
     hintCW:'→ 順時針',
@@ -1744,7 +1794,6 @@ const S = {
     resetCancel:'Cancel',
     resetConfirmBtn:'Yes, Reset',
     whatTime:'What time is it?',
-    whatHour:'Which number does the hour hand point at?',
     whatOclock:'What hour is it?',
     whatMinutes:'How many minutes have passed?',
     whatHourPos:'Where is the hour hand now?',
@@ -1761,103 +1810,123 @@ const S = {
     tourContinue:'Continue',
     tourFinish:'Finish!',
     level1name:'Meet the\nClock',
-    level2name:'Hour Hand 1:\nRead',
-    level3name:"Hour Hand 2:\nO'clock",
-    level4name:'Hour Hand 3:\nSet',
-    level5name:'Hours : Minutes',
-    level6name:'Minute Hand 1:\nevery 15 min',
-    level7name:'Minute Hand 2:\nevery 5 min',
-    level8name:'Minute Hand 3:\nevery 1 min',
-    level9name:'Hour\nBetween',
-    level10name:'Read Time 1:\nEasy',
-    level11name:'Read Time 2:\nHard',
-    level12name:'Set Both\nHands',
-    level13name:'Match\nClocks',
-    level14name:'24-Hour',
-    level15name:'Ultimate\nTest',
-    l2tutTitle:'🕐 The hour hand number = the hour',
-    l2tutText:'The clock has one hand (short red). Wherever it points is the hour.',
-    l2tutRule:"Hand at 3 → 3 o'clock",
-    l3tutTitle:"🕒 3 o'clock = 3:00",
-    l3tutText:"• \"3 o'clock\" is written <b>3:00</b>\n• The \"00\" after \":\" means 0 minutes",
-    l3tutRule:"3 o'clock → write as 3:00",
+    level2name:'Reading\nDigital',
+    level3name:'Hour Hand:\nRead',
+    level4name:'Hour Hand:\nSet',
+    level5name:'Hour Hand:\nBetween',
+    level6name:'Minute Hand:\nevery 15 min',
+    level7name:'Minute Hand:\nevery 5 min',
+    level8name:'Minute Hand:\nevery 1 min',
+    level9name:'Set Time:\nEasy',
+    level10name:'Set Time:\nHard',
+    level11name:'Match\nClocks',
+    level12name:'24-Hour:\nPart 1',
+    level13name:'24-Hour:\nPart 2',
+    level14name:'Ultimate\nTest',
+    l2tutTitle:'🔢 Reading Digital Time',
+    l2tutText:'Digital time: <b>H:MM</b>\n• Before <b>:</b> = hour\n• After <b>:</b> = minutes',
+    l2tutRule:'Before "<b>:</b>" = hour\nAfter "<b>:</b>" = minutes',
+    l3tutTitle:'🕐 The hour hand number = the hour',
+    l3tutText:'Whatever number the <b>hour hand</b> points to is the hour.',
+    l3tutRule:'The number the hour hand points to is the hour',
+    l4tutTitle:'🕐 Set the Hour Hand',
+    l4tutText:'<b>Drag the hour hand</b> to the target number.',
+    l4tutRule:'To set an o\'clock, drag the hour hand to that number',
+    l5tutTitle:'Hour Hand Between Numbers',
+    l5tutText:'When the hour hand sits <b>between</b> two numbers, read the <b>smaller</b> one.\n(The minute hand pushes the hour hand between them.)',
+    l5tutRule:'Between two numbers → read the SMALLER one',
     l5AskHour:'What is the hour?',
     l5AskMin:'What is the minute?',
-    l5tutTitle:'🕒 What Does "3:00" Mean?',
-    l5tutText:'• Before the <b>:</b> = the <b>hour</b>\n• After the <b>:</b> = the <b>minutes</b>\n• Example: <b>3:00</b> = 3 hours, 0 min',
-    l5tutRule:'Before ":" = hour, after ":" = minutes',
     l6tutTitle:'Where does the minute hand point?',
-    l6tutText:'• Minute hand at <b>12</b> → <b>0 min</b>\n• Minute hand at <b>3</b> → <b>15 min</b>\n• Minute hand at <b>6</b> → <b>30 min</b>\n• Minute hand at <b>9</b> → <b>45 min</b>',
+    l6tutText:'<b>Minute hand</b> position → minutes:\n• 12 → 0 min\n• 3 → 15 min\n• 6 → 30 min\n• 9 → 45 min',
     l6tutRule:'12→0, 3→15, 6→30, 9→45',
-    l6hint:'Look at the long blue minute hand. On 12 = 0 min. On 3 = 15. On 6 = 30. On 9 = 45.',
+    l6hint:'Minute hand: 12=0min, 3=15min, 6=30min, 9=45min.',
     l7tutTitle:'⭐ Each Number = 5 Minutes',
-    l7tutText:'• Minute hand at a number → <b>number × 5 = min</b>\n<div class="num-pairs"><span><b>1</b><i>→</i><b>5</b><span>min</span></span><span><b>2</b><i>→</i><b>10</b><span>min</span></span><span><b>3</b><i>→</i><b>15</b><span>min</span></span><span><b>6</b><i>→</i><b>30</b><span>min</span></span><span><b>9</b><i>→</i><b>45</b><span>min</span></span><span><b>12</b><i>→</i><b>0</b><span>min</span></span></div>',
+    l7tutText:'Every <b>big number</b> = <b>5 minutes</b> apart.\nMinute hand\'s number <b>× 5</b> = minutes.',
     l7tutRule:'number × 5 = minutes',
     l8tutTitle:'⏱ Each Tick = 1 min',
-    l8tutText:'• There are <b>4 ticks</b> between big numbers\n• Each tick = <b>1 min</b>\n• Past a number → <b>number × 5 + ticks</b>\n• Example: past 1, +3 ticks = 5 + 3 = <b>8 min</b>',
-    l8tutRule:'number × 5 + ticks = min',
-    l9tutTitle:'Hour Hand Between Numbers',
-    l9tutText:'• Hand at a number → that number ✓\n　(e.g. at 3 = 3 o\'clock)\n• Hand <b>between</b> two numbers → read the <b>smaller</b>\n　(e.g. 3:30 → hand between 3 & 4 → still 3 o\'clock)',
-    l9tutRule:'Hour hand between two numbers → read the SMALLER one',
-    l10tutTitle:'Read the Clock: Both Hands',
-    l10tutText:"• Reading a clock means looking at <b>both hands</b>\n• First the <b>hour hand</b> (red short) → what hour\n• Then the <b>minute hand</b> (blue long) → how many minutes\n• Example: hour between 3 and 4, minute at 6 → 3:30",
-    l10tutRule:'Both hands together → full time',
-    l11tutTitle:'Read Any Time',
-    l11tutText:'• The minute hand may not land exactly on a number\n• Minute hand <b>between</b> numbers: formula = number × 5 + extra\n• Example: 2 past the 3 → 3 × 5 + 2 = <b>17 min</b>\n• Example: 4 past the 8 → 8 × 5 + 4 = <b>44 min</b>',
-    l11tutRule:'number × 5 + extra = minutes',
-    l4tutTitle:'🕐 Set the Hour Hand',
-    l4tutText:'Drag the short red hand (hour hand) to the right number.',
-    l4tutRule:'See "4:00" → drag hour hand to 4',
-    l12tutTitle:'🕖 Set Both Hands',
-    l12tutText:"• Move the minute hand first\n• The hour hand follows along\n• Remember: at 7:45, hour hand is almost at 8",
-    l12tutRule:'Set minute hand first, then hour hand',
-    l13tutTitle:'⏰ Match the Clock',
-    l13tutText:'• Read the time shown (e.g. 3:15)\n• 4 clocks below\n• Pick the one that shows the same time',
-    l13tutRule:'Which clock shows this time?',
-    l13matchPrompt:'Which clock shows this time?',
-    l15tutTitle:'🏆 Ultimate Test',
-    l15tutText:'• All 10 questions in one go\n• Mix of reading, matching, 24-hour\n• Only <b>90 seconds</b> — time out and you restart!',
-    l15tutRule:'⏱️ Answer all 10 in 90 seconds!',
+    l8tutText:'Between two big numbers: <b>4 small ticks</b>, each = <b>1 min</b>.\nRead minutes: big number × 5, then add the extra ticks.',
+    l8tutRule:'number × 5 + ticks = minutes',
+    l9tutTitle:'🕖 Set Quarters',
+    l9tutText:'<b>Set both hands</b>.\nHour hand first, then minute hand.',
+    l9tutRule:'Set hour hand first, then minute hand',
+    l10tutTitle:'🕖 Set Both Hands',
+    l10tutText:'Minutes can be <b>any value 0–59</b> (including the small ticks).',
+    l10tutRule:'Set hour hand first, then minute hand',
+    l11tutTitle:'⏰ Match the Clock',
+    l11tutText:'A <b>digital time</b> appears on top.\nPick the clock below whose hands match.',
+    l11tutRule:'Both hour and minute hand must match',
+    l11matchPrompt:'Which clock shows this time?',
+    l12tutTitle:'🌙 24-Hour: Part 1',
+    l12tutText:'24-hour time: <b>0–23</b>, no AM/PM.\nNumber bigger than 12 → <b>subtract 12</b> = PM time.',
+    l12tutRule:'24-hour number − 12 = PM time',
+    l13tutTitle:'🌙 24-Hour: Part 2',
+    l13tutText:'PM → 24-hour: <b>add 12</b>.\nExample: 5 PM = 17:00.',
+    l13tutRule:'PM → +12;  24-hour → −12',
+    l14tutTitle:'🏆 Ultimate Test',
+    l14tutText:'Challenge: <b>10 questions, 90 seconds</b>.\nAll skills: reading, setting, matching, 24-hour.',
+    l14tutRule:'10 questions in 90 seconds',
+    // Unified guide-card section labels + sample question per level
+    tutIntro:'Introduction',
+    tutExample:'Examples',
+    tutRemember:'Remember',
+    l2example:'<span class="tut-ex-q">Q: What time is <b>3:45</b>?</span><span class="tut-ex-a">A: 3 hours, 45 minutes</span>',
+    l3example:'<span class="tut-ex-q">Q: The hour hand points at <b>8</b>. What time is it?</span><span class="tut-ex-a">A: 8 o\'clock</span>',
+    l4example:'<span class="tut-ex-q">Q: Show <b>4 o\'clock</b> — drag hour hand to?</span><span class="tut-ex-a">A: Drag to <b>4</b></span>',
+    l5example:'<span class="tut-ex-q">Q: Hour hand between <b>3 and 4</b>. What time?</span><span class="tut-ex-a">A: 3 o\'clock (read the smaller)</span>',
+    l6example:'<span class="tut-ex-q">Q: Minute hand at <b>6</b>. How many minutes?</span><span class="tut-ex-a">A: 30 min</span>',
+    l7example:'<span class="tut-ex-q">Q: Minute hand points at <b>4</b>. How many minutes?</span><span class="tut-ex-a">A: 20 min</span>',
+    l8example:'<span class="tut-ex-q">Q: Past <b>1</b>, plus <b>3</b> more ticks. How many minutes?</span><span class="tut-ex-a">A: 8 min</span>',
+    l9example:'<span class="tut-ex-q">Q: Set <b>6:15</b></span><span class="tut-ex-a">A: Hour → 6, Minute → 3</span>',
+    l10example:'<span class="tut-ex-q">Q: Set <b>4:25</b></span><span class="tut-ex-a">A: Hour → 4, Minute → 5</span>',
+    l11example:'<span class="tut-ex-q">Q: Top shows <b>7:15</b></span><span class="tut-ex-a">A: Pick the clock with hour hand between 7 and 8, minute at 3</span>',
+    l12example:'<span class="tut-ex-q">Q: What is <b>14:00</b>?</span><span class="tut-ex-a">A: 14 − 12 = <b>2:00 PM</b></span>',
+    l13example:'<span class="tut-ex-q">Q: <b>5:00 PM</b> in 24-hour?</span><span class="tut-ex-a">A: 5 + 12 = <b>17:00</b></span>',
+    l14example:'<span class="tut-ex-q">Challenge: 10 questions in <b>90 seconds</b> (~9 sec each)</span><span class="tut-ex-a">Tip: read the hour hand first, then the minute hand. Stay calm.</span>',
     timeOutTitle:"⏰ Time's Up!",
     timeOutMsg:'Try again — you got this!',
     tryAgainBtn:'Try Again',
-    l14tutTitle:'🌙 24-Hour Time',
-    l14tutText:'A day has 24 hours. Morning uses 1–12; afternoon uses 13–24. This is called "24-hour time".',
-    l14tutRule:'The Rule: PM time = 24-hour number − 12',
-    l14subtitle1:'Convert 24-hour to afternoon time',
-    l14subtitle2:'Write afternoon time in 24-hour',
-    l14subtitle3:'Set the clock to this time',
-    l14pm:'PM',
-    l14am:'AM',
-    l14what12:'What time in 12-hour?',
-    l14what24:'In 24-hour, write:',
-    l14formula:'Subtract 12',
-    l14dayHas24:'A day has 24 hours',
-    l14hint1:'13 = 1 PM',
-    l14hint2:'14 = 2 PM',
-    l14hint3:'15 = 3 PM',
-    l14hint4:'16 = 4 PM',
-    l14setPrompt:'Set the clock to show',
+    l15tutTitle:'🌙 24-Hour Time',
+    l15tutText:'A day has 24 hours. Morning uses 1–12; afternoon uses 13–24. This is called "24-hour time".',
+    l15tutRule:'The Rule: PM time = 24-hour number − 12',
+    l15subtitle1:'Convert 24-hour to afternoon time',
+    l15subtitle2:'Write afternoon time in 24-hour',
+    l15subtitle3:'Set the clock to this time',
+    l15pm:'PM',
+    l15am:'AM',
+    l15what12:'What time in 12-hour?',
+    l15what24:'In 24-hour, write:',
+    l15formula:'Subtract 12',
+    l15dayHas24:'A day has 24 hours',
+    l15hint1:'13 = 1 PM',
+    l15hint2:'14 = 2 PM',
+    l15hint3:'15 = 3 PM',
+    l15hint4:'16 = 4 PM',
+    l15setPrompt:'Set the clock to show',
+    l12matchPrompt:'Which clock shows this time?',
+    l13pm:'PM',
+    l13am:'AM',
     level95name:'Odd One Out',
     l95tutTitle:'🔍 Find the Different One',
     l95tutText:'• 3 clocks show the same time\n• 1 clock shows a different time\n• Find the different clock!',
     l95tutRule:'Find the clock that is different',
     l1hint:'The short red hand is the hour hand. The long blue hand is the minute hand.',
-    l2hint:'Find the short red hand. Whatever number it points to is the hour.',
-    l3hint:"Read the number the short red hand points to, then write it as 'number:00'. Example: points at 3 → 3:00.",
-    l4hint:'Look at the target number, then drag the short red hand until it points at that number.',
-    l5hint:'Find the colon (:). The number before it is the hour. The number after it is the minutes.',
-    l7hint:'Find the number the blue minute hand points to, then multiply it by 5. Example: points at 4 → 4 × 5 = 20 min.',
-    l8hint:'First find the last big number the minute hand passed. Multiply it by 5, then add the small ticks after it. Example: past 1, +3 ticks → 1 × 5 + 3 = 8 min.',
-    l9hint:'If the short red hand sits between two numbers, read the smaller one. It has not reached the next number yet.',
-    l10hint:'Read the hour first from the short red hand. Then read the minutes from the long blue hand. Put them together as hour:minutes.',
-    l11hint:'Find the last big number the minute hand passed, and count the small ticks after it. Minutes = number × 5 + extra ticks.',
-    l12hint:'Drag the blue minute hand to the right spot first. The red hour hand will drift along on its own.',
-    l13hint:'Read the time written at the top. Then pick the clock below whose hands show that same time.',
-    l14hint:'If the number is bigger than 12, subtract 12 → that is the PM time. If it is 12 or less, it is already the AM time.',
-    l15hint:'Take it one step at a time. Read the short red hand for the hour, then the long blue hand for the minutes.',
+    l2hint:'Before "<b>:</b>" = hour, after "<b>:</b>" = minutes.',
+    l3hint:'Hour hand\'s number = the hour.',
+    l4hint:'Drag the hour hand to the target number.',
+    l5hint:'Hour hand between two numbers → read the smaller one.',
+    l7hint:'Minute hand\'s number × 5 = minutes.',
+    l8hint:'Big number × 5, then add the extra ticks.',
+    l9hint:'Set the hour hand to the right number first, then minute hand to 12/3/6/9.',
+    l10hint:'Set the hour hand to the right number first, then the minute hand.',
+    l11hint:'Read both: hour hand for the hour, minute hand for the minutes — both must match.',
+    l12hint:'Number > 12 → subtract 12 = PM. Otherwise = AM.',
+    l13hint:'PM + 12 = 24-hour time.',
+    l14hint:'Hour hand: between two numbers → smaller. Minute hand: big number × 5 + extra ticks.',
     oddOneOutPrompt:'Find the different clock!',
     whatTickMinutes:'Minute hand here — how many minutes passed?',
+    whatHourPart:'How many hours does this time show?',
+    whatMinutePart:'How many minutes does this time show?',
     hintHour:'Move hour hand',
     hintMin:'Move minute hand',
     hintCW:'→ clockwise',
@@ -1941,12 +2010,18 @@ async function loadState() {
 const LEVEL_NAMES = [
   null,
   'level1name','level2name','level3name','level4name','level5name','level6name',
-  'level7name','level8name','level9name','level10name','level11name',
-  'level12name','level13name','level14name','level15name'
+  'level7name','level8name','level9name','level10name',
+  'level11name','level12name','level13name','level14name'
 ];
-const TOTAL_LEVELS = 15;
-const HIDE_MINUTE = new Set([2, 3, 4]);
-const HIDE_HOUR = new Set([6, 7, 8]);
+const TOTAL_LEVELS = 14;
+// Level numbering:
+// L1 Meet the Clock, L2 Reading Digital, L3 Hour Read, L4 Hour Set, L5 Hour Between,
+// L6 Min every-15, L7 Min every-5, L8 Min every-1,
+// L9 Set Time Easy (quarters), L10 Set Time Hard (any min),
+// L11 Match Clocks, L12 24-Hour Easy (24→12), L13 24-Hour Hard (12→24 + setFromPM),
+// L14 Ultimate Test
+const HIDE_MINUTE = new Set([3, 4, 5]);   // hour-only levels: L3(Hour Read), L4(Hour Set), L5(Hour Between)
+const HIDE_HOUR = new Set([6, 7, 8]);     // minute-only levels: L6,L7,L8
 
 function setHourHandVisible(visible) {
   const el = document.getElementById('hand-hour');
@@ -1960,10 +2035,16 @@ function setHourHandVisible(visible) {
     else tap.classList.add('hand-hidden');
   }
 }
-const SHOW_MIN_LABELS = new Set([6, 7, 8, 10, 11, 14]);
+const SHOW_MIN_LABELS = new Set([6, 7, 8, 9, 10, 11, 13]);
+// L6-L8 (minute hand levels), L9-L10 (set time), L11 (match clocks), L13 (24-hour hard: setFromPM)
 
-// Level n unlocks when n === 1 (always) or the previous level earned any stars.
-function isUnlocked(n) { return n === 1 || starsFor(n - 1) > 0; }
+// Level n unlocks when n === 1 (always) or the previous level earned ≥2 stars.
+// Star thresholds: 3 stars = 0 wrong, 2 stars = 1 wrong, 1 star = 2+ wrong.
+const PLAYTEST_UNLOCK_ALL = true;
+function isUnlocked(n) {
+  if (PLAYTEST_UNLOCK_ALL) return true;
+  return n === 1 || starsFor(n - 1) >= 2;
+}
 function starsFor(n) { return state.progress[n] || 0; }
 function starsStr(n) {
   const s = starsFor(n);
@@ -2645,8 +2726,8 @@ function renderTourStep() {
     tickySayKey('tickyLetMe', 'thinking', 4000);
   } else if (tourStep === 2) {
     textEl.innerHTML = state.lang === 'zh'
-      ? '<span class="clr-red">輕按時針</span>'
-      : '<span class="clr-red">Tap the hour hand</span>';
+      ? '<span class="clr-red">短紅針就是時針，輕按它！</span>'
+      : '<span class="clr-red">The short red hand is the hour hand — tap it!</span>';
     setClockHands(3, 0); setMinuteHandVisible(false);
     setTapTargetVisible('hour', true); // hour-hand is the action target
     btn.classList.add('hidden');
@@ -2667,8 +2748,8 @@ function renderTourStep() {
     }
   } else if (tourStep === 3) {
     textEl.innerHTML = state.lang === 'zh'
-      ? '<span class="clr-blue">輕按分針</span>'
-      : '<span class="clr-blue">Tap the minute hand</span>';
+      ? '<span class="clr-blue">長藍針就是分針，輕按它！</span>'
+      : '<span class="clr-blue">The long blue hand is the minute hand — tap it!</span>';
     setClockHands(12, 20); setMinuteHandVisible(true);
     // Hide hour hand so only minute hand is shown
     const hh = document.getElementById('hand-hour');
@@ -2814,7 +2895,7 @@ function tourNext() {
 }
 
 // ═══════════════════════════════════════════════════════
-// TUTORIAL SCREEN (levels 2–10)
+// TUTORIAL SCREEN (levels 2–16)
 // ═══════════════════════════════════════════════════════
 function showTutorial(n) {
   hideAllScreens();
@@ -2822,8 +2903,7 @@ function showTutorial(n) {
   // Reset cursor color to pink (Level 4 uses purple, others use pink or none)
   tutorCursorSetColor('pink');
   tutorCursorClearAnchor();
-  if (n === 5) renderLevel4Tutorial();
-  else renderTutorial(n);
+  renderTutorial(n);
   tickySayKey('tickyLetMe', 'thinking', 5000);
 }
 
@@ -2836,8 +2916,7 @@ function reviewTutorial() {
   const resumeAt = qIndex;
   hideAllScreens();
   document.getElementById('screen-tutorial').classList.remove('hidden');
-  if (n === 5) renderLevel4Tutorial();
-  else renderTutorial(n);
+  renderTutorial(n);
   document.getElementById('tut-start-btn').textContent = t('tourContinue');
   document.getElementById('tut-start-btn').onclick = () => {
     beepTap();
@@ -2846,39 +2925,6 @@ function reviewTutorial() {
     document.getElementById('screen-game').classList.remove('hidden');
     showQuestion(resumeAt);
   };
-}
-
-// Level 4 teaches digital-format reading ("3:00" = hour : minute).
-// Shows a big "3:00" display with colour-coded hour/minute labels and a purple cursor
-// animation demonstrating how to drag the clock hands.
-function renderLevel4Tutorial() {
-  document.getElementById('tut-level-label').textContent = t('level') + 5 + t('levelSuffix');
-  document.getElementById('tut-start-btn').textContent = t('startPractice');
-  document.getElementById('tut-start-btn').onclick = () => { beepTap(); beginLevel(5); };
-  const body = document.getElementById('tut-body');
-  const title = t('l5tutTitle');
-  const text = bulletify(t('l5tutText'));
-  const rule = t('l5tutRule');
-  const hourLabel = state.lang === 'zh' ? '時' : 'hour';
-  const minLabel  = state.lang === 'zh' ? '分' : 'min';
-  body.innerHTML = `
-    <div class="tut-card">
-      <div class="tut-level-tag">${t('level')}4${t('levelSuffix')} — ${t(LEVEL_NAMES[4]).replace(/\n/g,' ')}</div>
-      <div class="tut-title">${title}</div>
-      <div class="tut-viz" id="l4-viz">
-        <div style="font-family:'Fredoka',sans-serif;font-size:64px;font-weight:700;letter-spacing:3px;line-height:1;text-align:center;">
-          <span style="color:#FF6B9D;">3</span><span style="color:#888;">:</span><span style="color:#4ECDC4;">00</span>
-        </div>
-        <div style="display:flex;justify-content:center;gap:58px;margin-top:6px;font-size:15px;font-weight:700;">
-          <span style="color:#FF6B9D;">↑ ${hourLabel}</span>
-          <span style="color:#4ECDC4;">↑ ${minLabel}</span>
-        </div>
-      </div>
-      <div class="tut-text">${text}</div>
-      <div class="tut-rule">${rule}</div>
-    </div>
-  `;
-  stopTutorialLoop();
 }
 
 function bulletify(raw) {
@@ -2904,64 +2950,95 @@ function renderTutorial(n) {
   document.getElementById('tut-start-btn').onclick = () => { beepTap(); beginLevel(n); };
 
   const body = document.getElementById('tut-body');
-  const title = t('l' + n + 'tutTitle');
   const text = bulletify(t('l' + n + 'tutText'));
   const rule = t('l' + n + 'tutRule');
+  const example = t('l' + n + 'example');
 
-  if (n === 14) {
-    // Level 14 (24-hour): simple tutorial — one clean list of examples, no
-    // separate AM/PM boxes and no animated formula. Just the mapping.
-    const rows = [
+  // ── Build the per-level VISUAL block (only difference between levels) ──
+  let visualHtml = '';
+
+  if (n === 2) {
+    // L2: digital display 3:45
+    visualHtml = `
+      <div class="tut-viz">
+        <div style="display:flex;gap:14px;align-items:flex-end;justify-content:center;font-family:'Fredoka',sans-serif;padding:14px 0 10px;">
+          <div style="display:flex;flex-direction:column;align-items:center;">
+            <div style="font-size:15px;color:#888;font-weight:600;margin-bottom:6px;letter-spacing:0.5px;">${state.lang==='zh' ? '時' : 'hour'}</div>
+            <div style="font-size:72px;font-weight:700;color:#FF6B9D;line-height:1;">3</div>
+          </div>
+          <div style="font-size:64px;font-weight:700;color:#bbb;line-height:1;padding-bottom:3px;">:</div>
+          <div style="display:flex;flex-direction:column;align-items:center;">
+            <div style="font-size:15px;color:#888;font-weight:600;margin-bottom:6px;letter-spacing:0.5px;">${state.lang==='zh' ? '分' : 'min'}</div>
+            <div style="font-size:72px;font-weight:700;color:#4ECDC4;line-height:1;">45</div>
+          </div>
+        </div>
+      </div>`;
+  } else if (n === 12 || n === 13) {
+    // L12/L13: 24-hour mapping table
+    const rows12 = [
       [state.lang==='zh' ? '上午 7:00'  : '7:00 AM',  '07:00'],
       [state.lang==='zh' ? '上午 11:00' : '11:00 AM', '11:00'],
       [state.lang==='zh' ? '下午 2:00'  : '2:00 PM',  '14:00'],
       [state.lang==='zh' ? '下午 8:00'  : '8:00 PM',  '20:00'],
     ];
-    body.innerHTML = `
-      <div class="tut-card">
-        <div class="tut-level-tag">${t('level')}${n}${t('levelSuffix')} — ${t(LEVEL_NAMES[n]).replace(/\n/g,' ')}</div>
-        <div class="tut-title">${title}</div>
-        <div class="tut-viz">
-          <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:10px 18px;align-items:center;">
-            ${rows.map(([lbl, t24]) => `
-              <div style="font-family:'Fredoka',sans-serif;font-size:19px;font-weight:700;color:#FF6B9D;text-align:right;white-space:nowrap;">${lbl}</div>
-              <div style="font-size:18px;font-weight:700;color:#bbb;">→</div>
-              <div style="font-family:'Fredoka',sans-serif;font-size:19px;font-weight:700;color:#4ECDC4;text-align:left;white-space:nowrap;">${t24}</div>
-            `).join('')}
-          </div>
+    const rows13 = [
+      [state.lang==='zh' ? '下午 1:00'  : '1:00 PM',  '13:00'],
+      [state.lang==='zh' ? '下午 3:00'  : '3:00 PM',  '15:00'],
+      [state.lang==='zh' ? '下午 6:00'  : '6:00 PM',  '18:00'],
+      [state.lang==='zh' ? '下午 8:00'  : '8:00 PM',  '20:00'],
+    ];
+    const rows = n === 12 ? rows12 : rows13;
+    visualHtml = `
+      <div class="tut-viz">
+        <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:10px 18px;align-items:center;">
+          ${rows.map(([lbl, t24]) => `
+            <div style="font-family:'Fredoka',sans-serif;font-size:19px;font-weight:700;color:#FF6B9D;text-align:right;white-space:nowrap;">${lbl}</div>
+            <div style="font-size:18px;font-weight:700;color:#bbb;">→</div>
+            <div style="font-family:'Fredoka',sans-serif;font-size:19px;font-weight:700;color:#4ECDC4;text-align:left;white-space:nowrap;">${t24}</div>
+          `).join('')}
         </div>
-        <div class="tut-text" style="white-space:pre-line;">${text}</div>
-        <div class="tut-rule" style="white-space:pre-line;">${rule}</div>
+      </div>`;
+  } else {
+    // L3-L11, L14: animated clock SVG
+    const showML = SHOW_MIN_LABELS.has(n);
+    visualHtml = `<div style="position:relative;display:inline-block;">${buildSmallClockSVG(showML, 200)}</div>`;
+  }
+
+  // ── Unified card template — 3 clean sections, no nested boxes ──
+  // Title is just the level name. No emoji-tag, no subtitle.
+  const levelName = t(LEVEL_NAMES[n]).replace(/\n/g, ' ');
+  body.innerHTML = `
+    <div class="tut-card">
+      <div class="tut-title">${levelName}</div>
+      ${visualHtml}
+      <div class="tut-section">
+        <div class="tut-section-title">${t('tutIntro')}</div>
+        <div class="tut-text">${text}</div>
       </div>
-    `;
+      <div class="tut-section">
+        <div class="tut-section-title">${t('tutExample')}</div>
+        <div class="tut-example">${example}</div>
+      </div>
+    </div>
+  `;
+
+  // L2, L12, L13 have no animated clock — bail out before clock setup
+  if (n === 2 || n === 12 || n === 13) {
     stopTutorialLoop();
     return;
   }
-
-  const showML = SHOW_MIN_LABELS.has(n);
-  const clockHtml = `<div style="position:relative;display:inline-block;">${buildSmallClockSVG(showML, 200)}</div>`;
-
-  body.innerHTML = `
-    <div class="tut-card">
-      <div class="tut-level-tag">${t('level')}${n}${t('levelSuffix')} — ${t(LEVEL_NAMES[n]).replace(/\n/g,' ')}</div>
-      <div class="tut-title">${title}</div>
-      ${clockHtml}
-      <div class="tut-text" style="margin-top:10px;">${text}</div>
-      <div class="tut-rule">${rule}</div>
-    </div>
-  `;
 
   // Set initial static hand positions then start looping animation
   stopTutorialLoop();
   const tutSvg = document.getElementById('tut-clock-svg');
   if (tutSvg) {
     const tutHands = {
-      2: [3, 0],   3: [5, 0],
-      4: [4, 0],   6: [12, 15],
-      7: [2, 0],   8: [12, 3],
-      9: [3, 30],  10: [3, 0],
-      11: [3, 15], 12: [7, 0],
-      13: [3, 15], 15: [10, 45]
+      3: [3, 0],   4: [4, 0],
+      5: [3, 30],
+      7: [12, 15], 8: [2, 0],
+      9: [6, 15],  10: [7, 0],
+      11: [3, 15],
+      14: [10, 45]
     };
     const [h, m] = tutHands[n] || [12, 0];
     const th = tutSvg.querySelector('[data-role="hand-hour"]');
@@ -2977,12 +3054,13 @@ function renderTutorial(n) {
     }
     if (tm) {
       tm.setAttribute('transform', `rotate(${mAngle} ${CX} ${CY})`);
-      if (n === 2 || n === 3 || n === 4) tm.style.display = 'none';
+      // Hide minute hand in tutorial for hour-only levels (L3 Hour Read, L4 Hour Set, L5 Hour Between)
+      if (n === 3 || n === 4 || n === 5) tm.style.display = 'none';
       else tm.style.display = '';
     }
 
     // Build per-level looping animation
-    if (n === 2 || n === 3) {
+    if (n === 3 || n === 4) {
       // Hour hand sweeps 12→3, pause, reset, repeat
       activeTutorialLoop = makeTutLoop(() => [
         { fn: resolve => { animateTutHand('hand-hour', 0, 90, 2000, resolve); }, delay: 1000 },
@@ -3065,7 +3143,7 @@ function renderTutorial(n) {
       setTutHand('hand-hour', (2%12)*30); setTutHand('hand-min', 0);
       activeTutorialLoop = makeTutLoop(buildMinSteps);
     } else if (n === 8) {
-      // L6: tick = 1 minute — minute hand sweeps 12→1 tick by tick (0→6→12→18→24→30 deg)
+      // L8: tick = 1 minute — minute hand sweeps 12→1 tick by tick (0→6→12→18→24→30 deg)
       // Badge shows 1,2,3,4,5 分 as it ticks, pause, reset, loop
       const tickDegrees = [0, 6, 12, 18, 24, 30]; // 0 = 12, 30 = at number 1
       const tickLabels = ['1', '2', '3', '4', '5'];
@@ -3109,58 +3187,40 @@ function renderTutorial(n) {
       }
       setTutHand('hand-min', 0);
       activeTutorialLoop = makeTutLoop(buildTickSteps);
-    } else if (n === 9) {
-      // L7: "Smaller number" rule — show 3:30, hour is between 3 and 4, pause, then reset and show 7:15
+    } else if (n === 5) {
+      // L5: "Smaller number" rule — show 3:30 (hour between 3 and 4), pause, then 7:15
+      // Minute hand is hidden per HIDE_MINUTE — also hide in tutorial clock
+      const tutMinHand5 = tutSvg.querySelector('[data-role="hand-min"]');
+      if (tutMinHand5) tutMinHand5.style.display = 'none';
       activeTutorialLoop = makeTutLoop(() => [
         { fn: resolve => {
-            setTutHand('hand-hour', (3%12)*30 + 30*0.5);  // 3:30
-            setTutHand('hand-min', 30*6);
+            setTutHand('hand-hour', (3%12)*30 + 30*0.5);  // 3:30 hour position
             resolve();
           }, delay: 2000 },
         { fn: resolve => {
-            setTutHand('hand-hour', (7%12)*30 + 15*0.5);  // 7:15
-            setTutHand('hand-min', 15*6);
+            setTutHand('hand-hour', (7%12)*30 + 15*0.5);  // 7:15 hour position
             resolve();
           }, delay: 2000 }
       ]);
-    } else if (n === 10) {
-      // L8: easy combined reading: cycle through 3:30, 6:15, 9:45
-      const examples = [ [3, 30], [6, 15], [9, 45] ];
-      let exIdx = 0;
-      activeTutorialLoop = makeTutLoop(() => {
-        const [eh, em] = examples[exIdx % examples.length];
-        exIdx++;
-        return [
-          { fn: resolve => {
-              setTutHand('hand-hour', (eh % 12) * 30 + em * 0.5);
-              setTutHand('hand-min', em * 6);
-              resolve();
-            }, delay: 2200 }
-        ];
-      });
-    } else if (n === 11) {
-      // L9: hard combined reading: cycle through 2:17, 7:43, 4:56
-      const examples = [ [2, 17], [7, 43], [4, 56] ];
-      let exIdx = 0;
-      activeTutorialLoop = makeTutLoop(() => {
-        const [eh, em] = examples[exIdx % examples.length];
-        exIdx++;
-        return [
-          { fn: resolve => {
-              setTutHand('hand-hour', (eh % 12) * 30 + em * 0.5);
-              setTutHand('hand-min', em * 6);
-              resolve();
-            }, delay: 2500 }
-        ];
-      });
     } else if (n === 4) {
-      // L10: Set hour hand — 12→4, pause, reset, pause, repeat
+      // L4: Set hour hand — 12→4, pause, reset, pause, repeat
       activeTutorialLoop = makeTutLoop(() => [
         { fn: resolve => { setTutHand('hand-hour', 0); resolve(); }, delay: 400 },
         { fn: resolve => { animateTutHand('hand-hour', 0, 120, 2000, resolve); }, delay: 1200 }
       ]);
-    } else if (n === 12) {
-      // L11: Set both — hour at 7, minute 0→270 (12→9) with hour going 7→7.75, pause, reset, repeat
+    } else if (n === 9) {
+      // L9: Set Quarters — hour at 6, minute 0→90 (quarter sweep), pause, reset, repeat
+      activeTutorialLoop = makeTutLoop(() => [
+        { fn: resolve => { setTutHand('hand-hour', (6%12)*30); setTutHand('hand-min', 0); resolve(); }, delay: 500 },
+        { fn: resolve => {
+            let done1 = false, done2 = false;
+            function check() { if (done1 && done2) resolve(); }
+            animateTutHand('hand-min', 0, 90, 1500, () => { done1 = true; check(); });
+            animateTutHand('hand-hour', (6%12)*30, (6%12)*30 + 15*0.5, 1500, () => { done2 = true; check(); });
+          }, delay: 1000 }
+      ]);
+    } else if (n === 10) {
+      // L10: Set both — hour at 7, minute 0→270 (12→9) with hour going 7→7.75, pause, reset, repeat
       activeTutorialLoop = makeTutLoop(() => [
         { fn: resolve => { setTutHand('hand-hour', (7%12)*30); setTutHand('hand-min', 0); resolve(); }, delay: 500 },
         { fn: resolve => {
@@ -3170,7 +3230,7 @@ function renderTutorial(n) {
             animateTutHand('hand-hour', (7%12)*30, (7%12)*30 + 45*0.5, 2000, () => { done2 = true; check(); });
           }, delay: 1000 }
       ]);
-      // n === 14 (24-hour) has no clock animation — the formula loop handles it in the rich tutorial branch above
+      // n === 12/13 (24-hour) have no clock animation — handled in the rich tutorial branch above
     }
   }
 }
@@ -3203,9 +3263,9 @@ function beginLevel(n) {
   setMinuteHandVisible(!HIDE_MINUTE.has(n));
   setHourHandVisible(!HIDE_HOUR.has(n));
   renderGameHeader();
-  renderProgressDots();
+  updateProgressDots();
   showQuestion(0);
-  if (n === 15) startUltimateTimer();
+  if (n === 14) startUltimateTimer();
   storage.gameplayStart();
 }
 
@@ -3215,7 +3275,7 @@ function renderGameHeader() {
   document.getElementById('game-stars-earned').innerHTML = emptyStarsStr();
   const timerEl = document.getElementById('ultimate-timer-display');
   if (timerEl) {
-    if (n === 15) { timerEl.classList.remove('hidden'); timerEl.textContent = '⏱ ' + ULTIMATE_SECS; }
+    if (n === 14) { timerEl.classList.remove('hidden'); timerEl.textContent = '⏱ ' + ULTIMATE_SECS; }
     else { timerEl.classList.add('hidden'); timerEl.classList.remove('urgent'); }
   }
 }
@@ -3257,7 +3317,7 @@ function handleUltimateTimeout() {
   document.getElementById('retry-btn').onclick = () => {
     beepTap();
     document.getElementById('overlay-timeout').classList.add('hidden');
-    beginLevel(15);
+    beginLevel(14);
   };
   document.getElementById('timeout-close').onclick = () => {
     beepTap();
@@ -3267,7 +3327,7 @@ function handleUltimateTimeout() {
   document.getElementById('overlay-timeout').classList.remove('hidden');
 }
 
-function renderProgressDots() {
+function updateProgressDots() {
   const dotsEl = document.getElementById('progress-dots');
   if (!dotsEl) return;
   dotsEl.innerHTML = '';
@@ -3276,15 +3336,6 @@ function renderProgressDots() {
     dot.className = 'progress-dot' + (i === qIndex ? ' current' : '') + (i < qIndex ? ' done' : '');
     dotsEl.appendChild(dot);
   }
-}
-
-function updateProgressDots() {
-  const dots = document.querySelectorAll('.progress-dot');
-  dots.forEach((dot, i) => {
-    dot.className = 'progress-dot' +
-      (i < qIndex ? ' done' : '') +
-      (i === qIndex ? ' current' : '');
-  });
 }
 
 function l6Prompt(q) {
@@ -3301,7 +3352,7 @@ function l6Prompt(q) {
   if (zh) {
     if (pv === 1) return `時針過了 ${s}，但還沒到 ${l}。現在是幾點？`;
     if (pv === 2) return `時針在 ${s} 和 ${l} 之間。讀較小的 → 幾點？`;
-    return `時針在 ${s} 和 ${l} 中間，還沒到 ${l}。現在是幾點？`;
+    return `時針在 ${s} 和 ${l} 之間，還沒到 ${l}。現在是幾點？`;
   }
   if (pv === 1) return `The hour hand passed ${s} but hasn't reached ${l}. What hour is it?`;
   if (pv === 2) return `The hour hand is between ${s} and ${l}. Read the smaller — what hour?`;
@@ -3313,34 +3364,33 @@ function rerenderChoiceText() {
   if (!q) return;
   const prompt = document.getElementById('read-prompt');
   if (q.type === 'read') {
-    if (q.subtype === 'convert24to12') prompt.textContent = t('l14what12');
-    else if (q.subtype === 'convert12to24') prompt.textContent = t('l14what24');
-    else if (currentLevel === 2) prompt.textContent = t('whatHour');
+    if (q.subtype === 'convert24to12') prompt.textContent = t('l15what12');
+    else if (q.subtype === 'convert12to24') prompt.textContent = t('l15what24');
+    else if (currentLevel === 2) prompt.textContent = q.subtype === 'parseMinute' ? t('whatMinutePart') : t('whatHourPart');
     else if (currentLevel === 3) prompt.textContent = t('whatOclock');
     else if (currentLevel === 1) prompt.textContent = '';
-    else if (currentLevel === 5 && q.subtype === 'l4_digitalFmt') prompt.textContent = t(q.askType === 'hour' ? 'l5AskHour' : 'l5AskMin');
     else if (currentLevel === 6 || currentLevel === 7) prompt.textContent = t('whatMinutes');
     else if (currentLevel === 8) prompt.textContent = t('whatTickMinutes');
-    else if (currentLevel === 9) {
+    else if (currentLevel === 5) {
       if (q.plain) {
         prompt.textContent = t('whatOclock');
       } else if (q.subtype === 'l6_smaller' || q.subtype === 'l6_at') {
         prompt.textContent = l6Prompt(q);
       } else {
-        prompt.textContent = t('whatHour');
+        prompt.textContent = t('whatOclock');
       }
     }
     else prompt.textContent = t('whatTime');
   }
   if (q.type === 'set') {
     if (currentLevel === 4) prompt.textContent = t('setHour');
-    else if (currentLevel === 14 && q.subtype === 'setFromPM') prompt.textContent = t('l14subtitle3');
-    else if (currentLevel === 14) prompt.textContent = t('set24') + ' ' + q.display;
+    else if (currentLevel === 13 && q.subtype === 'setFromPM') prompt.textContent = t('l15subtitle3');
+    else if (currentLevel === 13) prompt.textContent = t('set24') + ' ' + q.display;
     else prompt.textContent = t('setBoth');
     document.getElementById('confirm-btn').textContent = t('confirm');
   }
   if (q.type === 'match') {
-    prompt.textContent = t('l13matchPrompt');
+    prompt.textContent = t('l11matchPrompt');
   }
 }
 
@@ -3380,68 +3430,91 @@ function makeSetQ(h, m, use24=false) {
 function buildQuestions(n) {
   const allHours = [1,2,3,4,5,6,7,8,9,10,11,12];
   if (n === 2) {
+    // L2: Reading Digital — no clock shown. Parse H:MM structure.
+    // 5 questions, 2 hour-parse + 3 minute-parse, INTERLEAVED so kids
+    // can't autopilot ("just pick the first digit"). Q1 is always hour
+    // so they start with the easier subtype, then types are shuffled.
+    // Minute values restricted to 0, 15, 30, 45 (kid hasn't learned the rest yet).
+    const easyMins = [0, 15, 30, 45];
+    const hours = shuffle([...allHours]).slice(0, 5);
+    const mins  = shuffle([0, 15, 30, 45, 0]); // 5 values; mixed but only easy minutes
+    // 2 hour-parse + 3 minute-parse — minute is the harder skill, so it gets more reps.
+    // Force Q1 = hour (gentler intro), then shuffle the remaining 4 (1 hour + 3 minute).
+    const tail = shuffle(['H', 'M', 'M', 'M']);
+    const order = ['H', ...tail];
+    const qs = order.map((kind, i) => {
+      const h = hours[i];
+      const m = mins[i];
+      const displayStr = fmtTime(h, m, false);
+      if (kind === 'H') {
+        const correct = String(h);
+        const distHours = shuffle(allHours.filter(x => x !== h)).slice(0, 3).map(String);
+        return {
+          type: 'read',
+          subtype: 'parseHour',
+          display: displayStr,
+          hour: h, min: m,
+          correct,
+          options: shuffle([correct, ...distHours])
+        };
+      } else {
+        const correct = String(m);
+        const distMins = shuffle(easyMins.filter(x => x !== m)).slice(0, 3).map(String);
+        return {
+          type: 'read',
+          subtype: 'parseMinute',
+          display: displayStr,
+          hour: h, min: m,
+          correct,
+          options: shuffle([correct, ...distMins])
+        };
+      }
+    });
+    return qs;
+  }
+  if (n === 3) {
+    // L3: Hour Read — minute hand hidden, pick the hour number
     const hours = shuffle([...allHours]).slice(0,5);
     return hours.map(h => makeReadQ(h, 0, allHours, false, (hour) => String(hour)));
   }
-  if (n === 3) {
+  if (n === 4) {
+    // L4: Hour Set — set mode, hour only
     const hours = shuffle([...allHours]).slice(0,5);
-    return hours.map(h => makeReadQ(h, 0, allHours));
+    return hours.map(h => makeSetQ(h, 0, false));
   }
   if (n === 5) {
-    // Level 4: digital-format only — read "h:mm" and pick the hour or minute part.
-    // Q1-2 show :00 times (basic notation).
-    // Q3-5 show non-zero minutes so students meet :mm where mm ≠ 00.
-    // The "other" number in the display is ALWAYS a distractor — a student guessing
-    // from the visible digits without grasping hour-vs-minute will be tricked.
-    const hourPool = shuffle([...allHours]);
-    const nonZeroMinutes = shuffle([15, 30, 45, 5, 10, 20, 25, 40, 50]);
-    const askTypes = shuffle(['hour','hour','minute','minute',
-                              Math.random() < 0.5 ? 'hour' : 'minute']);
-    const questions = [];
-    for (let i = 0; i < 5; i++) {
-      const h = hourPool[i];
-      const m = i < 2 ? 0 : nonZeroMinutes[i - 2];
-      const ask = askTypes[i];
-      const mStr = m.toString().padStart(2, '0');
-      const display = `${h}:${mStr}`;
-      const correct = ask === 'hour' ? String(h) : String(m);
-      // Guaranteed tricky distractor = the OTHER part of the display.
-      const tricky = ask === 'hour' ? String(m) : String(h);
-      let otherPool;
-      if (ask === 'hour') {
-        otherPool = [
-          String(h === 12 ? 1 : h + 1),
-          String(h === 1 ? 12 : h - 1),
-          String(h + m),
-          String(Math.max(1, h - 2))
-        ];
-      } else {
-        otherPool = [
-          String((m + 5) % 60),
-          String(m === 0 ? 30 : 0),
-          String(m + 10 > 59 ? m - 10 : m + 10),
-          String((h * 10) % 60)
-        ];
-      }
-      otherPool = [...new Set(otherPool)].filter(x => x !== correct && x !== tricky);
-      shuffle(otherPool);
-      const distractors = [tricky, ...otherPool.slice(0, 2)];
-      while (distractors.length < 3) distractors.push(String(rnd(20, 59)));
-      questions.push({
+    // L5: Hour Between — minute hand hidden; 5 questions mix
+    // "exact at" (m=0) and "between" (m≠0). Moved from old L9.
+    const btwHours = shuffle([1,2,3,4,5,6,7,8,9,10,11,12]);
+    const btwMins  = shuffle([15, 20, 25, 30, 35, 40, 45, 50]);
+    const atHours  = shuffle([1,2,3,4,5,6,7,8,9,10,11,12].filter(x => x !== btwHours[0] && x !== btwHours[1] && x !== btwHours[2]));
+    const pvs = shuffle([0, 1, 2]);
+    const wrapH = x => ((x - 1 + 12) % 12) + 1;
+    const template = [
+      { sub:'l6_smaller', h: btwHours[0], m: btwMins[0], pv: pvs[0], plain: false },
+      { sub:'l6_at',      h: atHours[0],  m: 0,          pv: 0,      plain: false },
+      { sub:'l6_smaller', h: btwHours[1], m: btwMins[1], pv: pvs[1], plain: false },
+      { sub:'l6_at',      h: atHours[1],  m: 0,          pv: 1,      plain: true  },
+      { sub:'l6_smaller', h: btwHours[2], m: btwMins[2], pv: pvs[2], plain: true  },
+    ];
+    return template.map(({sub, h, m, pv, plain}) => {
+      const around = [wrapH(h-1), h, wrapH(h+1), wrapH(h+2)];
+      const uniq = [...new Set(around)];
+      while (uniq.length < 4) uniq.push(wrapH(h + uniq.length));
+      return {
         type: 'read',
-        subtype: 'l4_digitalFmt',
-        askType: ask,
-        displayDigital: display,
-        correct,
-        options: shuffle([correct, ...distractors])
-      });
-    }
-    return questions;
+        subtype: sub,
+        promptVariant: pv,
+        plain,
+        hour: h, min: m,
+        correct: String(h),
+        options: shuffle(uniq.slice(0, 4).map(String))
+      };
+    });
   }
   if (n === 6) {
-    // Level 6: Quarter Hours — minute hand at 3, 6, 9, 12 → 15, 30, 45, 0 min.
-    // Precursor to Level 7's generalized "number × 5" rule. 4 answers always
-    // come from the set {0, 15, 30, 45} so distractors teach the quarter-hour set.
+    // L6: Minute Hand 1 — Quarter Hours: minute hand at 3,6,9,12 → 15,30,45,0 min.
+    // Precursor to L8's generalized "number × 5" rule.
     const positions = [[12, 0], [3, 15], [6, 30], [9, 45]];
     const picks = shuffle([...positions, positions[rnd(0, 3)]]);
     const hours = shuffle([...allHours]);
@@ -3459,9 +3532,7 @@ function buildQuestions(n) {
     });
   }
   if (n === 7) {
-    // Level 7: minute hand at a number → number × 5 = minutes.
-    // Pick 5 random positions from all 12 so the set varies each play.
-    // Always include [12,0] as the anchor (kids learn 12 = 0 min first).
+    // L7: Minute Hand 2 — minute hand at any number → number × 5 = minutes.
     const allPairs = [[1,5],[2,10],[3,15],[4,20],[5,25],[6,30],[7,35],[8,40],[9,45],[10,50],[11,55]];
     const pairs = [[12, 0], ...shuffle([...allPairs]).slice(0, 4)];
     shuffle(pairs);
@@ -3477,8 +3548,7 @@ function buildQuestions(n) {
     });
   }
   if (n === 8) {
-    // Each tick = 1 minute: start simple with minute hand in the 12→1 range (1-4 ticks).
-    // Then slightly expand so kids apply "number × 5 + ticks".
+    // L8: Minute Hand 3 — tick counts (each tick = 1 minute).
     const tickMinutes = [1, 2, 3, 4, 6, 7, 8, 9];
     const picks = shuffle(tickMinutes).slice(0, 5);
     const hours = shuffle([...allHours]);
@@ -3493,93 +3563,17 @@ function buildQuestions(n) {
     });
   }
   if (n === 9) {
-    // Mix of "exact at" (m=0) and "between" (m≠0). Contrasts the two cases.
-    // Structure: 3 between + 2 exact, last 2 are "plain" (no verbal scaffold).
-    // Times, hours, and prompt variants all randomize each play.
-    const btwHours = shuffle([1,2,3,4,5,6,7,8,9,10,11,12]);
-    const btwMins  = shuffle([15, 20, 25, 30, 35, 40, 45, 50]);
-    const atHours  = shuffle([1,2,3,4,5,6,7,8,9,10,11,12].filter(x => x !== btwHours[0] && x !== btwHours[1] && x !== btwHours[2]));
-    const pvs = shuffle([0, 1, 2]);
-    const wrapH = x => ((x - 1 + 12) % 12) + 1;
-    const template = [
-      { sub:'l6_smaller', h: btwHours[0], m: btwMins[0], pv: pvs[0], plain: false },
-      { sub:'l6_at',      h: atHours[0],  m: 0,          pv: 0,      plain: false },
-      { sub:'l6_smaller', h: btwHours[1], m: btwMins[1], pv: pvs[1], plain: false },
-      { sub:'l6_at',      h: atHours[1],  m: 0,          pv: 1,      plain: true  },
-      { sub:'l6_smaller', h: btwHours[2], m: btwMins[2], pv: pvs[2], plain: true  },
-    ];
-    return template.map(({sub, h, m, pv, plain}) => {
-      // 4 options: h-1, h, h+1, h+2 (wrapped 1–12). Always includes h+1 which
-      // is the tempting "larger" distractor for the between case.
-      const around = [wrapH(h-1), h, wrapH(h+1), wrapH(h+2)];
-      const uniq = [...new Set(around)];
-      while (uniq.length < 4) uniq.push(wrapH(h + uniq.length));
-      return {
-        type: 'read',
-        subtype: sub,
-        promptVariant: pv,
-        plain,
-        hour: h, min: m,
-        correct: String(h),
-        options: shuffle(uniq.slice(0, 4).map(String))
-      };
-    });
+    // L9: Set Time Easy — drag both hands, but minutes restricted to 0,15,30,45.
+    const quarterPairs = shuffle([[1,0],[2,15],[3,30],[4,45],[5,0],[6,15],[7,30],[8,45],[9,0],[10,15],[11,30],[12,45]]).slice(0, 5);
+    return quarterPairs.map(([h, m]) => makeSetQ(h, m, false));
   }
   if (n === 10) {
-    // Easy combined reading: on-the-5 minutes, 4 answer choices.
-    // Hours and minute assignments both randomize so the set varies each play.
-    const easyMins = [0, 15, 30, 45];
-    const hours = shuffle([...allHours]).slice(0, 5);
-    const mins = shuffle([...easyMins, easyMins[rnd(0, 3)]]);
-    return hours.map((h, i) => {
-      const m = mins[i];
-      const correct = fmtTime(h, m, false);
-      const altH1 = h === 12 ? 1 : h + 1;
-      const altH2 = h === 1 ? 12 : h - 1;
-      const altM  = easyMins[(easyMins.indexOf(m) + 2) % easyMins.length];
-      const distractors = [
-        fmtTime(altH1, m, false),
-        fmtTime(altH2, m, false),
-        fmtTime(h, altM, false),
-      ];
-      const options = shuffle([correct, ...distractors]);
-      return { type: 'read', hour: h, min: m, correct, options };
-    });
-  }
-  if (n === 11) {
-    // Hard combined reading: any minute (off-tick), 4 answer choices
-    const hardTimes = [[2, 17], [5, 23], [7, 43], [9, 56], [11, 8]];
-    shuffle(hardTimes);
-    return hardTimes.slice(0, 5).map(([h, m]) => {
-      const correct = fmtTime(h, m, false);
-      // Distractors:
-      // 1. Wrong hour (+1): forgot hour-between rule
-      const wrongHour = h === 12 ? 1 : h + 1;
-      // 2. Wrong minute (×5 only, ignored ticks): round m down to nearest 5
-      const mRoundDown = Math.floor(m / 5) * 5;
-      // 3. Wrong minute (miscounted ticks): m ± 2
-      const mOff = m >= 3 ? m - 2 : m + 2;
-      const distractors = [
-        fmtTime(wrongHour, m, false),
-        fmtTime(h, mRoundDown === m ? m + 5 : mRoundDown, false),
-        fmtTime(h, mOff, false)
-      ];
-      const options = shuffle([correct, ...distractors]);
-      return { type: 'read', hour: h, min: m, correct, options };
-    });
-  }
-  if (n === 4) {
-    // Set Hour
-    const hours = shuffle([...allHours]).slice(0,5);
-    return hours.map(h => makeSetQ(h, 0, false));
-  }
-  if (n === 12) {
-    // Set Both — start with easy :00/:15/:30/:45 then harder
+    // L10: Set Time Hard — full off-tick set mode.
     const easyPairs = shuffle([[3,0],[6,30],[9,15],[12,45]]).slice(0,2);
     const hardPairs = shuffle([[7,45],[5,20],[11,55],[2,10],[9,40]]).slice(0,3);
     return [...easyPairs, ...hardPairs].map(([h,m]) => makeSetQ(h, m, false));
   }
-  if (n === 13) {
+  if (n === 11) {
     // Clock Match — show a digital time; kid picks which of 4 clocks matches.
     // First 3: easy pairs with obviously different distractors.
     // Last 2: trickier — distractors are ±1 hour, ±5 min, or hour/minute hand swap.
@@ -3633,49 +3627,56 @@ function buildQuestions(n) {
       };
     });
   }
-  if (n === 14) {
-    // 24-hour level: mix AM (morning) and PM (afternoon/evening) so kids learn
-    // to distinguish the two. Analog clock alone can't reveal AM vs PM — the
-    // 24-hour digit (e.g. 07 vs 19) is what tells them.
-    const amPool = shuffle([7,8,9,10,11]);          // morning 7–11
-    const pmPool = shuffle([13,14,15,16,17,18,19,20]); // 1–8 PM
+  if (n === 12) {
+    // L12: 24-Hour Easy — only convert24to12 subtype. ~5 questions. Mix AM + PM.
+    const amPool = shuffle([7,8,9,10,11]);
+    const pmPool = shuffle([13,14,15,16,17,18,19,20]);
     const qs = [];
-    const amLabel = t('l14am');
-    const pmLabel = t('l14pm');
+    const amLabel = t('l15am');
+    const pmLabel = t('l15pm');
     const isPMHr = h => h >= 12;
     const to12 = h => (h > 12 ? h - 12 : h);
-    // Chinese writes "下午 2:00" (prefix); English writes "2:00 PM" (suffix).
     const fmtWithLabel = (label, h, m) => {
       const tm = `${h}:${m.toString().padStart(2,'0')}`;
       return state.lang === 'zh' ? `${label} ${tm}` : `${tm} ${label}`;
     };
     const fmtPeriod = (h24, m) => fmtWithLabel(isPMHr(h24) ? pmLabel : amLabel, to12(h24), m);
-
-    // Type A: 24h → 12h labeled. 3 questions — 1 AM + 2 PM. Distractors always
-    // include a period-swap (same hour, wrong AM/PM) so kids must pay attention.
-    const typeASrc = shuffle([amPool[0], pmPool[0], pmPool[1]]);
-    const typeAMins = [0, 30, 0];
-    for (let i = 0; i < 3; i++) {
-      const h24 = typeASrc[i];
+    // 2 AM + 3 PM questions, all convert24to12
+    const src12 = shuffle([amPool[0], amPool[1], pmPool[0], pmPool[1], pmPool[2]]);
+    const mins12 = [0, 30, 0, 30, 0];
+    for (let i = 0; i < 5; i++) {
+      const h24 = src12[i];
       const pm = isPMHr(h24);
       const h12 = to12(h24);
-      const m = typeAMins[i];
+      const m = mins12[i];
       const correct = fmtPeriod(h24, m);
       const wrongPeriod = fmtWithLabel(pm ? amLabel : pmLabel, h12, m);
-      const altHours = [h12+1, h12-1, h12+2, h12-2]
-        .filter(x => x >= 1 && x <= 11 && x !== h12);
+      const altHours = [h12+1, h12-1, h12+2, h12-2].filter(x => x >= 1 && x <= 11 && x !== h12);
       const sameLabel = pm ? pmLabel : amLabel;
       const wrongHourOpts = altHours.slice(0, 2).map(h => fmtWithLabel(sameLabel, h, m));
-      const distractors = [...new Set([wrongPeriod, ...wrongHourOpts])]
-        .filter(x => x !== correct).slice(0, 3);
+      const distractors = [...new Set([wrongPeriod, ...wrongHourOpts])].filter(x => x !== correct).slice(0, 3);
       const options = shuffle([correct, ...distractors]);
       qs.push({ type:'read', subtype:'convert24to12', hour:h12, min:m, h24, correct, options, displayDigital:fmtTime(h24,m,true) });
     }
-
-    // Type B: 12h labeled → 24h. 2 questions — 1 AM + 1 PM. Always include the
-    // flipped-period 24h form as a distractor (e.g. "PM 2:00" → 14, flipped=02).
-    const typeBSrc = shuffle([amPool[1], pmPool[2]]);
-    for (let i = 0; i < 2; i++) {
+    return qs;
+  }
+  if (n === 13) {
+    // L13: 24-Hour Hard — convert12to24 + setFromPM subtypes. ~6 questions total.
+    const amPool = shuffle([7,8,9,10,11]);
+    const pmPool = shuffle([13,14,15,16,17,18,19,20]);
+    const qs = [];
+    const amLabel = t('l15am');
+    const pmLabel = t('l15pm');
+    const isPMHr = h => h >= 12;
+    const to12 = h => (h > 12 ? h - 12 : h);
+    const fmtWithLabel = (label, h, m) => {
+      const tm = `${h}:${m.toString().padStart(2,'0')}`;
+      return state.lang === 'zh' ? `${label} ${tm}` : `${tm} ${label}`;
+    };
+    const fmtPeriod = (h24, m) => fmtWithLabel(isPMHr(h24) ? pmLabel : amLabel, to12(h24), m);
+    // Type B: 12h labeled → 24h. 3 questions — 1 AM + 2 PM.
+    const typeBSrc = shuffle([amPool[0], pmPool[0], pmPool[1]]);
+    for (let i = 0; i < 3; i++) {
       const h24 = typeBSrc[i];
       const pm = isPMHr(h24);
       const h12 = to12(h24);
@@ -3683,47 +3684,38 @@ function buildQuestions(n) {
       const correct = fmtTime(h24, m, true);
       const flipped24 = pm ? h12 : h12 + 12;
       const sameRange = pm ? [13, 23] : [1, 11];
-      const altCandidates = [h24+1, h24-1, h24+2, h24-2]
-        .filter(x => x !== h24 && x >= sameRange[0] && x <= sameRange[1]);
+      const altCandidates = [h24+1, h24-1, h24+2, h24-2].filter(x => x !== h24 && x >= sameRange[0] && x <= sameRange[1]);
       const altStrs = altCandidates.slice(0, 2).map(x => fmtTime(x, m, true));
-      const distractors = [...new Set([fmtTime(flipped24, m, true), ...altStrs])]
-        .filter(x => x !== correct).slice(0, 3);
+      const distractors = [...new Set([fmtTime(flipped24, m, true), ...altStrs])].filter(x => x !== correct).slice(0, 3);
       const options = shuffle([correct, ...distractors]);
       qs.push({ type:'read', subtype:'convert12to24', hour:h12, min:m, h24, correct, options, displayDigital:fmtPeriod(h24, m) });
     }
-
-    // Type C: set clock from 24h. 2 questions — 1 AM + 1 PM. Orange box shows
-    // ONLY the 24h digit (no "(PM 2:00)" crutch) — kids must convert mentally.
-    const typeCSrc = shuffle([amPool[2], pmPool[3]]);
-    const typeCMins = [0, 30];
-    for (let i = 0; i < 2; i++) {
+    // Type C: set clock from 24h. 3 questions — 1 AM + 2 PM.
+    const typeCSrc = shuffle([amPool[1], pmPool[2], pmPool[3]]);
+    const typeCMins = [0, 30, 0];
+    for (let i = 0; i < 3; i++) {
       const h24 = typeCSrc[i];
       const h12 = to12(h24);
       const m = typeCMins[i];
       qs.push({ type:'set', subtype:'setFromPM', hour:h12, min:m, h24, display:fmtTime(h24,m,true), use24:true });
     }
-
     return qs;
   }
-  if (n === 15) {
-    // Ultimate Test — 10 questions against a 60-second timer.
+  if (n === 14) {
+    // L14: Ultimate Test — 10 questions against a 90-second timer.
     // Q1-3 medium, Q4-6 hard, Q7-10 extremely hard. Mixes read, match, 24h.
     const wrap12 = x => ((x - 1 + 12) % 12) + 1;
-
-    // Chinese writes "下午 2:00" (prefix); English writes "2:00 PM" (suffix).
-    const amLabel = t('l14am'), pmLabel = t('l14pm');
-    const fmtWithLabel = (label, h, m) => {
+    const amLbl = t('l15am'), pmLbl = t('l15pm');
+    const fmtWL = (label, h, m) => {
       const tm = `${h}:${m.toString().padStart(2,'0')}`;
       return state.lang === 'zh' ? `${label} ${tm}` : `${tm} ${label}`;
     };
-    const fmtPeriod = (h24, m) => {
+    const fmtP = (h24, m) => {
       const pm_ = h24 >= 12, h12_ = h24 > 12 ? h24 - 12 : h24;
-      return fmtWithLabel(pm_ ? pmLabel : amLabel, h12_, m);
+      return fmtWL(pm_ ? pmLbl : amLbl, h12_, m);
     };
 
     function buildRead(h, m, diff) {
-      // diff: 'medium' = on-the-5 time, closer distractors than the old easy mode;
-      //       'hard' = off-tick time, subtle wrong-hand-reading distractors.
       const correct = fmtTime(h, m, false);
       if (diff === 'hard') {
         const wrongHour = wrap12(h + 1);
@@ -3736,17 +3728,10 @@ function buildQuestions(n) {
         ];
         return { type:'read', hour:h, min:m, correct, options: shuffle([correct, ...distractors]) };
       }
-      // medium: hour-between distractor (same min), adjacent on-the-5 minute
       const altH1 = wrap12(h + 1), altH2 = wrap12(h - 1);
-      const altM1 = (m + 5) % 60;
-      const altM2 = (m + 55) % 60;
-      const distractors = [
-        fmtTime(altH1, m, false),
-        fmtTime(altH2, m, false),
-        fmtTime(h, altM1, false),
-        fmtTime(h, altM2, false),
-      ].filter(x => x !== correct);
-      return { type:'read', hour:h, min:m, correct, options: shuffle([correct, ...distractors.slice(0, 3)]) };
+      const altM1 = (m + 5) % 60, altM2 = (m + 55) % 60;
+      const distractors = [fmtTime(altH1,m,false),fmtTime(altH2,m,false),fmtTime(h,altM1,false),fmtTime(h,altM2,false)].filter(x=>x!==correct);
+      return { type:'read', hour:h, min:m, correct, options: shuffle([correct, ...distractors.slice(0,3)]) };
     }
 
     function buildMatch(h, m, diff) {
@@ -3754,92 +3739,46 @@ function buildQuestions(n) {
       const dist = [];
       const tryAdd = p => {
         const k = `${p[0]}:${p[1]}`;
-        if (!seen.has(k) && p[0] >= 1 && p[0] <= 12 && p[1] >= 0 && p[1] < 60) {
-          seen.add(k); dist.push(p);
-        }
+        if (!seen.has(k) && p[0]>=1 && p[0]<=12 && p[1]>=0 && p[1]<60) { seen.add(k); dist.push(p); }
       };
       if (diff === 'hard') {
-        tryAdd([wrap12(h + 1), m]);
-        tryAdd([h, (m + 5) % 60]);
-        tryAdd([h, (m + 55) % 60]);
-        tryAdd([wrap12(h - 1), m]);
+        tryAdd([wrap12(h+1),m]); tryAdd([h,(m+5)%60]); tryAdd([h,(m+55)%60]); tryAdd([wrap12(h-1),m]);
       } else {
-        // medium: ±2 hours (same minute) and ±15 minutes (same hour) — forces
-        // real clock-reading, not just "one clock is obviously different".
-        tryAdd([wrap12(h + 2), m]);
-        tryAdd([wrap12(h - 2), m]);
-        tryAdd([h, (m + 15) % 60]);
-        tryAdd([h, (m + 45) % 60]);
+        tryAdd([wrap12(h+2),m]); tryAdd([wrap12(h-2),m]); tryAdd([h,(m+15)%60]); tryAdd([h,(m+45)%60]);
       }
       while (dist.length < 3) tryAdd([rnd(1,12), rnd(0,11)*5]);
-      const choices = shuffle([[h, m], ...dist.slice(0, 3)]);
-      const correctIdx = choices.findIndex(([ch, cm]) => ch === h && cm === m);
-      return {
-        type:'match', subtype:'clockMatch', hour:h, min:m,
-        display: fmtTime(h, m, false),
-        choices, correct: String(correctIdx),
-        options: choices.map((_, i) => String(i)),
-      };
+      const choices = shuffle([[h,m],...dist.slice(0,3)]);
+      const correctIdx = choices.findIndex(([ch,cm]) => ch===h && cm===m);
+      return { type:'match', subtype:'clockMatch', hour:h, min:m, display:fmtTime(h,m,false), choices, correct:String(correctIdx), options:choices.map((_,i)=>String(i)) };
     }
 
     function build24(h24, diff) {
-      const pm = h24 >= 12;
-      const h12 = h24 > 12 ? h24 - 12 : h24;
-      const m = diff === 'hard' ? 30 : (diff === 'medium' ? 30 : 0);
-      const correct = fmtPeriod(h24, m);
-      const wrongPeriod = fmtWithLabel(pm ? amLabel : pmLabel, h12, m);
-      // Must include 12 in the valid range — otherwise h12=11 leaves only 1 alt
-      // and altH[1] is undefined, producing a "undefined:30" choice.
-      const altH = [h12 + 1, h12 - 1, h12 + 2, h12 - 2]
-        .filter(x => x >= 1 && x <= 12 && x !== h12);
-      const sameLabel = pm ? pmLabel : amLabel;
-      const distractors = [...new Set([
-        wrongPeriod,
-        ...altH.slice(0, 2).map(h => fmtWithLabel(sameLabel, h, m)),
-      ])].filter(x => x !== correct).slice(0, 3);
-      return {
-        type:'read', subtype:'convert24to12', hour:h12, min:m, h24, correct,
-        options: shuffle([correct, ...distractors]),
-        displayDigital: fmtTime(h24, m, true),
-      };
+      const pm = h24 >= 12, h12 = h24 > 12 ? h24 - 12 : h24;
+      const m = diff === 'hard' ? 30 : 0;
+      const correct = fmtP(h24, m);
+      const wrongPeriod = fmtWL(pm ? amLbl : pmLbl, h12, m);
+      const altH = [h12+1,h12-1,h12+2,h12-2].filter(x=>x>=1&&x<=12&&x!==h12);
+      const sameLabel = pm ? pmLbl : amLbl;
+      const distractors = [...new Set([wrongPeriod,...altH.slice(0,2).map(h=>fmtWL(sameLabel,h,m))])].filter(x=>x!==correct).slice(0,3);
+      return { type:'read', subtype:'convert24to12', hour:h12, min:m, h24, correct, options:shuffle([correct,...distractors]), displayDigital:fmtTime(h24,m,true) };
     }
 
-    // Tricky variant: show 24h digital (e.g. "13:00"), pick the analog clock.
-    // Classic trap: for 13:00 a kid may pick "3:00" (reads last digit).
     function buildMatchFrom24(h24, m) {
-      const pm = h24 >= 12;
-      const h12 = h24 > 12 ? h24 - 12 : h24;
+      const pm = h24 >= 12, h12 = h24 > 12 ? h24 - 12 : h24;
       const seen = new Set([`${h12}:${m}`]);
       const dist = [];
       const tryAdd = p => {
         const k = `${p[0]}:${p[1]}`;
-        if (!seen.has(k) && p[0] >= 1 && p[0] <= 12 && p[1] >= 0 && p[1] < 60) {
-          seen.add(k); dist.push(p);
-        }
+        if (!seen.has(k) && p[0]>=1 && p[0]<=12 && p[1]>=0 && p[1]<60) { seen.add(k); dist.push(p); }
       };
-      // PM 13–19: include "last-digit" misconception as a distractor.
-      if (pm && h24 >= 13 && h24 <= 19) {
-        const lastDigit = h24 % 10;
-        tryAdd([lastDigit === 0 ? 10 : lastDigit, m]);
-      }
-      tryAdd([wrap12(h12 + 1), m]);
-      tryAdd([wrap12(h12 - 1), m]);
-      tryAdd([h12, (m + 30) % 60]);
+      if (pm && h24 >= 13 && h24 <= 19) { const ld = h24%10; tryAdd([ld===0?10:ld, m]); }
+      tryAdd([wrap12(h12+1),m]); tryAdd([wrap12(h12-1),m]); tryAdd([h12,(m+30)%60]);
       while (dist.length < 3) tryAdd([rnd(1,12), rnd(0,11)*5]);
-      const choices = shuffle([[h12, m], ...dist.slice(0, 3)]);
-      const correctIdx = choices.findIndex(([ch, cm]) => ch === h12 && cm === m);
-      return {
-        type:'match', subtype:'clockMatchFrom24',
-        hour: h12, min: m, h24,
-        display: fmtTime(h24, m, true),
-        choices, correct: String(correctIdx),
-        options: choices.map((_, i) => String(i)),
-      };
+      const choices = shuffle([[h12,m],...dist.slice(0,3)]);
+      const correctIdx = choices.findIndex(([ch,cm]) => ch===h12 && cm===m);
+      return { type:'match', subtype:'clockMatchFrom24', hour:h12, min:m, h24, display:fmtTime(h24,m,true), choices, correct:String(correctIdx), options:choices.map((_,i)=>String(i)) };
     }
 
-    // Time pools — shuffled each play for variation.
-    // Medium now uses non-landmark times (5, 10, 20, 25, 35, 40, 50, 55) so kids
-    // actually have to read numbers × 5, not rely on halves/quarters.
     const mediumReadTimes = shuffle([[2,25],[4,10],[6,40],[7,50],[8,20],[10,35],[11,5]]);
     const mediumMatchTimes = shuffle([[3,25],[5,40],[9,10],[11,50],[2,5],[8,35]]);
     const hardReadTimes  = shuffle([[5,23],[7,43],[9,56],[11,8],[3,37]]);
@@ -3848,20 +3787,16 @@ function buildQuestions(n) {
     const pmH = shuffle([13,14,15,16,17,18,19,20]);
 
     const qs = [];
-    // Medium (Q1-3)
     qs.push(buildRead(...mediumReadTimes[0], 'medium'));
     qs.push(buildMatch(...mediumMatchTimes[0], 'medium'));
     qs.push(build24(amH[0], 'medium'));
-    // Hard (Q4-6)
     qs.push(buildRead(...hardReadTimes[0], 'hard'));
     qs.push(buildMatch(...hardMatchTimes[0], 'hard'));
     qs.push(build24(pmH[0], 'hard'));
-    // Extremely hard (Q7-10) — includes the tricky "24h → pick analog" variant
     qs.push(buildRead(...hardReadTimes[1], 'hard'));
     qs.push(buildMatch(...hardMatchTimes[1], 'hard'));
     qs.push(buildMatchFrom24(pmH[2], 0));
     qs.push(build24(pmH[1], 'hard'));
-
     return qs;
   }
   return [];
@@ -3888,13 +3823,23 @@ function showQuestion(i) {
   updateProgressDots();
 
   const dt = document.getElementById('digital-target');
-  dt.classList.toggle('digital-target--compact', currentLevel === 4);
+  dt.classList.toggle('digital-target--compact', currentLevel === 4 || currentLevel === 9 || currentLevel === 10);
   const gameBody = document.querySelector('#screen-game .game-body');
   if (gameBody) gameBody.classList.remove('no-clock');
 
+  // L2: Reading Digital — hide clock, show the digital time as the prompt.
+  if (currentLevel === 2 && q.type === 'read') {
+    cw.style.display = 'none';
+    if (gameBody) gameBody.classList.add('no-clock');
+    dt.style.whiteSpace = '';
+    dt.innerHTML = '';
+    dt.textContent = q.display || '';
+    dt.classList.remove('hidden-target');
+    showChoices(q);
+    tickySay(t('tickyThink'), 'thinking', 15000);
   // Pure 24-hour conversion questions: hide clock, show digital prompt.
-  // Keyed on subtype so it works for Level 13 and anywhere else (e.g. Level 14).
-  if (q.subtype === 'convert24to12' || q.subtype === 'convert12to24') {
+  // Keyed on subtype so it works for Level 12/13 and anywhere else (e.g. Level 14).
+  } else if (q.subtype === 'convert24to12' || q.subtype === 'convert12to24') {
     cw.style.display = 'none';
     if (gameBody) gameBody.classList.add('no-clock');
     // Show the digital prompt in the digital-target box
@@ -3903,15 +3848,7 @@ function showQuestion(i) {
     dt.classList.remove('hidden-target');
     showChoices(q);
     tickySay(t('tickyThink'), 'thinking', 15000);
-  } else if (currentLevel === 5 && q.subtype === 'l4_digitalFmt') {
-    cw.style.display = 'none';
-    if (gameBody) gameBody.classList.add('no-clock');
-    dt.style.whiteSpace = '';
-    dt.textContent = q.displayDigital;
-    dt.classList.remove('hidden-target');
-    showChoices(q);
-    tickySay(t('tickyThink'), 'thinking', 15000);
-  } else if (currentLevel === 14 && q.subtype === 'setFromPM') {
+  } else if ((currentLevel === 13 || currentLevel === 14) && q.subtype === 'setFromPM') {
     cw.style.display = '';
     dt.style.whiteSpace = '';
     // Show ONLY the 24h digit — no AM/PM hint. Kids must convert mentally.
@@ -3973,7 +3910,7 @@ function buildClockTileSVG(ch, cm, size) {
 function showClockTiles(q) {
   document.getElementById('choices').classList.remove('hidden');
   document.getElementById('set-controls').classList.add('hidden');
-  document.getElementById('read-prompt').textContent = t('l13matchPrompt');
+  document.getElementById('read-prompt').textContent = t('l11matchPrompt');
 
   const el = document.getElementById('choices');
   el.innerHTML = '';
@@ -3995,21 +3932,20 @@ function showChoices(q) {
   document.getElementById('choices').classList.remove('hidden');
   document.getElementById('set-controls').classList.add('hidden');
   const prompt = document.getElementById('read-prompt');
-  if (q.subtype === 'convert24to12') prompt.textContent = t('l14what12');
-  else if (q.subtype === 'convert12to24') prompt.textContent = t('l14what24');
-  else if (currentLevel === 2) prompt.textContent = t('whatHour');
+  if (q.subtype === 'convert24to12') prompt.textContent = t('l15what12');
+  else if (q.subtype === 'convert12to24') prompt.textContent = t('l15what24');
+  else if (currentLevel === 2) prompt.textContent = q.subtype === 'parseMinute' ? t('whatMinutePart') : t('whatHourPart');
   else if (currentLevel === 3) prompt.textContent = t('whatOclock');
   else if (currentLevel === 1) prompt.textContent = '';
-  else if (currentLevel === 5 && q.subtype === 'l4_digitalFmt') prompt.textContent = t(q.askType === 'hour' ? 'l5AskHour' : 'l5AskMin');
   else if (currentLevel === 6 || currentLevel === 7) prompt.textContent = t('whatMinutes');
   else if (currentLevel === 8) prompt.textContent = t('whatTickMinutes');
-  else if (currentLevel === 9) {
+  else if (currentLevel === 5) {
     if (q.plain) {
       prompt.textContent = t('whatOclock');
     } else if (q.subtype === 'l6_smaller' || q.subtype === 'l6_at') {
       prompt.textContent = l6Prompt(q);
     } else {
-      prompt.textContent = t('whatHour');
+      prompt.textContent = t('whatOclock');
     }
   }
   else prompt.textContent = t('whatTime');
@@ -4029,23 +3965,27 @@ function showChoices(q) {
 
 function getLevelHint(level, q) {
   const zh = state.lang === 'zh';
-  // Level 13 (clock match): teach how to read each hand, not just "pick the clock".
-  if (level === 13 || (q && q.type === 'match')) {
+  // Level 11 (clock match): teach how to read each hand, not just "pick the clock".
+  if (level === 11 || (q && q.type === 'match')) {
     return zh
-      ? '短紅針 → 小時。長藍針：鐘面每個數字 = 5 分鐘。'
-      : 'Short red hand → hour. Long blue hand: each clock number = 5 minutes.';
+      ? '看時針讀「點」，看分針讀「分」，兩個都要對。'
+      : 'Read both: hour hand for the hour, minute hand for the minutes — both must match.';
   }
-  // Level 14: direction-specific hint. Subtract-12 only helps for 24→12;
-  // converting 12→24 needs add-12 for PM times.
-  if (level === 14 && q && q.subtype === 'convert12to24') {
+  // Level 12/13/14 (24-hour): direction-specific hint.
+  if ((level === 12 || level === 13 || level === 14) && q && q.subtype === 'convert24to12') {
     return zh
-      ? '上午 → 數字不變。下午 → 加 12（例：下午 1 點 = 13）。'
-      : 'AM → same number. PM → add 12 (e.g. 1 PM = 13).';
+      ? '數字 > 12 → 減 12 = 下午。否則 = 上午。'
+      : 'Number > 12 → subtract 12 = PM. Otherwise = AM.';
   }
-  if (level === 14 && q && q.subtype === 'setFromPM') {
+  if ((level === 12 || level === 13) && q && q.subtype === 'convert12to24') {
     return zh
-      ? '數字大於 12 → 減 12 就是鐘面上的小時（例：15 − 12 = 3）。'
-      : 'Number > 12 → subtract 12 for the clock-face hour (e.g. 15 − 12 = 3).';
+      ? '上午：數字不變。下午：加 12。'
+      : 'AM: same number. PM: add 12.';
+  }
+  if ((level === 12 || level === 13) && q && q.subtype === 'setFromPM') {
+    return zh
+      ? '數字 > 12 → 減 12 = 鐘面的小時。'
+      : 'Number > 12 → subtract 12 = clock-face hour.';
   }
   const hintKey = 'l' + level + 'hint';
   const s = S[state.lang];
@@ -4060,28 +4000,21 @@ function getSpecificHint(level, q) {
   const wrap12 = x => ((x - 1 + 12) % 12) + 1;
   const padMin = m => m.toString().padStart(2, '0');
 
-  // Level 5: digital "h:mm" — pick hour-or-minute part. q.askType, q.displayDigital.
-  if (level === 5 && q.subtype === 'l4_digitalFmt') {
-    const which = q.askType === 'hour' ? (zh ? '「：」前面' : "before the ':'") : (zh ? '「：」後面' : "after the ':'");
-    return zh
-      ? `看 ${q.displayDigital}：${which}是 ${q.correct}，所以答案是 ${q.correct}。`
-      : `In ${q.displayDigital}, ${which} is ${q.correct} — that's the answer.`;
-  }
-  // Level 14: 24-hour conversions.
-  if (level === 14 && q.subtype === 'convert24to12') {
+  // Level 12/13: 24-hour conversions.
+  if ((level === 12 || level === 13 || level === 14) && q.subtype === 'convert24to12') {
     const h24 = q.h24, pm = h24 >= 12, h12 = h24 > 12 ? h24 - 12 : h24;
     const period = pm ? (zh ? '下午' : 'PM') : (zh ? '上午' : 'AM');
     return zh
       ? (pm ? `${h24} 大於 12 → ${h24} − 12 = ${h12}，所以是下午 ${h12}:${padMin(q.min)}。` : `${h24} 小於 12 → 就是上午 ${h24}:${padMin(q.min)}。`)
-      : (pm ? `${h24} > 12 → ${h24} − 12 = ${h12}, so it's ${h12}:${padMin(q.min)} PM.` : `${h24} is before noon → ${h24}:${padMin(q.min)} AM.`);
+      : (pm ? `${h24} > 12 → ${h24} − 12 = ${h12}, so it's ${h12}:${padMin(q.min)} PM.` : `${h24} < 12 → it's just ${h24}:${padMin(q.min)} AM.`);
   }
-  if (level === 14 && q.subtype === 'convert12to24') {
+  if ((level === 12 || level === 13 || level === 14) && q.subtype === 'convert12to24') {
     const h24 = q.h24, h12 = h24 > 12 ? h24 - 12 : h24;
     return zh
       ? (h24 > 12 ? `下午 ${h12}:00 → 12 + ${h12} = ${h24}，寫成 ${q.correct}。` : `上午 ${h12}:00 → 24 小時制也是 ${q.correct}。`)
-      : (h24 > 12 ? `${h12}:00 PM → 12 + ${h12} = ${h24}, written as ${q.correct}.` : `${h12}:00 AM → in 24-hour, ${q.correct}.`);
+      : (h24 > 12 ? `${h12}:00 PM → 12 + ${h12} = ${h24}, written as ${q.correct}.` : `${h12}:00 AM → also ${q.correct} in 24-hour.`);
   }
-  // Clock Match (L13 and L15 match sub-qs): walk through the hand positions
+  // Clock Match (L11 and L14 match sub-qs): walk through the hand positions
   // for THIS exact time, then name the matching clock. Handle times both on
   // a 5-min tick (e.g. 9:30) and off a tick (e.g. 2:17) — "divide by 5" only
   // reads cleanly when the minute is a multiple of 5.
@@ -4106,8 +4039,8 @@ function getSpecificHint(level, q) {
         : `minute past ${mDiv5} by ${mRem} ticks (${m} min)`;
     }
     return zh
-      ? `${q.display} → ${hourPart}；${minPart}。${ord}個鐘。`
-      : `${q.display} → ${hourPart}; ${minPart}. ${ord} clock.`;
+      ? `${q.display} → ${hourPart}；${minPart}。`
+      : `${q.display} → ${hourPart}; ${minPart}.`;
   }
 
   // Read-mode clock questions from here on. q.hour + q.min are the clock's hands.
@@ -4115,14 +4048,21 @@ function getSpecificHint(level, q) {
   const minNum = Math.floor(m / 5);       // which big number the minute hand is at/past
   const extra = m % 5;                    // small ticks past that number
 
-  if (level === 2 || level === 3) {
+  if (level === 2) {
+    // L2: Reading Digital — feedback frames the answer in hour/minute concepts,
+    // not positional ("before/after colon"). The kid is learning what hour and
+    // minute MEAN, not where they sit in the string.
+    const displayStr = q.display || `${q.hour}:${String(q.min).padStart(2,'0')}`;
     return zh
-      ? (level === 3
-          ? `紅色短針指向 ${h}，所以答案是 ${h}:00。`
-          : `紅色短針指向 ${h}，所以答案是 ${h}。`)
-      : (level === 3
-          ? `The short red hand points to ${h} — so the answer is ${h}:00.`
-          : `The short red hand points to ${h} — that's ${h}.`);
+      ? `${displayStr} 是 ${q.hour} 點 ${q.min} 分。`
+      : `${displayStr} means ${q.hour} hour${q.hour===1?'':'s'} and ${q.min} minute${q.min===1?'':'s'}.`;
+  }
+  if (level === 3) {
+    // L3 (Hour Read) — hour hand always sits exactly on a number.
+    // L5 is handled below (between-case aware).
+    return zh
+      ? `時針指 ${h} → 答案 ${h} 點。`
+      : `Hour hand points to ${h} → answer is ${h}.`;
   }
   if (level === 6) {
     // minute hand at one of 12/3/6/9 → 0/15/30/45
@@ -4141,40 +4081,49 @@ function getSpecificHint(level, q) {
     // m is small (1–9). Decompose: pastNum × 5 + extra.
     if (minNum === 0) {
       return zh
-        ? `分針過了 12 ${m} 格，每格 1 分 → ${m} 分。`
-        : `${m} ticks past 12, 1 min each → ${m} min.`;
+        ? `分針從 12 走了 ${m} 格 → ${m} 分。`
+        : `${m} ticks past 12 → ${m} min.`;
     }
     return zh
       ? `過了 ${minNum} 再 ${extra} 格 → ${minNum} × 5 + ${extra} = ${m} 分。`
       : `Past ${minNum}, +${extra} ticks → ${minNum} × 5 + ${extra} = ${m} min.`;
   }
-  if (level === 9) {
+  if (level === 5) {
+    // L5: Hour Between — hint for specific question
     if (m === 0 || q.subtype === 'l6_at') {
       return zh ? `時針正指 ${h} → ${h} 點。` : `Hour hand on ${h} → ${h}.`;
     }
     const next = wrap12(h + 1);
     return zh
-      ? `時針在 ${h} 和 ${next} 中間，讀較小 → ${h}。`
+      ? `時針在 ${h} 和 ${next} 之間，讀較小 → ${h}。`
       : `Hour between ${h} and ${next}, read smaller → ${h}.`;
   }
-  if (level === 10 || level === 11) {
-    const hourPart = m === 0 ? `${h}` : (zh ? `${h} (時針在 ${h} 和 ${wrap12(h+1)} 中間)` : `${h} (hour between ${h} and ${wrap12(h+1)})`);
-    let minPart;
-    if (extra === 0) {
-      const pos = minNum === 0 ? 12 : minNum;
-      minPart = zh ? `分針指 ${pos} → ${pos === 12 ? '0' : pos} × 5 = ${m} 分` : `minute at ${pos} → ${pos === 12 ? 0 : pos} × 5 = ${m}`;
-    } else {
-      minPart = zh
-        ? `分針過 ${minNum} 再 ${extra} 格 → ${minNum} × 5 + ${extra} = ${m} 分`
-        : `minute past ${minNum}, +${extra} → ${minNum} × 5 + ${extra} = ${m}`;
+  if (level === 14) {
+    // L14 read questions are FULL clock reads (hour + minute together), not
+    // minute-only. Walk through both hands exactly the way the match hint does,
+    // ending with the digital answer. (Convert/match subtypes already returned
+    // earlier in this function, so q here is a plain read.)
+    if (q.type === 'read') {
+      const next = (h % 12) + 1;
+      const hourPart = m === 0
+        ? (zh ? `時針指 ${h}` : `Hour on ${h}`)
+        : (zh ? `時針在 ${h} 和 ${next} 之間` : `Hour between ${h} and ${next}`);
+      const mDiv5 = Math.floor(m / 5);
+      const mRem  = m - mDiv5 * 5;
+      let minPart;
+      if (m === 0) {
+        minPart = zh ? `分針指 12（0 分）` : `minute on 12 (0 min)`;
+      } else if (mRem === 0) {
+        minPart = zh ? `分針指 ${mDiv5}（${m} 分）` : `minute on ${mDiv5} (${m} min)`;
+      } else {
+        minPart = zh
+          ? `分針過 ${mDiv5} 再 ${mRem} 格（${m} 分）`
+          : `minute past ${mDiv5} by ${mRem} ticks (${m} min)`;
+      }
+      return zh
+        ? `${hourPart}；${minPart} → ${q.correct}。`
+        : `${hourPart}; ${minPart} → ${q.correct}.`;
     }
-    return zh
-      ? `時${hourPart}，${minPart} → ${q.correct}。`
-      : `Hour ${hourPart}, ${minPart} → ${q.correct}.`;
-  }
-  if (level === 15) {
-    // Route by q.type/subtype to the matching level's hint.
-    if (q.type === 'read') return getSpecificHint(10, q);
   }
   return getLevelHint(level, q);
 }
@@ -4238,8 +4187,8 @@ function showSetControls(q) {
   document.getElementById('confirm-btn').textContent = t('confirm');
   const prompt = document.getElementById('read-prompt');
   if (currentLevel === 4) prompt.textContent = t('setHour');
-  else if (currentLevel === 14 && q.subtype === 'setFromPM') prompt.textContent = t('l14subtitle3');
-  else if (currentLevel === 14) prompt.textContent = t('set24') + ' ' + q.display;
+  else if (currentLevel === 13 && q.subtype === 'setFromPM') prompt.textContent = t('l15subtitle3');
+  else if (currentLevel === 13) prompt.textContent = t('set24') + ' ' + q.display;
   else prompt.textContent = t('setBoth');
   setupDragHandlers();
 }
@@ -4289,7 +4238,7 @@ function checkSetAnswer() {
         const diff = ((targetHAngle - curHAngle) % 360 + 360) % 360;
         parts.push(`${t('hintHour')} ${cw(diff)} ${zh ? '到' : 'to'} ${q.hour}`);
       }
-      if (!mOk && currentLevel !== 9) {
+      if (!mOk) {
         const diff = ((targetMAngle - curMAngle) % 360 + 360) % 360;
         const minTarget = q.min === 0 ? '12' : String(q.min / 5);
         parts.push(`${t('hintMin')} ${cw(diff)} ${zh ? '到' : 'to'} ${minTarget}`);
