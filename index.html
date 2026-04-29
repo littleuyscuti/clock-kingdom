@@ -116,7 +116,7 @@ body {
 }
 
 /* ── Layout ── */
-#screen-home, #screen-game, #screen-tutorial, #screen-tour {
+#screen-home, #screen-game, #screen-tutorial, #screen-tour, #screen-speedtest {
   min-height: 100dvh;
   display: flex; flex-direction: column;
   position: relative; z-index: 1;
@@ -402,7 +402,7 @@ body {
 .game-body > div:has(> .digital-target:not(.hidden-target)) + .clock-wrap {
   margin-top: 14px;
 }
-/* No-clock screens (L5 digital-format, L13 match, L14 convert): give the
+/* No-clock screens (L2 digital-format, L12 match, L13/L14 convert): give the
    digital-target a bit more breathing room before the question prompt. */
 .game-body.no-clock > div:has(> .digital-target:not(.hidden-target)) {
   margin-bottom: 14px;
@@ -935,6 +935,17 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
   min-width: 110px; text-align: center;
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
 }
+/* Score pill — top-left of game-body, same row as the timer pill on the right */
+.ultimate-score {
+  position: absolute; top: 8px; left: 8px; z-index: 5;
+  font-family: 'Fredoka', sans-serif;
+  font-size: 32px; font-weight: 700;
+  color: white; background: #4ECDC4;
+  padding: 10px 20px; border-radius: 28px;
+  box-shadow: 0 5px 0 #2ea89e, 0 6px 14px rgba(0,0,0,0.12);
+  min-width: 110px; text-align: center;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+}
 .timeout-close {
   position: absolute; top: -14px; right: -14px;
   width: 44px; height: 44px; border-radius: 50%;
@@ -950,6 +961,20 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
 @keyframes timer-pulse {
   0%,100% { transform: scale(1); background: #FF6B9D; }
   50%      { transform: scale(1.1); background: #E63946; }
+}
+/* L15 time-bonus/penalty text — sits directly below the timer pill, no motion, fade-out only */
+.l15-time-delta {
+  position: absolute; right: 8px; top: 76px; z-index: 10;
+  font-family: 'Fredoka', sans-serif; font-size: 28px; font-weight: 800;
+  pointer-events: none;
+  padding: 10px 20px; min-width: 110px; box-sizing: border-box; text-align: center;
+  animation: l15-delta-fade 0.8s linear forwards;
+}
+.l15-time-delta.plus  { color: #2DC653; }
+.l15-time-delta.minus { color: #E63946; }
+@keyframes l15-delta-fade {
+  0%, 60% { opacity: 1; }
+  100%    { opacity: 0; }
 }
 .complete-card {
   background: white; border-radius: 32px; padding: 36px 28px;
@@ -1182,7 +1207,7 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
 ══════════════════════════════════════ */
 @media (max-width: 500px), (max-height: 500px) {
   /* Lock game/tutorial/tour screens to viewport. Home screen scrolls when short. */
-  #screen-game, #screen-tutorial, #screen-tour {
+  #screen-game, #screen-tutorial, #screen-tour, #screen-speedtest {
     height: 100dvh;
     max-height: 100dvh;
     overflow: hidden;
@@ -1333,7 +1358,7 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
 /* Extra squeeze for very short viewports — game/tutorial/tour only.
    Home uses identical CSS in both orientations. */
 @media (max-height: 700px) {
-  #screen-game, #screen-tutorial, #screen-tour {
+  #screen-game, #screen-tutorial, #screen-tour, #screen-speedtest {
     height: 100dvh;
     max-height: 100dvh;
     overflow: hidden;
@@ -1351,6 +1376,381 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
   .choice-btn { min-height: 44px; font-size: 18px; padding: 8px 6px; }
   .progress-dot { width: 12px; height: 12px; }
   .confirm-btn { font-size: 17px; padding: 8px 22px; min-height: 42px; }
+}
+
+/* ══════════════════════════════════════
+   SPEED TEST SCREEN (falling-clock mode, ported from clock-lava prototype)
+   All selectors namespaced with .st- or scoped under #screen-speedtest so
+   they cannot collide with the existing L1–L15 styles.
+══════════════════════════════════════ */
+#screen-speedtest { padding: 0; }
+#screen-speedtest .st-shell {
+  position: relative;
+  flex: 1 1 auto;
+  display: flex; flex-direction: column;
+  background: transparent;
+  min-height: 0;
+}
+
+/* Lives indicator (in game-header, stars slot) — matches .game-stars-earned sizing.
+   Hearts use the same 22px font + letter-spacing as ★ so they read as the same component. */
+#screen-speedtest .st-lives-display {
+  display: inline-block;
+  font-size: 22px; letter-spacing: 2px; min-width: 72px; text-align: right;
+  font-weight: 700;
+  line-height: 1;
+}
+#screen-speedtest .st-life-heart {
+  display: inline-block;
+  transition: opacity 0.3s ease, transform 0.3s ease, color 0.3s ease;
+  color: #E63946;
+  -webkit-text-stroke: 1px #b82c38;
+}
+#screen-speedtest .st-life-heart.st-lost {
+  color: #E2E5EE;
+  -webkit-text-stroke: 1px #B4B8C7;
+  opacity: 0.55;
+  transform: scale(0.92);
+  filter: grayscale(1);
+}
+@keyframes st-lives-shake-anim {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+#screen-speedtest .st-lives-shake { animation: st-lives-shake-anim 0.3s ease-out; }
+
+/* Score-pill icon (Speed Test + L15 Ultimate Test). Inline trophy SVG from Phosphor Icons
+   (trophy-fill, MIT license — https://github.com/phosphor-icons/core).
+   Gold fill + dark-gold stroke matches the ★ star treatment. Sized via 1em so
+   the icon scales with surrounding text (32px in pill, 84px in end overlay).
+   .ultimate-score-icon (L15) is namespaced separately but visually identical. */
+#screen-speedtest .st-score-icon,
+#st-overlay-end .st-score-icon,
+.ultimate-score-icon {
+  margin-right: 6px;
+  display: inline-block;
+  line-height: 1;
+}
+#screen-speedtest .st-score-icon svg,
+#st-overlay-end .st-score-icon svg,
+.ultimate-score-icon svg {
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.15em;
+  fill: #FFD93D;
+  stroke: #7A5C0A;
+  stroke-width: 8;
+  stroke-linejoin: round;
+  paint-order: stroke fill;
+}
+
+/* Hide global Ticky mascot while Speed Test screen is active.
+   Ticky is fixed-positioned outside #screen-speedtest, so we toggle a body class. */
+body.st-active .ticky-container { display: none !important; }
+
+/* Play area */
+#screen-speedtest .st-play-area {
+  position: relative;
+  flex: 1 1 auto;
+  overflow: hidden;
+  background: transparent;
+  min-height: 0;
+}
+
+/* 3-2-1 countdown overlay — sits above falling clocks (z-index 12),
+   below the start/end overlays. Faint dark tint, big white digit. */
+#screen-speedtest #st-countdown {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  pointer-events: none;
+}
+#screen-speedtest #st-countdown.hidden { display: none; }
+#screen-speedtest .st-countdown-num {
+  font-family: 'Fredoka', sans-serif;
+  font-weight: 700;
+  font-size: min(40vw, 200px);
+  line-height: 1;
+  color: white;
+  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+  animation: st-countdown-pop 1s ease-out forwards;
+}
+@keyframes st-countdown-pop {
+  0%   { transform: scale(1.4); opacity: 0; }
+  30%  { transform: scale(1.0); opacity: 1; }
+  70%  { transform: scale(1.0); opacity: 1; }
+  100% { transform: scale(0.85); opacity: 0; }
+}
+
+/* Falling clocks */
+#screen-speedtest .st-falling-clock {
+  position: absolute;
+  display: flex; flex-direction: column; align-items: center;
+  width: 215px;
+  top: 0;
+  z-index: 12;
+  will-change: transform;
+}
+#screen-speedtest .st-clock-svg-wrap {
+  width: 215px; height: 215px;
+  filter: drop-shadow(0 4px 12px rgba(31,38,48,0.12));
+}
+#screen-speedtest .st-clock-svg-wrap svg {
+  width: 100%; height: 100%; display: block;
+  overflow: visible;
+  shape-rendering: geometricPrecision;
+}
+@keyframes st-clock-pop {
+  0%   { transform: scale(1); opacity: 1; }
+  40%  { transform: scale(1.2); opacity: 0.9; }
+  100% { transform: scale(0); opacity: 0; }
+}
+#screen-speedtest .st-clock-svg-wrap.st-is-popping {
+  animation: st-clock-pop 0.32s ease-out forwards;
+  pointer-events: none;
+}
+#screen-speedtest .st-falling-clock.st-is-target .st-clock-svg-wrap {
+  animation: st-target-pulse 1.4s ease-in-out infinite;
+}
+@keyframes st-target-pulse {
+  0%, 100% { filter: drop-shadow(0 4px 12px rgba(31,38,48,0.12)) drop-shadow(0 0 8px #06B6D4); }
+  50%       { filter: drop-shadow(0 4px 12px rgba(31,38,48,0.12)) drop-shadow(0 0 16px #06B6D4) drop-shadow(0 0 28px rgba(6,182,212,0.6)); }
+}
+#screen-speedtest .st-falling-clock.st-is-target .st-clock-svg-wrap.st-is-popping { animation: st-clock-pop 0.32s ease-out forwards; }
+
+/* Splash effect */
+#screen-speedtest .st-lava-splash {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(78,205,196,0.55) 35%, rgba(78,205,196,0) 70%);
+  pointer-events: none;
+  animation: st-splash-ripple 0.55s ease-out forwards;
+  z-index: 13;
+}
+@keyframes st-splash-ripple {
+  from { width: 40px;  height: 40px;  opacity: 1; transform: translate(-50%, -50%) scale(0.4); }
+  to   { width: 180px; height: 180px; opacity: 0; transform: translate(-50%, -50%) scale(1); }
+}
+
+/* Kingdom-floor (sea) zone at bottom of play area */
+#screen-speedtest .st-lava-zone {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 90px;
+  z-index: 10;
+  overflow: hidden;
+}
+#screen-speedtest .st-lava-body {
+  position: absolute;
+  top: 18px; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(180deg, #FFE5B4 0%, #FFCB7A 100%);
+}
+#screen-speedtest .st-lava-wave {
+  position: absolute;
+  top: 0; left: -10px; right: -10px;
+  width: calc(100% + 20px);
+  height: 30px;
+  z-index: 3;
+}
+
+/* Bottom panel + choice buttons.
+   Mirror the regular curriculum .choices / .choice-btn styling so the answer UI
+   feels identical to regular levels: 2x2 grid, 4 colored buttons (pink / teal
+   / purple / yellow) with the same Fredoka font, padding, border-radius, and
+   3D shadow. The bottom panel itself loses its frosted-glass background so it
+   sits transparently against the play area like regular levels' answer area. */
+#screen-speedtest .st-bottom-panel {
+  position: relative;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 12px;
+  padding: 16px 18px 20px;
+  background: rgba(255,255,255,0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 25;
+  flex-shrink: 0;
+}
+#screen-speedtest .st-choice-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px 10px;
+  width: 100%;
+  max-width: 360px;
+}
+#screen-speedtest .st-choice-btn {
+  border: none;
+  border-radius: 20px;
+  font-family: 'Fredoka', sans-serif;
+  font-size: 26px; font-weight: 600;
+  color: white;
+  padding: 14px 8px;
+  cursor: pointer;
+  min-height: 64px;
+  transition: transform 0.12s, box-shadow 0.12s;
+  position: relative;
+  animation: btn-breathe 2.5s ease-in-out infinite;
+  display: flex; align-items: center; justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+}
+#screen-speedtest .st-choice-btn:nth-child(1) { background: #FF6B9D; box-shadow: 0 6px 0 #d94f7e; animation-delay: 0s; }
+#screen-speedtest .st-choice-btn:nth-child(2) { background: #4ECDC4; box-shadow: 0 6px 0 #2ea89e; animation-delay: 0.4s; }
+#screen-speedtest .st-choice-btn:nth-child(3) { background: #A78BFA; box-shadow: 0 6px 0 #7c5fdb; animation-delay: 0.8s; }
+#screen-speedtest .st-choice-btn:nth-child(4) { background: #FFD93D; box-shadow: 0 6px 0 #e6c200; color: #2D3047; animation-delay: 1.2s; }
+#screen-speedtest .st-choice-btn:focus { outline: none; }
+#screen-speedtest .st-choice-btn:active {
+  transform: translateY(4px) scale(0.97);
+  box-shadow: 0 2px 0 rgba(0,0,0,0.3) !important;
+}
+#screen-speedtest .st-choice-btn.st-correct-flash {
+  background: #6BE86B !important;
+  box-shadow: 0 6px 0 #4aa84a !important;
+  color: white !important;
+}
+#screen-speedtest .st-choice-btn.st-wrong-shake {
+  animation: st-input-shake 0.32s ease-out;
+  background: #FFB4A2 !important;
+  box-shadow: 0 4px 0 #e07a65 !important;
+  color: #2D3047 !important;
+}
+@keyframes st-input-shake {
+  0%, 100% { transform: translateX(0); }
+  25%      { transform: translateX(-6px); }
+  75%      { transform: translateX(6px); }
+}
+
+/* Overlays — scoped, fixed inside the speedtest screen */
+#screen-speedtest .st-overlay {
+  position: fixed; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 100;
+  background: rgba(31,38,48,0.45);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+#screen-speedtest .st-overlay.hidden { display: none !important; }
+#screen-speedtest .st-overlay-card {
+  background: #FFFFFF;
+  border-radius: 24px;
+  padding: 36px 32px 28px;
+  text-align: center;
+  box-shadow: 0 12px 40px rgba(45,48,71,0.22), 0 4px 0 rgba(45,48,71,0.10);
+  max-width: 360px;
+  width: 88vw;
+  animation: st-card-pop 0.28s ease-out both;
+}
+@keyframes st-card-pop {
+  from { transform: scale(0.92); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+#screen-speedtest .st-emoji-title {
+  font-size: 44px;
+  line-height: 1;
+  margin-bottom: 10px;
+}
+#screen-speedtest .st-overlay-title {
+  font-family: 'Fredoka', 'Noto Sans TC', sans-serif;
+  font-size: 28px; font-weight: 700;
+  color: #2D3047;
+  margin-bottom: 8px;
+}
+#screen-speedtest .st-overlay-subtitle {
+  font-family: 'Nunito', 'Noto Sans TC', sans-serif;
+  font-size: 14px; font-weight: 600;
+  color: #6B7785;
+  margin-bottom: 24px;
+  line-height: 1.55;
+}
+#screen-speedtest .st-end-score-block { margin-bottom: 24px; }
+#screen-speedtest .st-end-score-value {
+  font-family: 'Fredoka', sans-serif;
+  font-size: 56px; font-weight: 700;
+  color: #2D3047;
+  line-height: 1;
+}
+#screen-speedtest .st-end-score-label {
+  font-size: 11px; font-weight: 700;
+  color: #9AA5B1;
+  text-transform: uppercase;
+  letter-spacing: 1.4px;
+  margin-top: 6px;
+}
+#screen-speedtest .st-play-btn {
+  font-family: 'Fredoka', 'Noto Sans TC', sans-serif;
+  font-size: 18px; font-weight: 700;
+  color: white;
+  background: #FF6B9D;
+  border: none;
+  border-radius: 18px;
+  padding: 14px 36px;
+  cursor: pointer;
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+  letter-spacing: 0.6px;
+  width: 100%;
+  box-shadow: 0 4px 0 #d94f7e;
+  -webkit-tap-highlight-color: transparent;
+}
+#screen-speedtest .st-play-btn:focus { outline: none; }
+#screen-speedtest .st-play-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 #d94f7e;
+}
+
+/* Score popup — visual treatment matches L15's .l15-time-delta (positive variant):
+   Fredoka 28px/800, green #2DC653, fade-only animation (no motion path). */
+#screen-speedtest .st-score-pop {
+  position: absolute;
+  font-family: 'Fredoka', sans-serif;
+  font-size: 28px; font-weight: 800;
+  color: #2DC653;
+  pointer-events: none;
+  z-index: 50;
+  padding: 10px 20px; min-width: 110px; box-sizing: border-box; text-align: center;
+  animation: st-score-float 0.8s linear forwards;
+  white-space: nowrap;
+}
+/* Mirrors @keyframes l15-delta-fade exactly, but keeps translate(-50%, 0) so the
+   horizontal-centering used by popClock() still works. L15's own keyframe is
+   left untouched. */
+@keyframes st-score-float {
+  0%, 60% { transform: translate(-50%, 0); opacity: 1; }
+  100%    { transform: translate(-50%, 0); opacity: 0; }
+}
+
+/* Speed Test home tile — shares .level-stop layout but uses pink/red accent
+   so it reads as a distinct mode. Sits inline in the level grid right after
+   L8 (single cell).
+
+   IMPORTANT: This tile must NEVER look like a "current-level", "completed",
+   or "locked" curriculum progression tile. JS already renders it with only
+   `level-stop speedtest-tile` (no state classes), but we use !important on
+   the visual properties below as a belt-and-suspenders safeguard so even if
+   a future code path leaks one of those classes onto this tile, the pink/red
+   accent is preserved. The .locked ::before stripe overlay is also nuked.
+*/
+.level-stop.speedtest-tile {
+  border-color: #FF6B9D !important;
+  background: linear-gradient(135deg, #FFFFFF 0%, #FFF0F6 100%) !important;
+  box-shadow: 0 6px 0 #d94f7e, 0 8px 18px rgba(255,107,157,0.30) !important;
+  animation: st-tile-pulse 2.2s ease-in-out infinite !important;
+  cursor: pointer !important;
+  position: relative;
+}
+.level-stop.speedtest-tile::before { display: none !important; content: none !important; }
+.level-stop.speedtest-tile .lnum { color: #FF6B9D !important; font-size: 26px; }
+.level-stop.speedtest-tile .lname { color: #2D3047 !important; height: auto; -webkit-line-clamp: 2; }
+@keyframes st-tile-pulse {
+  0%,100% { transform: translateY(0); box-shadow: 0 6px 0 #d94f7e, 0 8px 18px rgba(255,107,157,0.30); }
+  50%     { transform: translateY(-3px); box-shadow: 0 9px 0 #d94f7e, 0 12px 22px rgba(255,107,157,0.45); }
+}
+@media (max-height: 700px) {
+  #screen-speedtest .st-falling-clock,
+  #screen-speedtest .st-clock-svg-wrap { width: 195px; }
+  #screen-speedtest .st-clock-svg-wrap { height: 195px; }
 }
 
 </style>
@@ -1474,6 +1874,7 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
     </div>
   </div>
   <div class="game-body">
+    <div class="ultimate-score hidden" id="ultimate-score-display" aria-label="Score"><span class="ultimate-score-icon"><svg class="score-icon-svg" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M232,64H208V48a8,8,0,0,0-8-8H56a8,8,0,0,0-8,8V64H24A16,16,0,0,0,8,80V96a40,40,0,0,0,40,40h3.65A80.13,80.13,0,0,0,120,191.61V216H96a8,8,0,0,0,0,16h64a8,8,0,0,0,0-16H136V191.58c31.94-3.23,58.44-25.64,68.08-55.58H208a40,40,0,0,0,40-40V80A16,16,0,0,0,232,64ZM48,120A24,24,0,0,1,24,96V80H48v32q0,4,.39,8ZM232,96a24,24,0,0,1-24,24h-.5a81.81,81.81,0,0,0,.5-8.9V80h24Z"/></svg></span> 0</div>
     <div class="ultimate-timer hidden" id="ultimate-timer-display"></div>
     <div class="progress-dots" id="progress-dots"></div>
     <div class="question-counter" id="q-counter"></div>
@@ -1488,6 +1889,89 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
       <div class="feedback-msg" id="feedback-msg"></div>
       <div class="hint-msg" id="hint-msg"></div>
       <button class="confirm-btn" id="confirm-btn" onclick="checkSetAnswer()"></button>
+    </div>
+  </div>
+</div>
+
+<!-- SPEED TEST SCREEN (falling-clock challenge mode) -->
+<div id="screen-speedtest" class="hidden">
+  <div class="game-header">
+    <button class="back-btn" onclick="SpeedTest.backHome()">←</button>
+    <span class="game-level-label" id="st-level-label"></span>
+    <span class="st-lives-display" id="st-lives-display" aria-label="Lives">
+      <span class="st-life-heart" id="st-heart-1">♥</span><span class="st-life-heart" id="st-heart-2">♥</span><span class="st-life-heart" id="st-heart-3">♥</span>
+    </span>
+  </div>
+
+  <div class="st-shell">
+    <div class="st-play-area" id="st-play-area">
+      <!-- Score pill (matches L15 .ultimate-score visual treatment). Inline
+           Phosphor trophy-fill SVG, gold treatment via .st-score-icon svg CSS. -->
+      <div class="ultimate-score" id="st-score-display" aria-label="Score"><span class="st-score-icon"><svg class="score-icon-svg" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M232,64H208V48a8,8,0,0,0-8-8H56a8,8,0,0,0-8,8V64H24A16,16,0,0,0,8,80V96a40,40,0,0,0,40,40h3.65A80.13,80.13,0,0,0,120,191.61V216H96a8,8,0,0,0,0,16h64a8,8,0,0,0,0-16H136V191.58c31.94-3.23,58.44-25.64,68.08-55.58H208a40,40,0,0,0,40-40V80A16,16,0,0,0,232,64ZM48,120A24,24,0,0,1,24,96V80H48v32q0,4,.39,8ZM232,96a24,24,0,0,1-24,24h-.5a81.81,81.81,0,0,0,.5-8.9V80h24Z"/></svg></span> 0</div>
+
+      <div class="st-lava-zone">
+        <div class="st-lava-body"></div>
+        <svg class="st-lava-wave" viewBox="0 0 400 30" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M0,18 C50,4 100,28 150,14 C200,0 260,26 310,12 C360,-2 400,18 400,18 L400,30 L0,30 Z" fill="#FFCB7A"/>
+        </svg>
+      </div>
+
+      <!-- 3-2-1 countdown overlay (covers play-area only). Shown by SpeedTest.start()
+           between the start-overlay being hidden and the first clock spawning. -->
+      <div id="st-countdown" class="hidden">
+        <div class="st-countdown-num"></div>
+      </div>
+    </div>
+
+    <div class="st-bottom-panel">
+      <div class="st-choice-grid" id="st-choice-grid">
+        <button class="st-choice-btn" data-idx="0">--:--</button>
+        <button class="st-choice-btn" data-idx="1">--:--</button>
+        <button class="st-choice-btn" data-idx="2">--:--</button>
+        <button class="st-choice-btn" data-idx="3">--:--</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Legacy start overlay — replaced by the unified L9 guide card (see
+       renderTutorial n===9). Kept hidden + in the DOM as a fallback only;
+       nothing in the active flow shows it. Safe to remove later. -->
+  <div class="st-overlay hidden" id="st-overlay-start">
+    <div class="st-overlay-card">
+      <div class="st-overlay-title" id="st-start-title">Speed Test</div>
+      <div class="st-overlay-subtitle" id="st-start-subtitle">Read the falling clocks and tap the correct time before they reach the bottom. You have 3 lives.</div>
+      <button class="st-play-btn" id="st-btn-start">Start</button>
+    </div>
+  </div>
+
+  <!-- End overlay — matches the regular curriculum #overlay-complete structure
+       (yellow .complete-card, .complete-done-label, .complete-title, body block,
+       .next-btn). Adds: trophy score block (matches .ultimate-score-icon),
+       Try Again + Next Level (→ L10) buttons, and an X close (top-right) like
+       L15's overlay-timeout has. Local to #screen-speedtest so it cannot
+       collide with the global #overlay-complete used by the curriculum. -->
+  <div class="st-overlay hidden" id="st-overlay-end">
+    <div class="complete-card">
+      <button class="timeout-close" id="st-end-close" aria-label="Home">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="white" stroke-width="3.5" stroke-linecap="round">
+          <line x1="5" y1="5" x2="17" y2="17"/>
+          <line x1="17" y1="5" x2="5" y2="17"/>
+        </svg>
+      </button>
+      <div id="st-end-msg" style="font-size:18px;color:#2D3047;margin:10px 0 8px;font-weight:700;"></div>
+      <div id="st-end-score-row" style="display:flex;flex-direction:column;align-items:center;gap:6px;margin:8px 0 6px;">
+        <div style="font-family:'Fredoka',sans-serif;font-size:48px;font-weight:700;color:#2D3047;line-height:1;display:inline-flex;align-items:center;gap:8px;">
+          <span class="ultimate-score-icon" id="st-end-score-icon"></span>
+          <span id="st-end-score-value">0</span>
+        </div>
+        <div id="st-end-best-row" style="font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;color:#6B7785;display:inline-flex;align-items:center;gap:6px;">
+          <span id="st-end-best-label">Best:</span>
+          <span class="ultimate-score-icon" id="st-end-best-icon" style="width:20px;height:20px;"></span>
+          <span id="st-end-best-value">0</span>
+        </div>
+      </div>
+      <button class="next-btn" id="st-btn-restart">Try Again</button>
+      <button class="next-btn" id="st-btn-next" style="background:#4ECDC4;box-shadow:0 6px 0 #2ea89e;margin-top:10px;">Next Level →</button>
     </div>
   </div>
 </div>
@@ -1515,6 +1999,12 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
 <!-- LEVEL COMPLETE OVERLAY -->
 <div id="overlay-complete" class="hidden">
   <div class="complete-card">
+    <button class="timeout-close" id="complete-close" aria-label="Home" onclick="(function(){if(typeof beepTap==='function')beepTap();document.getElementById('overlay-complete').classList.add('hidden');showHome();})()">
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="white" stroke-width="3.5" stroke-linecap="round">
+        <line x1="5" y1="5" x2="17" y2="17"/>
+        <line x1="17" y1="5" x2="5" y2="17"/>
+      </svg>
+    </button>
     <div class="complete-done-label" id="complete-done-label"></div>
     <div class="complete-title" id="complete-title"></div>
     <div class="complete-stars" id="complete-stars"></div>
@@ -1597,6 +2087,10 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
 // ═══════════════════════════════════════════════════════
 // STRINGS / i18n
 // ═══════════════════════════════════════════════════════
+// Inline trophy SVG (Phosphor Icons trophy-fill, MIT licensed).
+// Used for Speed Test + L15 score pills/overlays. CSS gold treatment lives
+// under .st-score-icon svg / .ultimate-score-icon svg.
+const SCORE_ICON_SVG = '<svg class="score-icon-svg" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M232,64H208V48a8,8,0,0,0-8-8H56a8,8,0,0,0-8,8V64H24A16,16,0,0,0,8,80V96a40,40,0,0,0,40,40h3.65A80.13,80.13,0,0,0,120,191.61V216H96a8,8,0,0,0,0,16h64a8,8,0,0,0,0-16H136V191.58c31.94-3.23,58.44-25.64,68.08-55.58H208a40,40,0,0,0,40-40V80A16,16,0,0,0,232,64ZM48,120A24,24,0,0,1,24,96V80H48v32q0,4,.39,8ZM232,96a24,24,0,0,1-24,24h-.5a81.81,81.81,0,0,0,.5-8.9V80h24Z"/></svg>';
 const S = {
   zh: {
     title:'時鐘王國', langBtn:'EN',
@@ -1639,12 +2133,12 @@ const S = {
     level6name:'分針：\n每 15 分',
     level7name:'分針：\n每 5 分',
     level8name:'分針：\n每 1 分',
-    level9name:'撥時間：\n簡單',
-    level10name:'撥時間：\n進階',
-    level11name:'配對\n時鐘',
-    level12name:'24 小時：\n第一部',
-    level13name:'24 小時：\n第二部',
-    level14name:'終極\n測試',
+    level10name:'撥時間：\n簡單',
+    level11name:'撥時間：\n進階',
+    level12name:'配對\n時鐘',
+    level13name:'24 小時：\n第一部',
+    level14name:'24 小時：\n第二部',
+    level15name:'終極\n測試',
     l2tutTitle:'🔢 讀數字時鐘',
     l2tutText:'數字時鐘寫法：<b>時:分</b>\n• <b>:</b> 前面 = 時\n• <b>:</b> 後面 = 分',
     l2tutRule:'「:」前 = 時\n「:」後 = 分',
@@ -1669,25 +2163,27 @@ const S = {
     l8tutTitle:'⏱ 每個小格 = 1 分',
     l8tutText:'兩個大數字之間有 <b>4 個小格</b>，每格 = <b>1 分鐘</b>。\n讀分鐘：大數字 × 5，再加上多走的小格。',
     l8tutRule:'數字 × 5 + 小格 = 分',
-    l9tutTitle:'🕖 撥到一刻鐘',
-    l9tutText:'<b>兩支針都要撥</b>。\n先撥時針，再撥分針。',
-    l9tutRule:'先撥時針，再撥分針',
-    l10tutTitle:'🕖 設定兩針',
-    l10tutText:'這關分鐘可以是 <b>0–59</b> 任何一個（包括小格）。',
+    l9tutText:'時鐘會由上面跌落嚟，<b>撳啱時間</b>就會跌走。\n跌到底會輸 <b>1 條命</b>，輸晒 <b>3 條命</b>就 Game Over。\n時間越耐越快！',
+    l9tutRule:'撳啱時間，跌到岩漿之前過關',
+    l10tutTitle:'🕖 撥到一刻鐘',
+    l10tutText:'<b>兩支針都要撥</b>。\n先撥時針，再撥分針。',
     l10tutRule:'先撥時針，再撥分針',
-    l11tutTitle:'⏰ 配對時鐘',
-    l11tutText:'上面會顯示一個<b>數字時間</b>。\n從下面 4 個鐘中，挑出指針相符的那個。',
-    l11tutRule:'時針位置和分針位置都要對',
-    l11matchPrompt:'哪個鐘顯示這個時間？',
-    l12tutTitle:'🌙 24 小時制：第一部',
-    l12tutText:'24 小時制：<b>0–23</b> 點，不分上下午。\n數字大於 12 → <b>減 12</b> = 下午幾點。',
-    l12tutRule:'24 小時數字 − 12 = 下午時間',
-    l13tutTitle:'🌙 24 小時制：第二部',
-    l13tutText:'下午時間 → 24 小時：<b>加 12</b>。\n例如下午 5 點 = 17:00。',
-    l13tutRule:'下午 → +12；24 小時 → −12',
-    l14tutTitle:'🏆 終極測試',
-    l14tutText:'挑戰：<b>10 題、90 秒</b>。\n全部技能都會用上：讀鐘、撥鐘、配對、24 小時制。',
-    l14tutRule:'90 秒內答完 10 題',
+    l11tutTitle:'🕖 設定兩針',
+    l11tutText:'這關分鐘可以是 <b>0–59</b> 任何一個（包括小格）。',
+    l11tutRule:'先撥時針，再撥分針',
+    l12tutTitle:'⏰ 配對時鐘',
+    l12tutText:'上面會顯示一個<b>數字時間</b>。\n從下面 4 個鐘中，挑出指針相符的那個。',
+    l12tutRule:'時針位置和分針位置都要對',
+    l12matchPrompt:'哪個鐘顯示這個時間？',
+    l13tutTitle:'🌙 24 小時制：第一部',
+    l13tutText:'24 小時制：<b>0–23</b> 點，不分上下午。\n數字大於 12 → <b>減 12</b> = 下午幾點。',
+    l13tutRule:'24 小時數字 − 12 = 下午時間',
+    l14tutTitle:'🌙 24 小時制：第二部',
+    l14tutText:'下午時間 → 24 小時：<b>加 12</b>。\n例如下午 5 點 = 17:00。',
+    l14tutRule:'下午 → +12；24 小時 → −12',
+    l15tutTitle:'<span class="ultimate-score-icon">'+SCORE_ICON_SVG+'</span> 終極測試',
+    l15tutText:'<b>90 秒</b>內盡量答題。\n第一次答啱 <b>+5 秒</b>，答錯 <b>−10 秒</b>。\n每 4 題難度升一級，分數越高。',
+    l15tutRule:'答啱 +5 秒，答錯 −10 秒；分數越高越叻',
     // Unified guide-card section labels + sample question per level
     tutIntro:'介紹',
     tutExample:'例題',
@@ -1699,19 +2195,19 @@ const S = {
     l6example:'<span class="tut-ex-q">問：分針指著 <b>6</b>，現在幾分？</span><span class="tut-ex-a">答：30 分</span>',
     l7example:'<span class="tut-ex-q">問：分針指著 <b>4</b>，現在幾分？</span><span class="tut-ex-a">答：20 分</span>',
     l8example:'<span class="tut-ex-q">問：分針已過 <b>1</b>，再走 <b>3</b> 個小格，現在幾分？</span><span class="tut-ex-a">答：8 分</span>',
-    l9example:'<span class="tut-ex-q">問：撥到 <b>6:15</b></span><span class="tut-ex-a">答：時針 → 6，分針 → 3</span>',
-    l10example:'<span class="tut-ex-q">問：撥到 <b>4:25</b></span><span class="tut-ex-a">答：時針 → 4，分針 → 5</span>',
-    l11example:'<span class="tut-ex-q">問：上面顯示 <b>7:15</b></span><span class="tut-ex-a">答：選時針在 7 和 8 之間、分針指 3 的鐘</span>',
-    l12example:'<span class="tut-ex-q">問：<b>14:00</b> 是？</span><span class="tut-ex-a">答：14 − 12 = <b>下午 2 點</b></span>',
-    l13example:'<span class="tut-ex-q">問：<b>下午 5 點</b> 寫成 24 小時？</span><span class="tut-ex-a">答：5 + 12 = <b>17:00</b></span>',
-    l14example:'<span class="tut-ex-q">挑戰：10 題、限時 <b>90 秒</b>（每題約 9 秒）</span><span class="tut-ex-a">提示：先看時針，再看分針，不要慌</span>',
+    l10example:'<span class="tut-ex-q">問：撥到 <b>6:15</b></span><span class="tut-ex-a">答：時針 → 6，分針 → 3</span>',
+    l11example:'<span class="tut-ex-q">問：撥到 <b>4:25</b></span><span class="tut-ex-a">答：時針 → 4，分針 → 5</span>',
+    l12example:'<span class="tut-ex-q">問：上面顯示 <b>7:15</b></span><span class="tut-ex-a">答：選時針在 7 和 8 之間、分針指 3 的鐘</span>',
+    l13example:'<span class="tut-ex-q">問：<b>14:00</b> 是？</span><span class="tut-ex-a">答：14 − 12 = <b>下午 2 點</b></span>',
+    l14example:'<span class="tut-ex-q">問：<b>下午 5 點</b> 寫成 24 小時？</span><span class="tut-ex-a">答：5 + 12 = <b>17:00</b></span>',
+    l15example:'<span class="tut-ex-q">挑戰：<b>90 秒</b>內盡量答題，每答 4 題難度升一級</span><span class="tut-ex-a">提示：先看時針，再看分針，不要慌</span>',
     timeOutTitle:'⏰ 時間到！',
     timeOutMsg:'再試一次，你可以的！',
     tryAgainBtn:'再試一次',
-    l12matchPrompt:'哪個鐘顯示這個時間？',
-    l15tutTitle:'🌙 24小時制',
-    l15tutText:'一天有24個小時。上午用 1–12，下午用 13–24，這叫「24小時制」。',
-    l15tutRule:'公式：下午時間 = 24小時數字 − 12',
+    score:'分數',
+    l15scoreResult:'<span class="ultimate-score-icon">'+SCORE_ICON_SVG+'</span> {score}',
+    l15newBest:'新紀錄！',
+    l13matchPrompt:'哪個鐘顯示這個時間？',
     l15subtitle1:'把 24小時制 轉成下午時間',
     l15subtitle2:'把下午時間寫成 24小時制',
     l15subtitle3:'把時鐘設定到這個時間',
@@ -1739,12 +2235,12 @@ const S = {
     l5hint:'時針在兩個數字之間 → 讀較小那個。',
     l7hint:'分針指的數字 × 5 = 分鐘。',
     l8hint:'大數字 × 5，再加上後面的小格數。',
-    l9hint:'先撥時針到「點」，再撥分針到 12/3/6/9。',
-    l10hint:'先撥時針到「點」，再撥分針。',
-    l11hint:'看時針讀「點」，看分針讀「分」，兩個都要對。',
-    l12hint:'數字 > 12 → 減 12 = 下午。否則 = 上午。',
-    l13hint:'下午 + 12 = 24 小時。',
-    l14hint:'時針：兩數字之間 → 較小。分針：大數字 × 5 + 小格。',
+    l10hint:'先撥時針到「點」，再撥分針到 12/3/6/9。',
+    l11hint:'先撥時針到「點」，再撥分針。',
+    l12hint:'看時針讀「點」，看分針讀「分」，兩個都要對。',
+    l13hint:'數字 > 12 → 減 12 = 下午。否則 = 上午。',
+    l14hint:'下午 + 12 = 24 小時。',
+    l15hint:'時針：兩數字之間 → 較小。分針：大數字 × 5 + 小格。',
     oddOneOutPrompt:'找出不同的那個鐘！',
     whatTickMinutes:'分針指向這裡，過了多少分鐘？',
     whatHourPart:'這個時間是幾點？',
@@ -1775,6 +2271,19 @@ const S = {
     tickyThink:'想一想...',
     tickyCheer:'你真棒！',
     tickyHi:'你好！',
+    // Speed Test (falling-clock challenge mode)
+    stTitle:'速度挑戰',
+    stTileName:'速度\n挑戰',
+    stStartTitle:'速度挑戰',
+    stStartSubtitle:'睇住跌緊嘅時鐘，撳啱時間先過關！你有 3 條命。',
+    stStartBtn:'開始',
+    stEndTitle:'遊戲結束',
+    stPlayAgain:'再玩一次',
+    stScore:'分數',
+    stLives:'生命',
+    stScoreResult:'<span class="st-score-icon">'+SCORE_ICON_SVG+'</span> {score}',
+    stNewBest:'新紀錄！',
+    stBestLabel:'最佳：',
   },
   en: {
     title:'Clock Kingdom', langBtn:'中',
@@ -1817,12 +2326,12 @@ const S = {
     level6name:'Minute Hand:\nevery 15 min',
     level7name:'Minute Hand:\nevery 5 min',
     level8name:'Minute Hand:\nevery 1 min',
-    level9name:'Set Time:\nEasy',
-    level10name:'Set Time:\nHard',
-    level11name:'Match\nClocks',
-    level12name:'24-Hour:\nPart 1',
-    level13name:'24-Hour:\nPart 2',
-    level14name:'Ultimate\nTest',
+    level10name:'Set Time:\nEasy',
+    level11name:'Set Time:\nHard',
+    level12name:'Match\nClocks',
+    level13name:'24-Hour:\nPart 1',
+    level14name:'24-Hour:\nPart 2',
+    level15name:'Ultimate\nTest',
     l2tutTitle:'🔢 Reading Digital Time',
     l2tutText:'Digital time: <b>H:MM</b>\n• Before <b>:</b> = hour\n• After <b>:</b> = minutes',
     l2tutRule:'Before "<b>:</b>" = hour\nAfter "<b>:</b>" = minutes',
@@ -1847,25 +2356,27 @@ const S = {
     l8tutTitle:'⏱ Each Tick = 1 min',
     l8tutText:'Between two big numbers: <b>4 small ticks</b>, each = <b>1 min</b>.\nRead minutes: big number × 5, then add the extra ticks.',
     l8tutRule:'number × 5 + ticks = minutes',
-    l9tutTitle:'🕖 Set Quarters',
-    l9tutText:'<b>Set both hands</b>.\nHour hand first, then minute hand.',
-    l9tutRule:'Set hour hand first, then minute hand',
-    l10tutTitle:'🕖 Set Both Hands',
-    l10tutText:'Minutes can be <b>any value 0–59</b> (including the small ticks).',
+    l9tutText:'Clocks fall from the top. <b>Tap the matching time</b> to pop them.\nIf one hits the lava you lose a life. <b>3 lives</b> total.\nIt speeds up the longer you survive!',
+    l9tutRule:'Tap the right time before clocks hit the lava',
+    l10tutTitle:'🕖 Set Quarters',
+    l10tutText:'<b>Set both hands</b>.\nHour hand first, then minute hand.',
     l10tutRule:'Set hour hand first, then minute hand',
-    l11tutTitle:'⏰ Match the Clock',
-    l11tutText:'A <b>digital time</b> appears on top.\nPick the clock below whose hands match.',
-    l11tutRule:'Both hour and minute hand must match',
-    l11matchPrompt:'Which clock shows this time?',
-    l12tutTitle:'🌙 24-Hour: Part 1',
-    l12tutText:'24-hour time: <b>0–23</b>, no AM/PM.\nNumber bigger than 12 → <b>subtract 12</b> = PM time.',
-    l12tutRule:'24-hour number − 12 = PM time',
-    l13tutTitle:'🌙 24-Hour: Part 2',
-    l13tutText:'PM → 24-hour: <b>add 12</b>.\nExample: 5 PM = 17:00.',
-    l13tutRule:'PM → +12;  24-hour → −12',
-    l14tutTitle:'🏆 Ultimate Test',
-    l14tutText:'Challenge: <b>10 questions, 90 seconds</b>.\nAll skills: reading, setting, matching, 24-hour.',
-    l14tutRule:'10 questions in 90 seconds',
+    l11tutTitle:'🕖 Set Both Hands',
+    l11tutText:'Minutes can be <b>any value 0–59</b> (including the small ticks).',
+    l11tutRule:'Set hour hand first, then minute hand',
+    l12tutTitle:'⏰ Match the Clock',
+    l12tutText:'A <b>digital time</b> appears on top.\nPick the clock below whose hands match.',
+    l12tutRule:'Both hour and minute hand must match',
+    l12matchPrompt:'Which clock shows this time?',
+    l13tutTitle:'🌙 24-Hour: Part 1',
+    l13tutText:'24-hour time: <b>0–23</b>, no AM/PM.\nNumber bigger than 12 → <b>subtract 12</b> = PM time.',
+    l13tutRule:'24-hour number − 12 = PM time',
+    l14tutTitle:'🌙 24-Hour: Part 2',
+    l14tutText:'PM → 24-hour: <b>add 12</b>.\nExample: 5 PM = 17:00.',
+    l14tutRule:'PM → +12;  24-hour → −12',
+    l15tutTitle:'<span class="ultimate-score-icon">'+SCORE_ICON_SVG+'</span> Ultimate Test',
+    l15tutText:'Answer as many as you can in <b>90 seconds</b>.\nFirst-try correct: <b>+5s</b>. Wrong: <b>−10s</b>.\nDifficulty rises every 4 questions; scores climb with it.',
+    l15tutRule:'+5s correct, −10s wrong — score as high as you can',
     // Unified guide-card section labels + sample question per level
     tutIntro:'Introduction',
     tutExample:'Examples',
@@ -1877,18 +2388,18 @@ const S = {
     l6example:'<span class="tut-ex-q">Q: Minute hand at <b>6</b>. How many minutes?</span><span class="tut-ex-a">A: 30 min</span>',
     l7example:'<span class="tut-ex-q">Q: Minute hand points at <b>4</b>. How many minutes?</span><span class="tut-ex-a">A: 20 min</span>',
     l8example:'<span class="tut-ex-q">Q: Past <b>1</b>, plus <b>3</b> more ticks. How many minutes?</span><span class="tut-ex-a">A: 8 min</span>',
-    l9example:'<span class="tut-ex-q">Q: Set <b>6:15</b></span><span class="tut-ex-a">A: Hour → 6, Minute → 3</span>',
-    l10example:'<span class="tut-ex-q">Q: Set <b>4:25</b></span><span class="tut-ex-a">A: Hour → 4, Minute → 5</span>',
-    l11example:'<span class="tut-ex-q">Q: Top shows <b>7:15</b></span><span class="tut-ex-a">A: Pick the clock with hour hand between 7 and 8, minute at 3</span>',
-    l12example:'<span class="tut-ex-q">Q: What is <b>14:00</b>?</span><span class="tut-ex-a">A: 14 − 12 = <b>2:00 PM</b></span>',
-    l13example:'<span class="tut-ex-q">Q: <b>5:00 PM</b> in 24-hour?</span><span class="tut-ex-a">A: 5 + 12 = <b>17:00</b></span>',
-    l14example:'<span class="tut-ex-q">Challenge: 10 questions in <b>90 seconds</b> (~9 sec each)</span><span class="tut-ex-a">Tip: read the hour hand first, then the minute hand. Stay calm.</span>',
+    l10example:'<span class="tut-ex-q">Q: Set <b>6:15</b></span><span class="tut-ex-a">A: Hour → 6, Minute → 3</span>',
+    l11example:'<span class="tut-ex-q">Q: Set <b>4:25</b></span><span class="tut-ex-a">A: Hour → 4, Minute → 5</span>',
+    l12example:'<span class="tut-ex-q">Q: Top shows <b>7:15</b></span><span class="tut-ex-a">A: Pick the clock with hour hand between 7 and 8, minute at 3</span>',
+    l13example:'<span class="tut-ex-q">Q: What is <b>14:00</b>?</span><span class="tut-ex-a">A: 14 − 12 = <b>2:00 PM</b></span>',
+    l14example:'<span class="tut-ex-q">Q: <b>5:00 PM</b> in 24-hour?</span><span class="tut-ex-a">A: 5 + 12 = <b>17:00</b></span>',
+    l15example:'<span class="tut-ex-q">Challenge: answer as many as you can in <b>90 seconds</b> — difficulty scales every 4 questions</span><span class="tut-ex-a">Tip: read the hour hand first, then the minute hand. Stay calm.</span>',
     timeOutTitle:"⏰ Time's Up!",
     timeOutMsg:'Try again — you got this!',
     tryAgainBtn:'Try Again',
-    l15tutTitle:'🌙 24-Hour Time',
-    l15tutText:'A day has 24 hours. Morning uses 1–12; afternoon uses 13–24. This is called "24-hour time".',
-    l15tutRule:'The Rule: PM time = 24-hour number − 12',
+    score:'Score',
+    l15scoreResult:'<span class="ultimate-score-icon">'+SCORE_ICON_SVG+'</span> {score}',
+    l15newBest:'New best!',
     l15subtitle1:'Convert 24-hour to afternoon time',
     l15subtitle2:'Write afternoon time in 24-hour',
     l15subtitle3:'Set the clock to this time',
@@ -1903,7 +2414,7 @@ const S = {
     l15hint3:'15 = 3 PM',
     l15hint4:'16 = 4 PM',
     l15setPrompt:'Set the clock to show',
-    l12matchPrompt:'Which clock shows this time?',
+    l13matchPrompt:'Which clock shows this time?',
     l13pm:'PM',
     l13am:'AM',
     level95name:'Odd One Out',
@@ -1917,12 +2428,12 @@ const S = {
     l5hint:'Hour hand between two numbers → read the smaller one.',
     l7hint:'Minute hand\'s number × 5 = minutes.',
     l8hint:'Big number × 5, then add the extra ticks.',
-    l9hint:'Set the hour hand to the right number first, then minute hand to 12/3/6/9.',
-    l10hint:'Set the hour hand to the right number first, then the minute hand.',
-    l11hint:'Read both: hour hand for the hour, minute hand for the minutes — both must match.',
-    l12hint:'Number > 12 → subtract 12 = PM. Otherwise = AM.',
-    l13hint:'PM + 12 = 24-hour time.',
-    l14hint:'Hour hand: between two numbers → smaller. Minute hand: big number × 5 + extra ticks.',
+    l10hint:'Set the hour hand to the right number first, then minute hand to 12/3/6/9.',
+    l11hint:'Set the hour hand to the right number first, then the minute hand.',
+    l12hint:'Read both: hour hand for the hour, minute hand for the minutes — both must match.',
+    l13hint:'Number > 12 → subtract 12 = PM. Otherwise = AM.',
+    l14hint:'PM + 12 = 24-hour time.',
+    l15hint:'Hour hand: between two numbers → smaller. Minute hand: big number × 5 + extra ticks.',
     oddOneOutPrompt:'Find the different clock!',
     whatTickMinutes:'Minute hand here — how many minutes passed?',
     whatHourPart:'How many hours does this time show?',
@@ -1953,6 +2464,19 @@ const S = {
     tickyThink:'Hmm...',
     tickyCheer:"You're amazing!",
     tickyHi:'Hello!',
+    // Speed Test (falling-clock challenge mode)
+    stTitle:'Speed Test',
+    stTileName:'Speed\nTest',
+    stStartTitle:'Speed Test',
+    stStartSubtitle:'Read the falling clocks and tap the correct time before they reach the bottom. You have 3 lives.',
+    stStartBtn:'Start',
+    stEndTitle:'Game Over',
+    stPlayAgain:'Play Again',
+    stScore:'Score',
+    stLives:'Lives',
+    stScoreResult:'<span class="st-score-icon">'+SCORE_ICON_SVG+'</span> {score}',
+    stNewBest:'New best!',
+    stBestLabel:'Best:',
   }
 };
 function t(k) { const v = S[state.lang][k]; return v !== undefined ? v : k; }
@@ -2010,16 +2534,17 @@ async function loadState() {
 const LEVEL_NAMES = [
   null,
   'level1name','level2name','level3name','level4name','level5name','level6name',
-  'level7name','level8name','level9name','level10name',
-  'level11name','level12name','level13name','level14name'
+  'level7name','level8name','stTileName','level10name','level11name',
+  'level12name','level13name','level14name','level15name'
 ];
-const TOTAL_LEVELS = 14;
+const TOTAL_LEVELS = 15;
 // Level numbering:
 // L1 Meet the Clock, L2 Reading Digital, L3 Hour Read, L4 Hour Set, L5 Hour Between,
 // L6 Min every-15, L7 Min every-5, L8 Min every-1,
-// L9 Set Time Easy (quarters), L10 Set Time Hard (any min),
-// L11 Match Clocks, L12 24-Hour Easy (24→12), L13 24-Hour Hard (12→24 + setFromPM),
-// L14 Ultimate Test
+// L9 Speed Test (falling-clock challenge — uses SpeedTest IIFE),
+// L10 Set Time Easy (quarters), L11 Set Time Hard (any min),
+// L12 Match Clocks, L13 24-Hour Easy (24→12), L14 24-Hour Hard (12→24 + setFromPM),
+// L15 Ultimate Test
 const HIDE_MINUTE = new Set([3, 4, 5]);   // hour-only levels: L3(Hour Read), L4(Hour Set), L5(Hour Between)
 const HIDE_HOUR = new Set([6, 7, 8]);     // minute-only levels: L6,L7,L8
 
@@ -2035,15 +2560,21 @@ function setHourHandVisible(visible) {
     else tap.classList.add('hand-hidden');
   }
 }
-const SHOW_MIN_LABELS = new Set([6, 7, 8, 9, 10, 11, 13]);
-// L6-L8 (minute hand levels), L9-L10 (set time), L11 (match clocks), L13 (24-hour hard: setFromPM)
+const SHOW_MIN_LABELS = new Set([6, 7, 8, 10, 11, 12, 14]);
+// L6-L8 (minute hand levels), L10-L11 (set time), L12 (match clocks), L14 (24-hour hard: setFromPM)
 
 // Level n unlocks when n === 1 (always) or the previous level earned ≥2 stars.
 // Star thresholds: 3 stars = 0 wrong, 2 stars = 1 wrong, 1 star = 2+ wrong.
 const PLAYTEST_UNLOCK_ALL = true;
 function isUnlocked(n) {
   if (PLAYTEST_UNLOCK_ALL) return true;
-  return n === 1 || starsFor(n - 1) >= 2;
+  if (n === 1) return true;
+  // L9 (Speed Test) unlocks once the curriculum's L8 is solidly done.
+  if (n === 9) return starsFor(8) >= 2;
+  // L10 jumps the Speed Test slot — it gates on L8 like L9 does, since L9
+  // doesn't record stars in state.progress.
+  if (n === 10) return starsFor(8) >= 2;
+  return starsFor(n - 1) >= 2;
 }
 function starsFor(n) { return state.progress[n] || 0; }
 function starsStr(n) {
@@ -2216,57 +2747,90 @@ function renderHome() {
   grid.innerHTML = '';
 
   // Current level = the lowest unlocked level that has zero stars (the next to play).
+  // Skip L9 (Speed Test) — it's not part of the curriculum progression and doesn't
+  // record stars in state.progress, so it would otherwise always look like "next".
   let currentLvl = null;
   for (let n = 1; n <= TOTAL_LEVELS; n++) {
+    if (n === 9) continue;
     if (isUnlocked(n) && starsFor(n) === 0) { currentLvl = n; break; }
   }
 
-  // Build rows — 3 stops per row (4 rows for 12 levels, last row having 3)
+  // Build a flat sequence of grid items: levels 1..15 (L9 = Speed Test).
+  // Items are chunked into rows of 3. Each row uses .level-row-inner (display:contents)
+  // so the parent .level-stops grid does the actual placement.
   const PER_ROW = 3;
-  const rows = [];
-  for (let n = 1; n <= TOTAL_LEVELS; n++) {
-    const rowIdx = Math.floor((n - 1) / PER_ROW);
-    if (!rows[rowIdx]) rows[rowIdx] = [];
-    rows[rowIdx].push(n);
-  }
 
-  rows.forEach((rowLevels, rowIdx) => {
+  // Speed Test tile: visually a regular .level-stop with "9" as lnum, but a
+  // trophy + best-score block at the bottom (instead of stars), and clicking
+  // routes into the SpeedTest IIFE rather than the curriculum flow.
+  const buildSpeedTestTile = () => {
+    const tile = document.createElement('div');
+    tile.className = 'level-stop';
+    tile.onclick = () => { beepTap(); startLevel(9); };
+    let stBest = 0;
+    try { stBest = parseInt(localStorage.getItem('clockKingdom_speedtest_best') || '0', 10); } catch(e) {}
+    tile.innerHTML = `
+      <div class="lnum">9</div>
+      <div class="lname">${t('stTileName')}</div>
+      <div class="stars" style="font-size:13px;"><span class="ultimate-score-icon">${SCORE_ICON_SVG}</span> ${stBest}</div>
+    `;
+    return tile;
+  };
+
+  const buildLevelTile = (n) => {
+    // L9 is Speed Test — delegate to the dedicated tile builder so it gets
+    // the trophy + best-score block instead of stars.
+    if (n === 9) return buildSpeedTestTile();
+
+    const unlocked = isUnlocked(n);
+    const stars = starsFor(n);
+    const perfect = stars === 3;            // yellow — all 3 stars
+    const isCurrent = n === currentLvl;     // pink — your next level
+    // Default teal/blue is used for a level that's been played but isn't perfect yet.
+
+    const stop = document.createElement('div');
+    stop.className = 'level-stop' +
+      (!unlocked ? ' locked' : '') +
+      (perfect ? ' completed' : '') +
+      (isCurrent ? ' current-level' : '');
+
+    if (unlocked) {
+      stop.onclick = () => { beepTap(); startLevel(n); };
+      // L15 (Ultimate Test): show best score instead of stars
+      let bottomEl;
+      if (n === 15) {
+        let l15Best = 0;
+        try { l15Best = parseInt(localStorage.getItem('clockKingdom_l15_best') || '0', 10); } catch(e) {}
+        bottomEl = `<div class="stars" style="font-size:13px;"><span class="ultimate-score-icon">${SCORE_ICON_SVG}</span> ${l15Best}</div>`;
+      } else {
+        bottomEl = `<div class="stars">${starsStr(n)}</div>`;
+      }
+      stop.innerHTML = `<div class="lnum">${n}</div>
+        <div class="lname">${t(LEVEL_NAMES[n])}</div>
+        ${bottomEl}`;
+    } else {
+      stop.innerHTML = `<div class="lnum">${n}</div>
+        <div class="lname">${t(LEVEL_NAMES[n])}</div>
+        <div class="lock-badge">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M7 10V7a5 5 0 0 1 10 0v3" stroke="#8B8FA3" stroke-width="2.5" stroke-linecap="round"/>
+            <rect x="4.5" y="10" width="15" height="11" rx="2.5" fill="#A8ACBF"/>
+            <circle cx="12" cy="14.5" r="1.6" fill="white"/>
+            <rect x="11.2" y="14.5" width="1.6" height="3.2" rx="0.5" fill="white"/>
+          </svg>
+        </div>`;
+    }
+    return stop;
+  };
+
+  for (let n = 1; n <= TOTAL_LEVELS; n += PER_ROW) {
     const rowEl = document.createElement('div');
     rowEl.className = 'level-row-inner';
-    rowLevels.forEach(n => {
-      const unlocked = isUnlocked(n);
-      const stars = starsFor(n);
-      const perfect = stars === 3;            // yellow — all 3 stars
-      const isCurrent = n === currentLvl;     // pink — your next level
-      // Default teal/blue is used for a level that's been played but isn't perfect yet.
-
-      const stop = document.createElement('div');
-      stop.className = 'level-stop' +
-        (!unlocked ? ' locked' : '') +
-        (perfect ? ' completed' : '') +
-        (isCurrent ? ' current-level' : '');
-
-      if (unlocked) {
-        stop.onclick = () => { beepTap(); startLevel(n); };
-        stop.innerHTML = `<div class="lnum">${n}</div>
-          <div class="lname">${t(LEVEL_NAMES[n])}</div>
-          <div class="stars">${starsStr(n)}</div>`;
-      } else {
-        stop.innerHTML = `<div class="lnum">${n}</div>
-          <div class="lname">${t(LEVEL_NAMES[n])}</div>
-          <div class="lock-badge">
-            <svg viewBox="0 0 24 24" fill="none">
-              <path d="M7 10V7a5 5 0 0 1 10 0v3" stroke="#8B8FA3" stroke-width="2.5" stroke-linecap="round"/>
-              <rect x="4.5" y="10" width="15" height="11" rx="2.5" fill="#A8ACBF"/>
-              <circle cx="12" cy="14.5" r="1.6" fill="white"/>
-              <rect x="11.2" y="14.5" width="1.6" height="3.2" rx="0.5" fill="white"/>
-            </svg>
-          </div>`;
-      }
-      rowEl.appendChild(stop);
-    });
+    for (let k = n; k < n + PER_ROW && k <= TOTAL_LEVELS; k++) {
+      rowEl.appendChild(buildLevelTile(k));
+    }
     grid.appendChild(rowEl);
-  });
+  }
 }
 
 function toggleLang() {
@@ -2291,6 +2855,9 @@ function toggleLang() {
     tickySayKey('tickyLetMe', 'thinking', 5000);
   }
   else if (!document.getElementById('screen-tour').classList.contains('hidden')) renderTourStep();
+  else if (!document.getElementById('screen-speedtest').classList.contains('hidden')) {
+    if (typeof SpeedTest !== 'undefined' && SpeedTest && typeof SpeedTest.localize === 'function') SpeedTest.localize();
+  }
 }
 function confirmReset() {
   document.getElementById('reset-title').textContent = t('resetTitle');
@@ -2309,8 +2876,12 @@ function doReset() {
   renderHome();
 }
 function hideAllScreens() {
-  ['screen-home','screen-game','screen-tutorial','screen-tour','overlay-complete','overlay-correct','overlay-timeout','overlay-reset']
+  ['screen-home','screen-game','screen-tutorial','screen-tour','screen-speedtest','overlay-complete','overlay-correct','overlay-timeout','overlay-reset']
     .forEach(id => { const el = document.getElementById(id); if (el) el.classList.add('hidden'); });
+  // Stop speedtest if it was running.
+  if (typeof SpeedTest !== 'undefined' && SpeedTest && typeof SpeedTest.stop === 'function') SpeedTest.stop();
+  // Clear the body marker that hides Ticky during Speed Test — re-shown on next screen.
+  document.body.classList.remove('st-active');
   // Clear tour clock SVG so its duplicate-id hand elements don't shadow the game screen's hand elements
   const tw = document.getElementById('tour-clock-wrap');
   if (tw) tw.innerHTML = '';
@@ -2445,6 +3016,15 @@ let wrongCount = 0;
 let wrongCountThisQ = 0;
 let dragState = null;
 let setHour = 12, setMin = 0;
+
+// ─── L15 Score-Attack State ───
+let l15Score = 0;
+let l15QAnswered = 0;       // how many questions the kid has answered (increments after correct)
+let l15FirstTry = true;     // resets per question; false if any wrong attempt happened
+let l15Batch = [];          // queued question objects for current batch of 5
+let l15BatchIdx = 0;        // index within current batch (0-4)
+let l15PenaltyApplied = false; // true once -10s penalty taken for current question (one per question)
+let correctPopupTimeoutId = null; // tracks the setTimeout that calls hideCorrectPopup, so timeout overlay can cancel it
 // L4 Part B state
 
 // ── Tutorial loop controller ──
@@ -2947,7 +3527,22 @@ function bulletify(raw) {
 function renderTutorial(n) {
   document.getElementById('tut-level-label').textContent = t('level') + n + t('levelSuffix');
   document.getElementById('tut-start-btn').textContent = t('startPractice');
-  document.getElementById('tut-start-btn').onclick = () => { beepTap(); beginLevel(n); };
+  // L9 (Speed Test) is its own screen with its own state — bypass beginLevel
+  // and hand off to the SpeedTest IIFE directly. Skip the legacy modal so the
+  // guide card itself is the "get ready" gate, then 3-2-1 countdown → game.
+  document.getElementById('tut-start-btn').onclick = () => {
+    beepTap();
+    if (n === 9) {
+      stopTutorialLoop();
+      hideAllScreens();
+      document.getElementById('screen-speedtest').classList.remove('hidden');
+      document.body.classList.add('st-active');
+      SpeedTest.localize();
+      SpeedTest.start();
+      return;
+    }
+    beginLevel(n);
+  };
 
   const body = document.getElementById('tut-body');
   const text = bulletify(t('l' + n + 'tutText'));
@@ -2973,21 +3568,41 @@ function renderTutorial(n) {
           </div>
         </div>
       </div>`;
-  } else if (n === 12 || n === 13) {
-    // L12/L13: 24-hour mapping table
-    const rows12 = [
+  } else if (n === 9) {
+    // L9 Speed Test: 3 hearts → falling clock → lava strip.
+    // No bordered .tut-viz box — the visual reads as a stacked scene.
+    visualHtml = `
+      <div style="padding:10px 0 8px;margin:6px auto 12px;max-width:360px;">
+        <div style="display:flex;justify-content:center;gap:18px;margin-bottom:12px;">
+          <span style="font-size:42px;color:#FF6B9D;line-height:1;text-shadow:0 3px 0 #d94f7e;">♥</span>
+          <span style="font-size:42px;color:#FF6B9D;line-height:1;text-shadow:0 3px 0 #d94f7e;">♥</span>
+          <span style="font-size:42px;color:#FF6B9D;line-height:1;text-shadow:0 3px 0 #d94f7e;">♥</span>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;">
+          ${buildSmallClockSVG(false, 175)}
+        </div>
+        <div style="position:relative;margin:14px 0 0;">
+          <svg width="100%" height="14" viewBox="0 0 400 14" preserveAspectRatio="none" style="display:block;">
+            <path d="M0,10 C50,3 100,14 150,7 C200,0 260,14 310,5 C360,-2 400,10 400,10 L400,14 L0,14 Z" fill="#FFCB7A"/>
+          </svg>
+          <div style="height:24px;background:linear-gradient(180deg,#FFB347 0%,#FF6B9D 100%);border-radius:0 0 6px 6px;"></div>
+        </div>
+      </div>`;
+  } else if (n === 13 || n === 14) {
+    // L13/L14: 24-hour mapping table
+    const rows13 = [
       [state.lang==='zh' ? '上午 7:00'  : '7:00 AM',  '07:00'],
       [state.lang==='zh' ? '上午 11:00' : '11:00 AM', '11:00'],
       [state.lang==='zh' ? '下午 2:00'  : '2:00 PM',  '14:00'],
       [state.lang==='zh' ? '下午 8:00'  : '8:00 PM',  '20:00'],
     ];
-    const rows13 = [
+    const rows14 = [
       [state.lang==='zh' ? '下午 1:00'  : '1:00 PM',  '13:00'],
       [state.lang==='zh' ? '下午 3:00'  : '3:00 PM',  '15:00'],
       [state.lang==='zh' ? '下午 6:00'  : '6:00 PM',  '18:00'],
       [state.lang==='zh' ? '下午 8:00'  : '8:00 PM',  '20:00'],
     ];
-    const rows = n === 12 ? rows12 : rows13;
+    const rows = n === 13 ? rows13 : rows14;
     visualHtml = `
       <div class="tut-viz">
         <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:10px 18px;align-items:center;">
@@ -2999,7 +3614,7 @@ function renderTutorial(n) {
         </div>
       </div>`;
   } else {
-    // L3-L11, L14: animated clock SVG
+    // L3-L8, L10-L12, L15: animated clock SVG (L9 is Speed Test, has its own screen)
     const showML = SHOW_MIN_LABELS.has(n);
     visualHtml = `<div style="position:relative;display:inline-block;">${buildSmallClockSVG(showML, 200)}</div>`;
   }
@@ -3007,6 +3622,11 @@ function renderTutorial(n) {
   // ── Unified card template — 3 clean sections, no nested boxes ──
   // Title is just the level name. No emoji-tag, no subtitle.
   const levelName = t(LEVEL_NAMES[n]).replace(/\n/g, ' ');
+  const exampleSection = (n === 9 || n === 15) ? '' : `
+      <div class="tut-section">
+        <div class="tut-section-title">${t('tutExample')}</div>
+        <div class="tut-example">${example}</div>
+      </div>`;
   body.innerHTML = `
     <div class="tut-card">
       <div class="tut-title">${levelName}</div>
@@ -3014,16 +3634,12 @@ function renderTutorial(n) {
       <div class="tut-section">
         <div class="tut-section-title">${t('tutIntro')}</div>
         <div class="tut-text">${text}</div>
-      </div>
-      <div class="tut-section">
-        <div class="tut-section-title">${t('tutExample')}</div>
-        <div class="tut-example">${example}</div>
-      </div>
+      </div>${exampleSection}
     </div>
   `;
 
-  // L2, L12, L13 have no animated clock — bail out before clock setup
-  if (n === 2 || n === 12 || n === 13) {
+  // L2, L9, L13, L14 have no animated clock — bail out before clock setup
+  if (n === 2 || n === 9 || n === 13 || n === 14) {
     stopTutorialLoop();
     return;
   }
@@ -3036,9 +3652,9 @@ function renderTutorial(n) {
       3: [3, 0],   4: [4, 0],
       5: [3, 30],
       7: [12, 15], 8: [2, 0],
-      9: [6, 15],  10: [7, 0],
-      11: [3, 15],
-      14: [10, 45]
+      10: [6, 15], 11: [7, 0],
+      12: [3, 15],
+      15: [10, 45]
     };
     const [h, m] = tutHands[n] || [12, 0];
     const th = tutSvg.querySelector('[data-role="hand-hour"]');
@@ -3208,8 +3824,8 @@ function renderTutorial(n) {
         { fn: resolve => { setTutHand('hand-hour', 0); resolve(); }, delay: 400 },
         { fn: resolve => { animateTutHand('hand-hour', 0, 120, 2000, resolve); }, delay: 1200 }
       ]);
-    } else if (n === 9) {
-      // L9: Set Quarters — hour at 6, minute 0→90 (quarter sweep), pause, reset, repeat
+    } else if (n === 10) {
+      // L10: Set Quarters — hour at 6, minute 0→90 (quarter sweep), pause, reset, repeat
       activeTutorialLoop = makeTutLoop(() => [
         { fn: resolve => { setTutHand('hand-hour', (6%12)*30); setTutHand('hand-min', 0); resolve(); }, delay: 500 },
         { fn: resolve => {
@@ -3219,8 +3835,8 @@ function renderTutorial(n) {
             animateTutHand('hand-hour', (6%12)*30, (6%12)*30 + 15*0.5, 1500, () => { done2 = true; check(); });
           }, delay: 1000 }
       ]);
-    } else if (n === 10) {
-      // L10: Set both — hour at 7, minute 0→270 (12→9) with hour going 7→7.75, pause, reset, repeat
+    } else if (n === 11) {
+      // L11: Set both — hour at 7, minute 0→270 (12→9) with hour going 7→7.75, pause, reset, repeat
       activeTutorialLoop = makeTutLoop(() => [
         { fn: resolve => { setTutHand('hand-hour', (7%12)*30); setTutHand('hand-min', 0); resolve(); }, delay: 500 },
         { fn: resolve => {
@@ -3230,7 +3846,7 @@ function renderTutorial(n) {
             animateTutHand('hand-hour', (7%12)*30, (7%12)*30 + 45*0.5, 2000, () => { done2 = true; check(); });
           }, delay: 1000 }
       ]);
-      // n === 12/13 (24-hour) have no clock animation — handled in the rich tutorial branch above
+      // n === 13/14 (24-hour) have no clock animation — handled in the rich tutorial branch above
     }
   }
 }
@@ -3239,6 +3855,14 @@ function renderTutorial(n) {
 // START LEVEL
 // ═══════════════════════════════════════════════════════
 function startLevel(n) {
+  // L9 is Speed Test — route through the unified guide-card screen first
+  // (matches every other level). DON'T set currentLevel (Speed Test owns its
+  // own state and shouldn't collide with the curriculum's currentLevel global).
+  // The tutorial's start button hands off to SpeedTest.start() directly.
+  if (n === 9) {
+    showTutorial(9);
+    return;
+  }
   currentLevel = n;
   wrongCount = 0; qIndex = 0; wrongCountThisQ = 0;
   if (n === 1) {
@@ -3252,7 +3876,21 @@ function beginLevel(n) {
   stopTutorialLoop();
   stopUltimateTimer();
   currentLevel = n;
+  // Reset L15 score-attack state before building questions (batch gen uses tier=0)
+  if (n === 15) {
+    l15Score = 0;
+    l15QAnswered = 0;
+    l15FirstTry = true;
+    l15Batch = [];
+    l15BatchIdx = 0;
+    l15PenaltyApplied = false;
+  }
   questions = buildQuestions(n);
+  // For L15 the batch is the first 5 questions; store them
+  if (n === 15) {
+    l15Batch = questions.slice();
+    l15BatchIdx = 0;
+  }
   qIndex = 0; wrongCount = 0; wrongCountThisQ = 0;
   hideAllScreens();
   document.getElementById('screen-game').classList.remove('hidden');
@@ -3265,44 +3903,57 @@ function beginLevel(n) {
   renderGameHeader();
   updateProgressDots();
   showQuestion(0);
-  if (n === 14) startUltimateTimer();
+  if (n === 15) startUltimateTimer();
   storage.gameplayStart();
 }
 
 function renderGameHeader() {
   const n = currentLevel;
-  document.getElementById('game-level-label').textContent = t('level') + n + t('levelSuffix');
-  document.getElementById('game-stars-earned').innerHTML = emptyStarsStr();
+  const levelLabelEl = document.getElementById('game-level-label');
+  levelLabelEl.textContent = t('level') + n + t('levelSuffix');
+  levelLabelEl.style.display = '';
+  const gameStarsEl = document.getElementById('game-stars-earned');
+  if (n === 15) {
+    gameStarsEl.style.display = 'none';
+  } else {
+    gameStarsEl.style.display = '';
+    gameStarsEl.innerHTML = emptyStarsStr();
+  }
   const timerEl = document.getElementById('ultimate-timer-display');
   if (timerEl) {
-    if (n === 14) { timerEl.classList.remove('hidden'); timerEl.textContent = '⏱ ' + ULTIMATE_SECS; }
+    if (n === 15) { timerEl.classList.remove('hidden'); timerEl.textContent = '⏱ ' + ULTIMATE_SECS; }
     else { timerEl.classList.add('hidden'); timerEl.classList.remove('urgent'); }
+  }
+  const scoreEl = document.getElementById('ultimate-score-display');
+  if (scoreEl) {
+    if (n === 15) { scoreEl.classList.remove('hidden'); scoreEl.innerHTML = '<span class="ultimate-score-icon">'+SCORE_ICON_SVG+'</span> 0'; }
+    else scoreEl.classList.add('hidden');
   }
 }
 
-// ─── ULTIMATE TEST TIMER (Level 14) ───
+// ─── ULTIMATE TEST TIMER (Level 15) ───
 let ultimateTimerId = null;
 let ultimateDeadline = 0;
 const ULTIMATE_SECS = 90;
+function updateUltimateTimerDisplay() {
+  const el = document.getElementById('ultimate-timer-display');
+  if (!el) return;
+  const remainMs = ultimateDeadline - Date.now();
+  if (remainMs <= 0) {
+    el.textContent = '⏱ 0';
+    stopUltimateTimer();
+    handleUltimateTimeout();
+    return;
+  }
+  const secs = Math.ceil(remainMs / 1000);
+  el.textContent = '⏱ ' + secs;
+  if (secs <= 10) el.classList.add('urgent'); else el.classList.remove('urgent');
+}
 function startUltimateTimer() {
   stopUltimateTimer();
   ultimateDeadline = Date.now() + ULTIMATE_SECS * 1000;
-  const tick = () => {
-    const el = document.getElementById('ultimate-timer-display');
-    if (!el) return;
-    const remainMs = ultimateDeadline - Date.now();
-    if (remainMs <= 0) {
-      el.textContent = '⏱ 0';
-      stopUltimateTimer();
-      handleUltimateTimeout();
-      return;
-    }
-    const secs = Math.ceil(remainMs / 1000);
-    el.textContent = '⏱ ' + secs;
-    if (secs <= 10) el.classList.add('urgent'); else el.classList.remove('urgent');
-  };
-  tick();
-  ultimateTimerId = setInterval(tick, 200);
+  updateUltimateTimerDisplay();
+  ultimateTimerId = setInterval(updateUltimateTimerDisplay, 200);
 }
 function stopUltimateTimer() {
   if (ultimateTimerId) { clearInterval(ultimateTimerId); ultimateTimerId = null; }
@@ -3310,14 +3961,43 @@ function stopUltimateTimer() {
   if (el) el.classList.remove('urgent');
 }
 function handleUltimateTimeout() {
+  // Hide the green correct popup immediately — it may be mid-animation at the exact
+  // moment the timer hits 0, and we don't want it layering above the timeout overlay.
+  document.getElementById('overlay-correct').classList.add('hidden');
+  if (correctPopupTimeoutId !== null) {
+    clearTimeout(correctPopupTimeoutId);
+    correctPopupTimeoutId = null;
+  }
+
   // Keep the game screen visible underneath so user sees the question they were on.
   document.getElementById('timeout-title').textContent = t('timeOutTitle');
-  document.getElementById('timeout-msg').textContent = t('timeOutMsg');
+
+  // Build dynamic result message — score only
+  const resultMsg = t('l15scoreResult').replace('{score}', l15Score);
+
+  // Best score tracking
+  const bestKey = 'clockKingdom_l15_best';
+  let bestScore = 0;
+  try { bestScore = parseInt(localStorage.getItem(bestKey) || '0', 10); } catch(e) {}
+  let newBest = false;
+  if (l15Score > bestScore) {
+    bestScore = l15Score;
+    try { localStorage.setItem(bestKey, String(bestScore)); } catch(e) {}
+    newBest = true;
+  }
+
+  const msgEl = document.getElementById('timeout-msg');
+  if (newBest && l15Score > 0) {
+    msgEl.innerHTML = `<div style="color:#FF6B9D;font-size:20px;font-weight:700;margin-bottom:8px;">${t('l15newBest')}</div><div style="font-size:84px;font-family:'Fredoka',sans-serif;font-weight:700;line-height:1;color:#2D3047;">${resultMsg}</div>`;
+  } else {
+    msgEl.innerHTML = `<div style="font-size:84px;font-family:'Fredoka',sans-serif;font-weight:700;line-height:1;color:#2D3047;">${resultMsg}</div>`;
+  }
+
   document.getElementById('retry-btn').textContent = t('tryAgainBtn');
   document.getElementById('retry-btn').onclick = () => {
     beepTap();
     document.getElementById('overlay-timeout').classList.add('hidden');
-    beginLevel(14);
+    beginLevel(15);
   };
   document.getElementById('timeout-close').onclick = () => {
     beepTap();
@@ -3330,6 +4010,11 @@ function handleUltimateTimeout() {
 function updateProgressDots() {
   const dotsEl = document.getElementById('progress-dots');
   if (!dotsEl) return;
+  // L15 is endless — hide the dots strip entirely to avoid unbounded growth
+  if (currentLevel === 15) {
+    dotsEl.innerHTML = '';
+    return;
+  }
   dotsEl.innerHTML = '';
   for (let i = 0; i < questions.length; i++) {
     const dot = document.createElement('div');
@@ -3384,13 +4069,13 @@ function rerenderChoiceText() {
   }
   if (q.type === 'set') {
     if (currentLevel === 4) prompt.textContent = t('setHour');
-    else if (currentLevel === 13 && q.subtype === 'setFromPM') prompt.textContent = t('l15subtitle3');
-    else if (currentLevel === 13) prompt.textContent = t('set24') + ' ' + q.display;
+    else if ((currentLevel === 14 || currentLevel === 15) && q.subtype === 'setFromPM') prompt.textContent = t('l15subtitle3');
+    else if (currentLevel === 14) prompt.textContent = t('set24') + ' ' + q.display;
     else prompt.textContent = t('setBoth');
     document.getElementById('confirm-btn').textContent = t('confirm');
   }
   if (q.type === 'match') {
-    prompt.textContent = t('l11matchPrompt');
+    prompt.textContent = t('l12matchPrompt');
   }
 }
 
@@ -3425,6 +4110,186 @@ function makeReadQ(h, m, hoursPool, use24=false, displayFn=null) {
 function makeSetQ(h, m, use24=false) {
   const display = use24 ? fmtTime(h+12, m, true) : fmtTime(h, m, false);
   return { type:'set', hour:h, min:m, display, use24 };
+}
+
+// ═══════════════════════════════════════════════════════
+// L15 SCORE-ATTACK: QUESTION BUILDERS + BATCH GENERATOR
+// ═══════════════════════════════════════════════════════
+
+// Shared builders used by buildQuestions(14) and l15GenerateBatch.
+// These are safe to call at any time after fmtTime/shuffle/rnd are defined.
+function l14Wrap12(x) { return ((x - 1 + 12) % 12) + 1; }
+
+function l14FmtWL(label, h, m) {
+  const tm = `${h}:${m.toString().padStart(2,'0')}`;
+  return state.lang === 'zh' ? `${label} ${tm}` : `${tm} ${label}`;
+}
+function l14FmtP(h24, m) {
+  const pm_ = h24 >= 12, h12_ = h24 > 12 ? h24 - 12 : h24;
+  const amLbl = t('l15am'), pmLbl = t('l15pm');
+  return l14FmtWL(pm_ ? pmLbl : amLbl, h12_, m);
+}
+
+// buildRead: analog → pick digital answer
+function l14BuildRead(h, m, diff) {
+  const correct = fmtTime(h, m, false);
+  if (diff === 'hard' || diff === 'veryhard') {
+    const wrongHour = l14Wrap12(h + 1);
+    const mRound = Math.floor(m / 5) * 5;
+    const mOff = m >= 3 ? m - 2 : m + 2;
+    const distractors = [
+      fmtTime(wrongHour, m, false),
+      fmtTime(h, mRound === m ? (m + 5) % 60 : mRound, false),
+      fmtTime(h, mOff, false),
+    ];
+    return { type:'read', hour:h, min:m, correct, options: shuffle([correct, ...distractors]) };
+  }
+  const altH1 = l14Wrap12(h + 1), altH2 = l14Wrap12(h - 1);
+  const altM1 = (m + 5) % 60, altM2 = (m + 55) % 60;
+  const distractors = [fmtTime(altH1,m,false),fmtTime(altH2,m,false),fmtTime(h,altM1,false),fmtTime(h,altM2,false)].filter(x=>x!==correct);
+  return { type:'read', hour:h, min:m, correct, options: shuffle([correct, ...distractors.slice(0,3)]) };
+}
+
+// buildMatch: digital 12h → pick matching analog clock
+function l14BuildMatch(h, m, diff) {
+  const seen = new Set([`${h}:${m}`]);
+  const dist = [];
+  const tryAdd = p => {
+    const k = `${p[0]}:${p[1]}`;
+    if (!seen.has(k) && p[0]>=1 && p[0]<=12 && p[1]>=0 && p[1]<60) { seen.add(k); dist.push(p); }
+  };
+  if (diff === 'hard' || diff === 'veryhard') {
+    tryAdd([l14Wrap12(h+1),m]); tryAdd([h,(m+5)%60]); tryAdd([h,(m+55)%60]); tryAdd([l14Wrap12(h-1),m]);
+  } else {
+    tryAdd([l14Wrap12(h+2),m]); tryAdd([l14Wrap12(h-2),m]); tryAdd([h,(m+15)%60]); tryAdd([h,(m+45)%60]);
+  }
+  while (dist.length < 3) tryAdd([rnd(1,12), rnd(0,11)*5]);
+  const choices = shuffle([[h,m],...dist.slice(0,3)]);
+  const correctIdx = choices.findIndex(([ch,cm]) => ch===h && cm===m);
+  return { type:'match', subtype:'clockMatch', hour:h, min:m, display:fmtTime(h,m,false), choices, correct:String(correctIdx), options:choices.map((_,i)=>String(i)) };
+}
+
+// build24: 24h digital → pick AM/PM labeled answer
+function l14Build24(h24, m) {
+  const amLbl = t('l15am'), pmLbl = t('l15pm');
+  const pm = h24 >= 12, h12 = h24 > 12 ? h24 - 12 : h24;
+  const correct = l14FmtP(h24, m);
+  const wrongPeriod = l14FmtWL(pm ? amLbl : pmLbl, h12, m);
+  const altH = [h12+1,h12-1,h12+2,h12-2].filter(x=>x>=1&&x<=12&&x!==h12);
+  const sameLabel = pm ? pmLbl : amLbl;
+  const distractors = [...new Set([wrongPeriod,...altH.slice(0,2).map(ah=>l14FmtWL(sameLabel,ah,m))])].filter(x=>x!==correct).slice(0,3);
+  return { type:'read', subtype:'convert24to12', hour:h12, min:m, h24, correct, options:shuffle([correct,...distractors]), displayDigital:fmtTime(h24,m,true) };
+}
+
+// buildMatchFrom24: 24h digital → pick matching analog clock
+function l14BuildMatchFrom24(h24, m) {
+  const h12 = h24 > 12 ? h24 - 12 : h24;
+  const seen = new Set([`${h12}:${m}`]);
+  const dist = [];
+  const tryAdd = p => {
+    const k = `${p[0]}:${p[1]}`;
+    if (!seen.has(k) && p[0]>=1 && p[0]<=12 && p[1]>=0 && p[1]<60) { seen.add(k); dist.push(p); }
+  };
+  if (h24 >= 13 && h24 <= 19) { const ld = h24%10; tryAdd([ld===0?10:ld, m]); }
+  tryAdd([l14Wrap12(h12+1),m]); tryAdd([l14Wrap12(h12-1),m]); tryAdd([h12,(m+30)%60]);
+  while (dist.length < 3) tryAdd([rnd(1,12), rnd(0,11)*5]);
+  const choices = shuffle([[h12,m],...dist.slice(0,3)]);
+  const correctIdx = choices.findIndex(([ch,cm]) => ch===h12 && cm===m);
+  return { type:'match', subtype:'clockMatchFrom24', hour:h12, min:m, h24, display:fmtTime(h24,m,true), choices, correct:String(correctIdx), options:choices.map((_,i)=>String(i)) };
+}
+
+// buildSetFromPM: 24h digital → drag clock hands
+function l14BuildSetFromPM(h24, m) {
+  const h12 = h24 > 12 ? h24 - 12 : h24;
+  return { type:'set', subtype:'setFromPM', hour:h12, min:m, h24, display:fmtTime(h24,m,true), use24:true };
+}
+
+// Pick a random minute value appropriate for the tier
+function l14RndMin(tier) {
+  if (tier === 0) {
+    return rnd(0,1) === 0 ? 0 : 30;
+  } else if (tier === 1) {
+    const pool = [0, 15, 30, 45];
+    return pool[rnd(0, pool.length-1)];
+  } else if (tier === 2) {
+    return rnd(0, 11) * 5;
+  } else {
+    // tier 3+: occasional 1-min-off from a 5-min boundary (~30% chance)
+    const base = rnd(0, 11) * 5;
+    if (rnd(0,9) < 3) {
+      const off = rnd(0,1) === 0 ? 1 : -1;
+      const v = (base + off + 60) % 60;
+      return v;
+    }
+    return base;
+  }
+}
+
+// Generate a shuffled batch of 4 questions for the given tier.
+// Tier 0: only read+match available → [read, match, read, match] shuffled.
+// Tier 1+: rolling-drop rotation — each successive batch drops a different one of the
+//   5 types so that over every 5 batches all types appear 4× each.
+//   Drop index = tier (batchIndex) % 5, cycling through type indices 0-4.
+const L14_ALL_TYPES = ['read','match','convert24to12','clockMatchFrom24','setFromPM'];
+function l15GenerateBatch(tier) {
+  const cappedTier = Math.min(tier, 4);
+  const diff = cappedTier <= 1 ? 'medium' : (cappedTier === 2 ? 'hard' : 'veryhard');
+
+  // Types available per tier:
+  // tier 0: only read + match (no 24h yet)
+  // tier 1+: 4 of 5 types — rolling-drop by batch index (tier)
+  let types;
+  if (cappedTier === 0) {
+    // 4 questions: [read, match, read, match] shuffled
+    types = shuffle(['read','match','read','match']);
+  } else {
+    // Drop one type deterministically based on batch (tier), cycling 0-4
+    const dropIdx = tier % 5;
+    const available = L14_ALL_TYPES.filter((_, i) => i !== dropIdx);
+    types = shuffle(available); // 4 distinct types
+  }
+
+  // Time pools — pick fresh random values per batch
+  const amPool = shuffle([7,8,9,10,11]);
+  const pmTier1Pool = shuffle([13,14,15,16,17]); // AM-only up to 12, tier1 AM
+  const pmPool = cappedTier >= 4
+    ? shuffle([13,14,15,16,17,18,19,20,21,22,23])
+    : cappedTier >= 3
+      ? shuffle([13,14,15,16,17,18,19,20])
+      : shuffle([13,14,15,16,17]);
+
+  let readIdx=0, matchIdx=0, amIdx=0, pmIdx=0;
+
+  return types.map(type => {
+    if (type === 'read') {
+      const h = rnd(1,12);
+      const m = l14RndMin(cappedTier);
+      return l14BuildRead(h, m, diff);
+    } else if (type === 'match') {
+      const h = rnd(1,12);
+      const m = l14RndMin(cappedTier);
+      return l14BuildMatch(h, m, diff);
+    } else if (type === 'convert24to12') {
+      // tier 1 = AM only (h<=12); tier 2 = PM 13-17; tier 3+ = PM 13-20/23
+      const h24 = cappedTier === 1
+        ? amPool[amIdx++ % amPool.length]
+        : pmPool[pmIdx++ % pmPool.length];
+      const m = l14RndMin(cappedTier);
+      return l14Build24(h24, m);
+    } else if (type === 'clockMatchFrom24') {
+      const h24 = cappedTier === 1
+        ? amPool[amIdx++ % amPool.length]
+        : pmPool[pmIdx++ % pmPool.length];
+      const m = l14RndMin(cappedTier);
+      return l14BuildMatchFrom24(h24, m);
+    } else { // setFromPM
+      const h24 = cappedTier === 1
+        ? amPool[amIdx++ % amPool.length]
+        : pmPool[pmIdx++ % pmPool.length];
+      const m = l14RndMin(cappedTier);
+      return l14BuildSetFromPM(h24, m);
+    }
+  });
 }
 
 function buildQuestions(n) {
@@ -3484,7 +4349,7 @@ function buildQuestions(n) {
   }
   if (n === 5) {
     // L5: Hour Between — minute hand hidden; 5 questions mix
-    // "exact at" (m=0) and "between" (m≠0). Moved from old L9.
+    // "exact at" (m=0) and "between" (m≠0). Moved from old L9 (now L10).
     const btwHours = shuffle([1,2,3,4,5,6,7,8,9,10,11,12]);
     const btwMins  = shuffle([15, 20, 25, 30, 35, 40, 45, 50]);
     const atHours  = shuffle([1,2,3,4,5,6,7,8,9,10,11,12].filter(x => x !== btwHours[0] && x !== btwHours[1] && x !== btwHours[2]));
@@ -3549,8 +4414,19 @@ function buildQuestions(n) {
   }
   if (n === 8) {
     // L8: Minute Hand 3 — tick counts (each tick = 1 minute).
-    const tickMinutes = [1, 2, 3, 4, 6, 7, 8, 9];
-    const picks = shuffle(tickMinutes).slice(0, 5);
+    // Curriculum goal is "between number marks" reading (each tick = 1 min).
+    // Q1-Q2: easy range (1-9, the original tick-minutes pool) — kid eases in.
+    // Q3-Q5: harder range — between-mark minutes anywhere on the dial (e.g.
+    // 11, 17, 23, 34, 49). Avoid the exact 5-marks (those are L7's domain) so
+    // every L8 question still teaches "count the ticks past the last number".
+    const easyPool = [1, 2, 3, 4, 6, 7, 8, 9];
+    const hardPool = [];
+    for (let m = 11; m <= 59; m++) {
+      if (m % 5 !== 0) hardPool.push(m);
+    }
+    const easyPicks = shuffle(easyPool).slice(0, 2);
+    const hardPicks = shuffle(hardPool).slice(0, 3);
+    const picks = [...easyPicks, ...hardPicks];
     const hours = shuffle([...allHours]);
     return picks.map((min, i) => {
       const h = hours[i];
@@ -3562,18 +4438,18 @@ function buildQuestions(n) {
       return { type: 'read', hour: h, min, correct, options };
     });
   }
-  if (n === 9) {
-    // L9: Set Time Easy — drag both hands, but minutes restricted to 0,15,30,45.
+  if (n === 10) {
+    // L10: Set Time Easy — drag both hands, but minutes restricted to 0,15,30,45.
     const quarterPairs = shuffle([[1,0],[2,15],[3,30],[4,45],[5,0],[6,15],[7,30],[8,45],[9,0],[10,15],[11,30],[12,45]]).slice(0, 5);
     return quarterPairs.map(([h, m]) => makeSetQ(h, m, false));
   }
-  if (n === 10) {
-    // L10: Set Time Hard — full off-tick set mode.
+  if (n === 11) {
+    // L11: Set Time Hard — full off-tick set mode.
     const easyPairs = shuffle([[3,0],[6,30],[9,15],[12,45]]).slice(0,2);
     const hardPairs = shuffle([[7,45],[5,20],[11,55],[2,10],[9,40]]).slice(0,3);
     return [...easyPairs, ...hardPairs].map(([h,m]) => makeSetQ(h, m, false));
   }
-  if (n === 11) {
+  if (n === 12) {
     // Clock Match — show a digital time; kid picks which of 4 clocks matches.
     // First 3: easy pairs with obviously different distractors.
     // Last 2: trickier — distractors are ±1 hour, ±5 min, or hour/minute hand swap.
@@ -3627,8 +4503,8 @@ function buildQuestions(n) {
       };
     });
   }
-  if (n === 12) {
-    // L12: 24-Hour Easy — only convert24to12 subtype. ~5 questions. Mix AM + PM.
+  if (n === 13) {
+    // L13: 24-Hour Easy — only convert24to12 subtype. ~5 questions. Mix AM + PM.
     const amPool = shuffle([7,8,9,10,11]);
     const pmPool = shuffle([13,14,15,16,17,18,19,20]);
     const qs = [];
@@ -3660,8 +4536,8 @@ function buildQuestions(n) {
     }
     return qs;
   }
-  if (n === 13) {
-    // L13: 24-Hour Hard — convert12to24 + setFromPM subtypes. ~6 questions total.
+  if (n === 14) {
+    // L14: 24-Hour Hard — convert12to24 + setFromPM subtypes. ~6 questions total.
     const amPool = shuffle([7,8,9,10,11]);
     const pmPool = shuffle([13,14,15,16,17,18,19,20]);
     const qs = [];
@@ -3701,103 +4577,11 @@ function buildQuestions(n) {
     }
     return qs;
   }
-  if (n === 14) {
-    // L14: Ultimate Test — 10 questions against a 90-second timer.
-    // Q1-3 medium, Q4-6 hard, Q7-10 extremely hard. Mixes read, match, 24h.
-    const wrap12 = x => ((x - 1 + 12) % 12) + 1;
-    const amLbl = t('l15am'), pmLbl = t('l15pm');
-    const fmtWL = (label, h, m) => {
-      const tm = `${h}:${m.toString().padStart(2,'0')}`;
-      return state.lang === 'zh' ? `${label} ${tm}` : `${tm} ${label}`;
-    };
-    const fmtP = (h24, m) => {
-      const pm_ = h24 >= 12, h12_ = h24 > 12 ? h24 - 12 : h24;
-      return fmtWL(pm_ ? pmLbl : amLbl, h12_, m);
-    };
-
-    function buildRead(h, m, diff) {
-      const correct = fmtTime(h, m, false);
-      if (diff === 'hard') {
-        const wrongHour = wrap12(h + 1);
-        const mRound = Math.floor(m / 5) * 5;
-        const mOff = m >= 3 ? m - 2 : m + 2;
-        const distractors = [
-          fmtTime(wrongHour, m, false),
-          fmtTime(h, mRound === m ? m + 5 : mRound, false),
-          fmtTime(h, mOff, false),
-        ];
-        return { type:'read', hour:h, min:m, correct, options: shuffle([correct, ...distractors]) };
-      }
-      const altH1 = wrap12(h + 1), altH2 = wrap12(h - 1);
-      const altM1 = (m + 5) % 60, altM2 = (m + 55) % 60;
-      const distractors = [fmtTime(altH1,m,false),fmtTime(altH2,m,false),fmtTime(h,altM1,false),fmtTime(h,altM2,false)].filter(x=>x!==correct);
-      return { type:'read', hour:h, min:m, correct, options: shuffle([correct, ...distractors.slice(0,3)]) };
-    }
-
-    function buildMatch(h, m, diff) {
-      const seen = new Set([`${h}:${m}`]);
-      const dist = [];
-      const tryAdd = p => {
-        const k = `${p[0]}:${p[1]}`;
-        if (!seen.has(k) && p[0]>=1 && p[0]<=12 && p[1]>=0 && p[1]<60) { seen.add(k); dist.push(p); }
-      };
-      if (diff === 'hard') {
-        tryAdd([wrap12(h+1),m]); tryAdd([h,(m+5)%60]); tryAdd([h,(m+55)%60]); tryAdd([wrap12(h-1),m]);
-      } else {
-        tryAdd([wrap12(h+2),m]); tryAdd([wrap12(h-2),m]); tryAdd([h,(m+15)%60]); tryAdd([h,(m+45)%60]);
-      }
-      while (dist.length < 3) tryAdd([rnd(1,12), rnd(0,11)*5]);
-      const choices = shuffle([[h,m],...dist.slice(0,3)]);
-      const correctIdx = choices.findIndex(([ch,cm]) => ch===h && cm===m);
-      return { type:'match', subtype:'clockMatch', hour:h, min:m, display:fmtTime(h,m,false), choices, correct:String(correctIdx), options:choices.map((_,i)=>String(i)) };
-    }
-
-    function build24(h24, diff) {
-      const pm = h24 >= 12, h12 = h24 > 12 ? h24 - 12 : h24;
-      const m = diff === 'hard' ? 30 : 0;
-      const correct = fmtP(h24, m);
-      const wrongPeriod = fmtWL(pm ? amLbl : pmLbl, h12, m);
-      const altH = [h12+1,h12-1,h12+2,h12-2].filter(x=>x>=1&&x<=12&&x!==h12);
-      const sameLabel = pm ? pmLbl : amLbl;
-      const distractors = [...new Set([wrongPeriod,...altH.slice(0,2).map(h=>fmtWL(sameLabel,h,m))])].filter(x=>x!==correct).slice(0,3);
-      return { type:'read', subtype:'convert24to12', hour:h12, min:m, h24, correct, options:shuffle([correct,...distractors]), displayDigital:fmtTime(h24,m,true) };
-    }
-
-    function buildMatchFrom24(h24, m) {
-      const pm = h24 >= 12, h12 = h24 > 12 ? h24 - 12 : h24;
-      const seen = new Set([`${h12}:${m}`]);
-      const dist = [];
-      const tryAdd = p => {
-        const k = `${p[0]}:${p[1]}`;
-        if (!seen.has(k) && p[0]>=1 && p[0]<=12 && p[1]>=0 && p[1]<60) { seen.add(k); dist.push(p); }
-      };
-      if (pm && h24 >= 13 && h24 <= 19) { const ld = h24%10; tryAdd([ld===0?10:ld, m]); }
-      tryAdd([wrap12(h12+1),m]); tryAdd([wrap12(h12-1),m]); tryAdd([h12,(m+30)%60]);
-      while (dist.length < 3) tryAdd([rnd(1,12), rnd(0,11)*5]);
-      const choices = shuffle([[h12,m],...dist.slice(0,3)]);
-      const correctIdx = choices.findIndex(([ch,cm]) => ch===h12 && cm===m);
-      return { type:'match', subtype:'clockMatchFrom24', hour:h12, min:m, h24, display:fmtTime(h24,m,true), choices, correct:String(correctIdx), options:choices.map((_,i)=>String(i)) };
-    }
-
-    const mediumReadTimes = shuffle([[2,25],[4,10],[6,40],[7,50],[8,20],[10,35],[11,5]]);
-    const mediumMatchTimes = shuffle([[3,25],[5,40],[9,10],[11,50],[2,5],[8,35]]);
-    const hardReadTimes  = shuffle([[5,23],[7,43],[9,56],[11,8],[3,37]]);
-    const hardMatchTimes = shuffle([[2,17],[4,22],[8,37],[10,8],[6,51]]);
-    const amH = shuffle([7,8,9,10,11]);
-    const pmH = shuffle([13,14,15,16,17,18,19,20]);
-
-    const qs = [];
-    qs.push(buildRead(...mediumReadTimes[0], 'medium'));
-    qs.push(buildMatch(...mediumMatchTimes[0], 'medium'));
-    qs.push(build24(amH[0], 'medium'));
-    qs.push(buildRead(...hardReadTimes[0], 'hard'));
-    qs.push(buildMatch(...hardMatchTimes[0], 'hard'));
-    qs.push(build24(pmH[0], 'hard'));
-    qs.push(buildRead(...hardReadTimes[1], 'hard'));
-    qs.push(buildMatch(...hardMatchTimes[1], 'hard'));
-    qs.push(buildMatchFrom24(pmH[2], 0));
-    qs.push(build24(pmH[1], 'hard'));
-    return qs;
+  if (n === 15) {
+    // L15 Score-Attack: lazy generation — buildQuestions returns the first batch only.
+    // More questions are pushed by l15GenerateBatch() called from showQuestion.
+    // The question builders are defined here and also on the window so showQuestion can call them.
+    return l15GenerateBatch(0); // tier 0 batch to seed the array
   }
   return [];
 }
@@ -3806,12 +4590,32 @@ function buildQuestions(n) {
 // RENDER QUESTION
 // ═══════════════════════════════════════════════════════
 function showQuestion(i) {
-  if (i >= questions.length) { endLevel(); return; }
+  // L15: lazy generation — ensure question[i] exists before rendering
+  if (currentLevel === 15) {
+    // If we've reached the end of the current array, generate the next batch
+    while (i >= questions.length) {
+      const tier = Math.floor(questions.length / 4);
+      const nextBatch = l15GenerateBatch(tier);
+      for (const q of nextBatch) questions.push(q);
+    }
+    // L15 never ends via question exhaustion — it ends via timer
+    // so we never call endLevel() here for L15
+  } else {
+    if (i >= questions.length) { endLevel(); return; }
+  }
   const q = questions[i];
   wrongCountThisQ = 0;
+  l15FirstTry = true; // reset per question for L15 scoring
+  l15PenaltyApplied = false; // reset per-question penalty gate
   const qc = document.getElementById('q-counter');
-  qc.textContent = `${i+1} ${t('qOfTotal')} ${questions.length}`;
-  qc.style.fontSize = `${15 + (currentLevel - 1) * 0.5}px`;
+  if (currentLevel === 15) {
+    // Score-attack mode: show "Q12" instead of "X / Total"
+    qc.textContent = `Q${i + 1}`;
+    qc.style.fontSize = '20px';
+  } else {
+    qc.textContent = `${i+1} ${t('qOfTotal')} ${questions.length}`;
+    qc.style.fontSize = `${15 + (currentLevel - 1) * 0.5}px`;
+  }
   const rfb = document.getElementById('read-feedback');
   rfb.classList.add('hidden');
   rfb.style.cssText = '';
@@ -3823,7 +4627,8 @@ function showQuestion(i) {
   updateProgressDots();
 
   const dt = document.getElementById('digital-target');
-  dt.classList.toggle('digital-target--compact', currentLevel === 4 || currentLevel === 9 || currentLevel === 10);
+  // L4 (Set Hour), L10 (Set Quarters), L11 (Set Both Hands) — compact digital target.
+  dt.classList.toggle('digital-target--compact', currentLevel === 4 || currentLevel === 10 || currentLevel === 11);
   const gameBody = document.querySelector('#screen-game .game-body');
   if (gameBody) gameBody.classList.remove('no-clock');
 
@@ -3838,7 +4643,7 @@ function showQuestion(i) {
     showChoices(q);
     tickySay(t('tickyThink'), 'thinking', 15000);
   // Pure 24-hour conversion questions: hide clock, show digital prompt.
-  // Keyed on subtype so it works for Level 12/13 and anywhere else (e.g. Level 14).
+  // Keyed on subtype so it works for Level 13/14 and anywhere else (e.g. Level 15).
   } else if (q.subtype === 'convert24to12' || q.subtype === 'convert12to24') {
     cw.style.display = 'none';
     if (gameBody) gameBody.classList.add('no-clock');
@@ -3848,7 +4653,7 @@ function showQuestion(i) {
     dt.classList.remove('hidden-target');
     showChoices(q);
     tickySay(t('tickyThink'), 'thinking', 15000);
-  } else if ((currentLevel === 13 || currentLevel === 14) && q.subtype === 'setFromPM') {
+  } else if ((currentLevel === 14 || currentLevel === 15) && q.subtype === 'setFromPM') {
     cw.style.display = '';
     dt.style.whiteSpace = '';
     // Show ONLY the 24h digit — no AM/PM hint. Kids must convert mentally.
@@ -3910,7 +4715,7 @@ function buildClockTileSVG(ch, cm, size) {
 function showClockTiles(q) {
   document.getElementById('choices').classList.remove('hidden');
   document.getElementById('set-controls').classList.add('hidden');
-  document.getElementById('read-prompt').textContent = t('l11matchPrompt');
+  document.getElementById('read-prompt').textContent = t('l12matchPrompt');
 
   const el = document.getElementById('choices');
   el.innerHTML = '';
@@ -3965,24 +4770,24 @@ function showChoices(q) {
 
 function getLevelHint(level, q) {
   const zh = state.lang === 'zh';
-  // Level 11 (clock match): teach how to read each hand, not just "pick the clock".
-  if (level === 11 || (q && q.type === 'match')) {
+  // Level 12 (clock match): teach how to read each hand, not just "pick the clock".
+  if (level === 12 || (q && q.type === 'match')) {
     return zh
       ? '看時針讀「點」，看分針讀「分」，兩個都要對。'
       : 'Read both: hour hand for the hour, minute hand for the minutes — both must match.';
   }
-  // Level 12/13/14 (24-hour): direction-specific hint.
-  if ((level === 12 || level === 13 || level === 14) && q && q.subtype === 'convert24to12') {
+  // Level 13/14/15 (24-hour): direction-specific hint.
+  if ((level === 13 || level === 14 || level === 15) && q && q.subtype === 'convert24to12') {
     return zh
       ? '數字 > 12 → 減 12 = 下午。否則 = 上午。'
       : 'Number > 12 → subtract 12 = PM. Otherwise = AM.';
   }
-  if ((level === 12 || level === 13) && q && q.subtype === 'convert12to24') {
+  if ((level === 13 || level === 14) && q && q.subtype === 'convert12to24') {
     return zh
       ? '上午：數字不變。下午：加 12。'
       : 'AM: same number. PM: add 12.';
   }
-  if ((level === 12 || level === 13) && q && q.subtype === 'setFromPM') {
+  if ((level === 13 || level === 14 || level === 15) && q && q.subtype === 'setFromPM') {
     return zh
       ? '數字 > 12 → 減 12 = 鐘面的小時。'
       : 'Number > 12 → subtract 12 = clock-face hour.';
@@ -4000,21 +4805,21 @@ function getSpecificHint(level, q) {
   const wrap12 = x => ((x - 1 + 12) % 12) + 1;
   const padMin = m => m.toString().padStart(2, '0');
 
-  // Level 12/13: 24-hour conversions.
-  if ((level === 12 || level === 13 || level === 14) && q.subtype === 'convert24to12') {
+  // Level 13/14: 24-hour conversions.
+  if ((level === 13 || level === 14 || level === 15) && q.subtype === 'convert24to12') {
     const h24 = q.h24, pm = h24 >= 12, h12 = h24 > 12 ? h24 - 12 : h24;
     const period = pm ? (zh ? '下午' : 'PM') : (zh ? '上午' : 'AM');
     return zh
       ? (pm ? `${h24} 大於 12 → ${h24} − 12 = ${h12}，所以是下午 ${h12}:${padMin(q.min)}。` : `${h24} 小於 12 → 就是上午 ${h24}:${padMin(q.min)}。`)
       : (pm ? `${h24} > 12 → ${h24} − 12 = ${h12}, so it's ${h12}:${padMin(q.min)} PM.` : `${h24} < 12 → it's just ${h24}:${padMin(q.min)} AM.`);
   }
-  if ((level === 12 || level === 13 || level === 14) && q.subtype === 'convert12to24') {
+  if ((level === 13 || level === 14 || level === 15) && q.subtype === 'convert12to24') {
     const h24 = q.h24, h12 = h24 > 12 ? h24 - 12 : h24;
     return zh
       ? (h24 > 12 ? `下午 ${h12}:00 → 12 + ${h12} = ${h24}，寫成 ${q.correct}。` : `上午 ${h12}:00 → 24 小時制也是 ${q.correct}。`)
       : (h24 > 12 ? `${h12}:00 PM → 12 + ${h12} = ${h24}, written as ${q.correct}.` : `${h12}:00 AM → also ${q.correct} in 24-hour.`);
   }
-  // Clock Match (L11 and L14 match sub-qs): walk through the hand positions
+  // Clock Match (L12 and L15 match sub-qs): walk through the hand positions
   // for THIS exact time, then name the matching clock. Handle times both on
   // a 5-min tick (e.g. 9:30) and off a tick (e.g. 2:17) — "divide by 5" only
   // reads cleanly when the minute is a multiple of 5.
@@ -4098,8 +4903,8 @@ function getSpecificHint(level, q) {
       ? `時針在 ${h} 和 ${next} 之間，讀較小 → ${h}。`
       : `Hour between ${h} and ${next}, read smaller → ${h}.`;
   }
-  if (level === 14) {
-    // L14 read questions are FULL clock reads (hour + minute together), not
+  if (level === 15) {
+    // L15 read questions are FULL clock reads (hour + minute together), not
     // minute-only. Walk through both hands exactly the way the match hint does,
     // ending with the digital answer. (Convert/match subtypes already returned
     // earlier in this function, so q here is a plain read.)
@@ -4138,12 +4943,30 @@ function checkReadAnswer(chosen, q, btn) {
     showCorrectPopup();
     tickySay(randomHappy(), 'happy', 2000);
     document.querySelectorAll('.hint-highlight').forEach(b => b.classList.remove('hint-highlight'));
-    setTimeout(() => { hideCorrectPopup(); qIndex++; showQuestion(qIndex); }, 1100);
+    if (currentLevel === 15 && l15FirstTry) {
+      l15QAnswered++;
+      const marks = 10 + 5 * Math.floor((l15QAnswered - 1) / 4);
+      l15Score += marks;
+      const scoreEl = document.getElementById('ultimate-score-display');
+      if (scoreEl) scoreEl.innerHTML = '<span class="ultimate-score-icon">'+SCORE_ICON_SVG+'</span> ' + l15Score;
+      // +5s time bonus (first try correct, L15 only)
+      ultimateDeadline += 5000;
+      showL15TimeDelta(true);
+    }
+    correctPopupTimeoutId = setTimeout(() => { hideCorrectPopup(); qIndex++; showQuestion(qIndex); }, 1100);
   } else {
     wrongCount++; wrongCountThisQ++;
+    l15FirstTry = false; // missed first try — no marks for this question
     btn.classList.add('wrong-ans');
     beepWrong();
     shakeClock();
+    // -10s time penalty (first wrong attempt only, L15 only; clamped so timer can't go negative)
+    if (currentLevel === 15 && !l15PenaltyApplied) {
+      l15PenaltyApplied = true;
+      ultimateDeadline -= 10000;
+      if (ultimateDeadline < Date.now()) ultimateDeadline = Date.now();
+      showL15TimeDelta(false);
+    }
     // Wrong-answer escalation:
     //   1st wrong  → generic oops (no hint)
     //   2nd wrong  → general level-concept hint
@@ -4187,8 +5010,8 @@ function showSetControls(q) {
   document.getElementById('confirm-btn').textContent = t('confirm');
   const prompt = document.getElementById('read-prompt');
   if (currentLevel === 4) prompt.textContent = t('setHour');
-  else if (currentLevel === 13 && q.subtype === 'setFromPM') prompt.textContent = t('l15subtitle3');
-  else if (currentLevel === 13) prompt.textContent = t('set24') + ' ' + q.display;
+  else if ((currentLevel === 14 || currentLevel === 15) && q.subtype === 'setFromPM') prompt.textContent = t('l15subtitle3');
+  else if (currentLevel === 14) prompt.textContent = t('set24') + ' ' + q.display;
   else prompt.textContent = t('setBoth');
   setupDragHandlers();
 }
@@ -4216,11 +5039,29 @@ function checkSetAnswer() {
     tickySay(randomHappy(), 'happy', 2000);
     document.getElementById('feedback-msg').textContent = '';
     document.getElementById('hint-msg').textContent = '';
-    setTimeout(() => { hideCorrectPopup(); qIndex++; showQuestion(qIndex); }, 1100);
+    if (currentLevel === 15 && l15FirstTry) {
+      l15QAnswered++;
+      const marks = 10 + 5 * Math.floor((l15QAnswered - 1) / 4);
+      l15Score += marks;
+      const scoreEl = document.getElementById('ultimate-score-display');
+      if (scoreEl) scoreEl.innerHTML = '<span class="ultimate-score-icon">'+SCORE_ICON_SVG+'</span> ' + l15Score;
+      // +5s time bonus (first try correct, L15 only)
+      ultimateDeadline += 5000;
+      showL15TimeDelta(true);
+    }
+    correctPopupTimeoutId = setTimeout(() => { hideCorrectPopup(); qIndex++; showQuestion(qIndex); }, 1100);
   } else {
     wrongCount++; wrongCountThisQ++;
+    l15FirstTry = false;
     beepWrong();
     shakeClock();
+    // -10s time penalty (first wrong attempt only, L15 only; clamped so timer can't go negative)
+    if (currentLevel === 15 && !l15PenaltyApplied) {
+      l15PenaltyApplied = true;
+      ultimateDeadline -= 10000;
+      if (ultimateDeadline < Date.now()) ultimateDeadline = Date.now();
+      showL15TimeDelta(false);
+    }
     document.getElementById('feedback-msg').textContent = t('wrongMsg');
     document.getElementById('hint-msg').textContent = '';
     // Same escalation as read-mode: 1st = oops, 2nd = general concept hint,
@@ -4388,6 +5229,26 @@ function showCorrectPopup() {
 }
 function hideCorrectPopup() {
   document.getElementById('overlay-correct').classList.add('hidden');
+  correctPopupTimeoutId = null;
+}
+
+// Show a brief floating "+5s" / "-10s" label near the timer pill (L15 only)
+function showL15TimeDelta(isPlus) {
+  const timerEl = document.getElementById('ultimate-timer-display');
+  if (!timerEl) return;
+  const parent = timerEl.parentElement;
+  if (!parent) return;
+  // Remove any existing delta label so they don't pile up
+  const old = parent.querySelector('.l15-time-delta');
+  if (old) old.remove();
+  const el = document.createElement('div');
+  el.className = 'l15-time-delta ' + (isPlus ? 'plus' : 'minus');
+  el.textContent = isPlus ? '+5s' : '-10s';
+  parent.appendChild(el);
+  // Clean up after animation finishes
+  el.addEventListener('animationend', () => el.remove(), { once: true });
+  // Force immediate timer display update instead of waiting for the next 200ms tick
+  updateUltimateTimerDisplay();
 }
 
 function spawnConfettiFromElement(el, count) {
@@ -4469,6 +5330,8 @@ function spawnConfettiRain(duration = 2000) {
 // ═══════════════════════════════════════════════════════
 function endLevel() {
   const n = currentLevel;
+  // L15 is score-attack: it ends via timer (handleUltimateTimeout), never via question exhaustion.
+  if (n === 15) return;
   storage.gameplayStop();
   stopUltimateTimer();
   const stars = wrongCount === 0 ? 3 : wrongCount === 1 ? 2 : 1;
@@ -4521,8 +5384,603 @@ function goNextLevel() {
 }
 
 // ═══════════════════════════════════════════════════════
+// SPEED TEST MODE (falling-clock challenge, ported from clock-lava prototype)
+// All state lives inside the SpeedTest IIFE so it cannot collide with the
+// curriculum game globals (gameRunning, score, etc. are reused throughout).
+// Speed Test is itself L9 in the new numbering — startLevel(9) routes here
+// via showSpeedTest().
+// ═══════════════════════════════════════════════════════
+function showSpeedTest() {
+  // Kept for compatibility — the live entry point is now startLevel(9) →
+  // showTutorial(9), with the tutorial's start button handing off to
+  // SpeedTest.start() directly. This function jumps straight to the
+  // countdown so any stray caller skips the legacy modal.
+  storage.gameplayStop();
+  stopUltimateTimer();
+  hideAllScreens();
+  document.getElementById('screen-speedtest').classList.remove('hidden');
+  document.body.classList.add('st-active');
+  SpeedTest.localize();
+  SpeedTest.start();
+}
+
+const SpeedTest = (function () {
+  const MAX_LIVES = 3;
+  const LAVA_ZONE_H = 90;
+  const TIMING_WINDOWS = [
+    { start: 0,   end: 30,  fallDuration: 12000, intervalStart: 10000, intervalEnd: 8000, maxOnScreen: 1, emptyCatchup: 3000, points: 10 },
+    { start: 30,  end: 60,  fallDuration: 10000, intervalStart: 8000,  intervalEnd: 6500, maxOnScreen: 2, emptyCatchup: 2500, points: 15 },
+    { start: 60,  end: 90,  fallDuration: 8000,  intervalStart: 7000,  intervalEnd: 5500, maxOnScreen: 2, emptyCatchup: 2000, points: 20 },
+    { start: 90,  end: 120, fallDuration: 7000,  intervalStart: 6000,  intervalEnd: 5000, maxOnScreen: 3, emptyCatchup: 1500, points: 25 },
+    { start: 120, end: 180, fallDuration: 5500,  intervalStart: 5000,  intervalEnd: 4000, maxOnScreen: 3, emptyCatchup: 1000, points: 30 },
+  ];
+  const MIN_SPAWN_GAP  = 3500;
+  const ST_CX = 120, ST_CY = 120, ST_R = 108;
+
+  let gameRunning    = false;
+  let gameStartTime  = 0;
+  let score          = 0;
+  let livesLeft      = MAX_LIVES;
+  let fallingClocks  = [];
+  let clockIdCounter = 0;
+  let correctChoiceIdx = -1;
+  let currentChoices   = [];
+  let currentTargetId  = null;
+  let spawnTimer     = null;
+  let animFrameId    = null;
+  let lastSpawnTime  = 0;
+
+  function $(id) { return document.getElementById(id); }
+  function playArea() { return $('st-play-area'); }
+  function scoreEl() { return $('st-score-display'); }
+  function livesEl() { return $('st-lives-display'); }
+  function startOverlay() { return $('st-overlay-start'); }
+  function endOverlay() { return $('st-overlay-end'); }
+  function endMsgEl() { return $('st-end-msg'); }
+  function choiceButtons() { return Array.from(document.querySelectorAll('#st-choice-grid .st-choice-btn')); }
+  function setScore(v) { score = v; scoreEl().innerHTML = '<span class="st-score-icon">'+SCORE_ICON_SVG+'</span> ' + v; }
+
+  function randomTime() {
+    const hour    = 1 + Math.floor(Math.random() * 12);
+    const elapsed = (performance.now() - gameStartTime) / 1000;
+    let minute;
+    // Phases 1-2 (0-60s): easy 5-mark minutes only.
+    // Phases 3-5 (60s+): any minute 0-59 — includes between-mark times like
+    // L8's "between number minute" curriculum.
+    if (elapsed < 60) {
+      minute = Math.floor(Math.random() * 12) * 5;
+    } else {
+      minute = Math.floor(Math.random() * 60);
+    }
+    return { hour, minute };
+  }
+  function formatTime(h, m) {
+    return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
+  }
+  function getCurrentTiming() {
+    const elapsed = (performance.now() - gameStartTime) / 1000;
+    let win = TIMING_WINDOWS[TIMING_WINDOWS.length - 1];
+    let pastEnd = false;
+    for (const w of TIMING_WINDOWS) {
+      if (elapsed < w.end) { win = w; break; }
+      if (w === TIMING_WINDOWS[TIMING_WINDOWS.length - 1]) pastEnd = true;
+    }
+    let tt;
+    if (pastEnd) tt = 1;
+    else {
+      const span = win.end - win.start;
+      tt = span > 0 ? Math.max(0, Math.min(1, (elapsed - win.start) / span)) : 0;
+    }
+    const spawnInterval = win.intervalStart + (win.intervalEnd - win.intervalStart) * tt;
+    return { spawnInterval, fallDuration: win.fallDuration, maxOnScreen: win.maxOnScreen, emptyCatchup: win.emptyCatchup, points: win.points };
+  }
+  function playAreaSize() {
+    const r = playArea().getBoundingClientRect();
+    return { w: r.width, h: r.height };
+  }
+  function lavaHitOffset() { return LAVA_ZONE_H; }
+
+  function renderLives() {
+    for (let i = 1; i <= MAX_LIVES; i++) {
+      const heart = $('st-heart-' + i);
+      if (!heart) continue;
+      if (i > livesLeft) heart.classList.add('st-lost');
+      else               heart.classList.remove('st-lost');
+    }
+  }
+  function loseLife() {
+    if (livesLeft <= 0) return;
+    livesLeft--;
+    renderLives();
+    const ld = livesEl();
+    ld.classList.remove('st-lives-shake');
+    void ld.offsetWidth;
+    ld.classList.add('st-lives-shake');
+    setTimeout(() => ld.classList.remove('st-lives-shake'), 400);
+    if (livesLeft <= 0) endGame();
+  }
+
+  function buildClockSVG(hour, minute) {
+    const minDeg  = (minute / 60) * 360;
+    const hourDeg = ((hour % 12) / 12) * 360 + (minute / 60) * 30;
+    let ticks = '';
+    for (let i = 0; i < 60; i++) {
+      const angleDeg = (i * 6) - 90;
+      const rad = angleDeg * Math.PI / 180;
+      const isHour = i % 5 === 0;
+      const outer = ST_R - 3;
+      const inner = isHour ? ST_R - 15 : ST_R - 7;
+      const x1 = ST_CX + Math.cos(rad) * outer;
+      const y1 = ST_CY + Math.sin(rad) * outer;
+      const x2 = ST_CX + Math.cos(rad) * inner;
+      const y2 = ST_CY + Math.sin(rad) * inner;
+      ticks += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${isHour ? '#B0BEC5' : '#E0E0E0'}" stroke-width="${isHour ? 2.2 : 1.1}" stroke-linecap="round"/>`;
+    }
+    let nums = '';
+    const numRadius = ST_R - 22;
+    for (let n = 1; n <= 12; n++) {
+      const angleDeg = (n * 30) - 90;
+      const rad = angleDeg * Math.PI / 180;
+      const nx = ST_CX + Math.cos(rad) * numRadius;
+      const ny = ST_CY + Math.sin(rad) * numRadius;
+      nums += `<text x="${nx.toFixed(1)}" y="${ny.toFixed(1)}" text-anchor="middle" dominant-baseline="central" font-size="16" font-weight="bold" fill="#2D3047" font-family="'Fredoka','Noto Sans TC',sans-serif">${n}</text>`;
+    }
+    const hourHandLen = 64;
+    const minHandLen  = 93;
+    return `<svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg" overflow="visible">
+      <circle cx="${ST_CX}" cy="${ST_CY}" r="${ST_R}" fill="white" stroke="#E0E8FF" stroke-width="3"/>
+      <circle cx="${ST_CX}" cy="${ST_CY}" r="${ST_R - 6}" fill="#FAFCFF" stroke="none"/>
+      ${ticks}${nums}
+      <line x1="${ST_CX}" y1="${ST_CY}" x2="${ST_CX}" y2="${ST_CY - hourHandLen}" stroke="#E63946" stroke-width="8" stroke-linecap="round" transform="rotate(${hourDeg.toFixed(2)} ${ST_CX} ${ST_CY})"/>
+      <line x1="${ST_CX}" y1="${ST_CY}" x2="${ST_CX}" y2="${ST_CY - minHandLen}" stroke="#457B9D" stroke-width="5" stroke-linecap="round" transform="rotate(${minDeg.toFixed(2)} ${ST_CX} ${ST_CY})"/>
+      <circle cx="${ST_CX}" cy="${ST_CY}" r="9" fill="#FFD93D" stroke="white" stroke-width="2"/>
+    </svg>`;
+  }
+
+  function spawnClock() {
+    if (!gameRunning) return;
+    const timing = getCurrentTiming();
+    const { w } = playAreaSize();
+    const active = fallingClocks.filter(c => !c.done);
+    if (active.length >= timing.maxOnScreen) return;
+
+    const { hour, minute } = randomTime();
+    const id      = ++clockIdCounter;
+    const timeStr = formatTime(hour, minute);
+    const clockW = 215;
+    const rangeX = Math.max(0, w - clockW);
+    const activeCenters = active.map(c => parseFloat(c.el.style.left) + clockW / 2);
+    const MIN_CENTER_GAP = 200;
+    let bestX = Math.random() * rangeX;
+    if (activeCenters.length > 0) {
+      let bestDist = -Infinity;
+      for (let attempt = 0; attempt < 6; attempt++) {
+        const candidateX = Math.random() * rangeX;
+        const candidateCenter = candidateX + clockW / 2;
+        const minDist = Math.min(...activeCenters.map(c => Math.abs(candidateCenter - c)));
+        if (minDist > bestDist) { bestDist = minDist; bestX = candidateX; }
+      }
+      if (bestDist < MIN_CENTER_GAP) {
+        const far = rangeX - (activeCenters[0] - clockW / 2);
+        bestX = Math.max(0, Math.min(far, rangeX));
+      }
+    }
+    const x = bestX;
+
+    const el = document.createElement('div');
+    el.className = 'st-falling-clock';
+    el.id = `st-clock-${id}`;
+    el.style.left = `${x}px`;
+    el.style.top  = '0px';
+    el.style.transform = 'translate3d(0, 10px, 0)';
+
+    const svgWrap = document.createElement('div');
+    svgWrap.className = 'st-clock-svg-wrap';
+    svgWrap.innerHTML = buildClockSVG(hour, minute);
+    el.appendChild(svgWrap);
+    playArea().appendChild(el);
+
+    const clock = {
+      id, hour, minute, timeStr, el,
+      // virtualElapsed advances by dt × speedMultiplier each frame, so we can
+      // accelerate a clock mid-fall without snapping it to a new position.
+      // Wrong tap on a target clock multiplies its speed by 1.5×, compounding.
+      virtualElapsed: 0,
+      lastTickTime:   performance.now(),
+      speedMultiplier: 1,
+      fallDuration:   timing.fallDuration,
+      points:         timing.points,
+      done: false, popping: false, currentY: 10,
+    };
+    fallingClocks.push(clock);
+    lastSpawnTime = performance.now();
+    syncChoicesToTarget();
+  }
+
+  function updateClockPositions(now) {
+    const { h: areaH } = playAreaSize();
+    const lavaTop = areaH - lavaHitOffset();
+    const hitY = lavaTop - 150;
+    for (const clock of fallingClocks) {
+      if (clock.done || clock.popping) continue;
+      const dt = now - clock.lastTickTime;
+      clock.lastTickTime = now;
+      clock.virtualElapsed += dt * clock.speedMultiplier;
+      const progress = Math.min(clock.virtualElapsed / clock.fallDuration, 1);
+      const SPAWN_TOP = 10;
+      const y = SPAWN_TOP + progress * (hitY - SPAWN_TOP);
+      clock.currentY = y;
+      clock.el.style.transform = `translate3d(0, ${y}px, 0)`;
+      if (progress >= 1) {
+        clock.done = true;
+        spawnLavaSplash(clock);
+        clock.el.remove();
+        loseLife();
+      }
+    }
+    fallingClocks = fallingClocks.filter(c => !c.done);
+    syncChoicesToTarget();
+  }
+
+  function spawnLavaSplash(clock) {
+    const { h } = playAreaSize();
+    const lavaTop = h - lavaHitOffset();
+    const x = parseFloat(clock.el.style.left) + 107;
+    const splash = document.createElement('div');
+    splash.className = 'st-lava-splash';
+    splash.style.left = `${x}px`;
+    splash.style.top  = `${lavaTop}px`;
+    playArea().appendChild(splash);
+    setTimeout(() => splash.remove(), 600);
+  }
+
+  function popClock(clock) {
+    clock.popping = true;
+    clock.done    = true;
+    const wrap = clock.el.querySelector('.st-clock-svg-wrap');
+    if (wrap) wrap.classList.add('st-is-popping');
+    clock.el.classList.remove('st-is-target');
+    const x = parseFloat(clock.el.style.left) + 107;
+    const y = clock.currentY != null ? clock.currentY : 100;
+    const pts = clock.points;
+    const pop = document.createElement('div');
+    pop.className = 'st-score-pop';
+    pop.textContent = `+${pts}`;
+    pop.style.left = `${x}px`;
+    pop.style.top  = `${y}px`;
+    // Horizontal centering is handled by the .st-score-pop animation keyframes
+    // (translate(-50%, 0)), matching L14's popup visual treatment.
+    playArea().appendChild(pop);
+    setTimeout(() => pop.remove(), 850);
+    setTimeout(() => { clock.el.remove(); }, 350);
+    setScore(score + pts);
+  }
+
+  function getTargetClock() {
+    let best = null;
+    for (const c of fallingClocks) {
+      if (c.done || c.popping) continue;
+      const y = c.currentY != null ? c.currentY : 0;
+      if (best == null || y > (best.currentY != null ? best.currentY : 0)) best = c;
+    }
+    return best;
+  }
+  function generateChoices(target) {
+    const correct = { hour: target.hour, minute: target.minute };
+    const otherMinutes = [];
+    for (let m = 0; m < 60; m += 5) if (m !== correct.minute) otherMinutes.push(m);
+    const sameHour = { hour: correct.hour, minute: otherMinutes[Math.floor(Math.random() * otherMinutes.length)] };
+    const otherHours = [];
+    for (let h = 1; h <= 12; h++) if (h !== correct.hour) otherHours.push(h);
+    const sameMinute = { hour: otherHours[Math.floor(Math.random() * otherHours.length)], minute: correct.minute };
+    const isDup = (a, b) => a.hour === b.hour && a.minute === b.minute;
+    let randomChoice;
+    for (let attempt = 0; attempt < 50; attempt++) {
+      const cand = randomTime();
+      if (!isDup(cand, correct) && !isDup(cand, sameHour) && !isDup(cand, sameMinute)) { randomChoice = cand; break; }
+    }
+    if (!randomChoice) randomChoice = { hour: ((correct.hour) % 12) + 1, minute: (correct.minute + 5) % 60 };
+    const choices = [correct, sameHour, sameMinute, randomChoice];
+    for (let i = choices.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [choices[i], choices[j]] = [choices[j], choices[i]];
+    }
+    const correctIdx = choices.findIndex(c => c === correct);
+    return { choices, correctIdx };
+  }
+  function clearTargetGlow() {
+    for (const c of fallingClocks) if (c.el) c.el.classList.remove('st-is-target');
+  }
+  function renderChoices() {
+    const target = getTargetClock();
+    clearTargetGlow();
+    const btns = choiceButtons();
+    if (!target) {
+      currentChoices = []; correctChoiceIdx = -1; currentTargetId = null;
+      for (const btn of btns) { btn.textContent = '--:--'; btn.classList.remove('st-correct-flash', 'st-wrong-shake'); }
+      return;
+    }
+    target.el.classList.add('st-is-target');
+    const { choices, correctIdx } = generateChoices(target);
+    currentChoices = choices; correctChoiceIdx = correctIdx; currentTargetId = target.id;
+    for (let i = 0; i < btns.length; i++) {
+      btns[i].textContent = formatTime(choices[i].hour, choices[i].minute);
+      btns[i].classList.remove('st-correct-flash', 'st-wrong-shake');
+    }
+  }
+  function syncChoicesToTarget() {
+    const target = getTargetClock();
+    const newId = target ? target.id : null;
+    if (newId !== currentTargetId) renderChoices();
+  }
+  function handleChoiceClick(idx, btn) {
+    if (!gameRunning) return;
+    if (correctChoiceIdx < 0) return;
+    const target = fallingClocks.find(c => c.id === currentTargetId && !c.done && !c.popping);
+    if (!target) { renderChoices(); return; }
+    if (idx === correctChoiceIdx) {
+      popClock(target);
+      btn.classList.add('st-correct-flash');
+      setTimeout(() => btn.classList.remove('st-correct-flash'), 320);
+      renderChoices();
+    } else {
+      // Punish wrong taps by accelerating the targeted clock by 1.5× —
+      // compounds per wrong tap on the same clock.
+      target.speedMultiplier *= 1.5;
+      btn.classList.remove('st-wrong-shake');
+      void btn.offsetWidth;
+      btn.classList.add('st-wrong-shake');
+      setTimeout(() => btn.classList.remove('st-wrong-shake'), 360);
+    }
+  }
+
+  function gameLoop(now) {
+    if (!gameRunning) return;
+    updateClockPositions(now);
+    const liveCount = fallingClocks.filter(c => !c.done && !c.popping).length;
+    if (liveCount === 0 && (now - lastSpawnTime) >= getCurrentTiming().emptyCatchup) {
+      spawnClock();
+      if (spawnTimer) { clearTimeout(spawnTimer); spawnTimer = null; }
+      scheduleSpawn();
+    }
+    animFrameId = requestAnimationFrame(gameLoop);
+  }
+  function scheduleSpawn() {
+    if (!gameRunning) return;
+    const timing = getCurrentTiming();
+    const sinceLastSpawn = performance.now() - lastSpawnTime;
+    if (sinceLastSpawn >= MIN_SPAWN_GAP) spawnClock();
+    const jitter = timing.spawnInterval * 0.2;
+    let nextIn = timing.spawnInterval + (Math.random() * jitter * 2 - jitter);
+    const sinceNow = performance.now() - lastSpawnTime;
+    nextIn = Math.max(nextIn, MIN_SPAWN_GAP - sinceNow);
+    nextIn = Math.max(500, nextIn);
+    spawnTimer = setTimeout(scheduleSpawn, nextIn);
+  }
+
+  // Public start: hide the start overlay, run the 3-2-1 countdown, then call
+  // actuallyStartGame() once "1" finishes. Called for both first-play (Start)
+  // and Play Again (restart) buttons.
+  function startGame() {
+    // Cancel any prior in-flight game state before the countdown so a quick
+    // restart can't leave timers/clocks running underneath the countdown.
+    stop();
+    livesLeft = MAX_LIVES;
+    setScore(0);
+    renderLives();
+    startOverlay().classList.add('hidden');
+    endOverlay().classList.add('hidden');
+    runCountdown();
+  }
+
+  function runCountdown() {
+    const overlay = $('st-countdown');
+    if (!overlay) { actuallyStartGame(); return; }
+    const numEl = overlay.querySelector('.st-countdown-num');
+    overlay.classList.remove('hidden');
+
+    let n = 3;
+    function showNum() {
+      numEl.textContent = n;
+      // Restart the CSS animation so each digit replays the pop in/out.
+      numEl.style.animation = 'none';
+      void numEl.offsetWidth; // force reflow
+      numEl.style.animation = '';
+      n--;
+      if (n >= 1) {
+        setTimeout(showNum, 1000);
+      } else {
+        setTimeout(() => {
+          overlay.classList.add('hidden');
+          actuallyStartGame();
+        }, 1000);
+      }
+    }
+    showNum();
+  }
+
+  function actuallyStartGame() {
+    setScore(0);
+    livesLeft = MAX_LIVES;
+    gameRunning = true;
+    gameStartTime = performance.now();
+    // Backdate lastSpawnTime so scheduleSpawn() spawns the first clock
+    // immediately on its very first call (sinceLastSpawn >= MIN_SPAWN_GAP).
+    // This still respects the empty-screen catchup logic and MIN_SPAWN_GAP
+    // for subsequent spawns because lastSpawnTime is updated inside
+    // spawnClock() itself.
+    lastSpawnTime = performance.now() - MIN_SPAWN_GAP;
+    fallingClocks.forEach(c => { try { c.el.remove(); } catch(e) {} });
+    fallingClocks    = [];
+    clockIdCounter   = 0;
+    currentTargetId  = null;
+    correctChoiceIdx = -1;
+    currentChoices   = [];
+    const pa = playArea();
+    if (pa) pa.querySelectorAll('.st-score-pop, .st-lava-splash').forEach(e => e.remove());
+    renderLives();
+    renderChoices();
+    startOverlay().classList.add('hidden');
+    endOverlay().classList.add('hidden');
+    animFrameId = requestAnimationFrame(gameLoop);
+    scheduleSpawn();
+  }
+
+  function endGame() {
+    gameRunning = false;
+    if (spawnTimer) { clearTimeout(spawnTimer); spawnTimer = null; }
+    if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null; }
+    setTimeout(() => {
+      fallingClocks.forEach(c => { if (!c.done) { try { c.el.remove(); } catch(e) {} } });
+      fallingClocks = [];
+    }, 100);
+    // Mirror L14 finished overlay: title (already set via localize), then either
+    // "New best!" + big score, or just big score. Best stored in localStorage.
+    const bestKey = 'clockKingdom_speedtest_best';
+    let bestScore = 0;
+    try { bestScore = parseInt(localStorage.getItem(bestKey) || '0', 10); } catch(e) {}
+    let newBest = false;
+    if (score > bestScore) {
+      bestScore = score;
+      try { localStorage.setItem(bestKey, String(bestScore)); } catch(e) {}
+      newBest = true;
+    }
+    // Top message: "New best!" callout when applicable, otherwise empty so the
+    // score block (now its own section, mirrors regular #overlay-complete shape)
+    // is the dominant element.
+    const msgEl = endMsgEl();
+    if (newBest && score > 0) {
+      msgEl.innerHTML = `<div style="color:#FF6B9D;font-size:22px;font-weight:700;">${t('stNewBest')}</div>`;
+    } else {
+      msgEl.innerHTML = '';
+    }
+    // Trophy score block (matches regular-level overlay tone — yellow .complete-card,
+    // big trophy + score, smaller best-row underneath).
+    const iconEl = $('st-end-score-icon');
+    if (iconEl) iconEl.innerHTML = SCORE_ICON_SVG;
+    const bestIconEl = $('st-end-best-icon');
+    if (bestIconEl) bestIconEl.innerHTML = SCORE_ICON_SVG;
+    const valEl = $('st-end-score-value');
+    if (valEl) valEl.textContent = String(score);
+    const bestValEl = $('st-end-best-value');
+    if (bestValEl) bestValEl.textContent = String(bestScore);
+    endOverlay().classList.remove('hidden');
+  }
+
+  // Hard stop — invoked by hideAllScreens / language toggle / back. Cleans up
+  // the loop, the spawn timer, and any DOM artefacts. Safe to call when
+  // already stopped.
+  function stop() {
+    gameRunning = false;
+    if (spawnTimer) { clearTimeout(spawnTimer); spawnTimer = null; }
+    if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null; }
+    fallingClocks.forEach(c => { try { c.el.remove(); } catch(e) {} });
+    fallingClocks = [];
+    const pa = playArea();
+    if (pa) pa.querySelectorAll('.st-score-pop, .st-lava-splash').forEach(e => e.remove());
+  }
+
+  function showStartOverlay() {
+    stop();
+    livesLeft = MAX_LIVES;
+    setScore(0);
+    renderLives();
+    endOverlay().classList.add('hidden');
+    startOverlay().classList.remove('hidden');
+  }
+
+  function backHome() {
+    stop();
+    if (typeof showHome === 'function') showHome();
+  }
+
+  function localize() {
+    // Pull strings from the main app's i18n table (S/state.lang via t()).
+    const setText = (id, v) => { const e = $(id); if (e) e.textContent = v; };
+    setText('st-level-label', t('stTitle'));
+    setText('st-start-title', t('stStartTitle'));
+    setText('st-start-subtitle', t('stStartSubtitle'));
+    setText('st-btn-start', t('stStartBtn'));
+    setText('st-btn-restart', t('stPlayAgain'));
+    setText('st-btn-next', t('nextLevel'));
+    setText('st-end-best-label', t('stBestLabel'));
+  }
+
+  // Wire up button handlers once on module init.
+  document.addEventListener('DOMContentLoaded', wireButtons);
+  if (document.readyState !== 'loading') wireButtons();
+  function wireButtons() {
+    const startBtn = $('st-btn-start');
+    const restartBtn = $('st-btn-restart');
+    const nextBtn = $('st-btn-next');
+    const endCloseBtn = $('st-end-close');
+    if (startBtn && !startBtn._stWired) { startBtn._stWired = true; startBtn.addEventListener('click', startGame); }
+    if (restartBtn && !restartBtn._stWired) { restartBtn._stWired = true; restartBtn.addEventListener('click', startGame); }
+    if (nextBtn && !nextBtn._stWired) {
+      nextBtn._stWired = true;
+      nextBtn.addEventListener('click', () => {
+        if (typeof beepTap === 'function') beepTap();
+        endOverlay().classList.add('hidden');
+        stop();
+        // Speed Test IS L9 — "Next Level" dispatches to L10 (the curriculum
+        // resumes with old L9 = Set Time Easy, now renumbered to L10).
+        if (typeof startLevel === 'function') startLevel(10);
+      });
+    }
+    if (endCloseBtn && !endCloseBtn._stWired) {
+      endCloseBtn._stWired = true;
+      endCloseBtn.addEventListener('click', () => {
+        if (typeof beepTap === 'function') beepTap();
+        endOverlay().classList.add('hidden');
+        backHome();
+      });
+    }
+    choiceButtons().forEach(btn => {
+      if (btn._stWired) return;
+      btn._stWired = true;
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.getAttribute('data-idx'), 10);
+        handleChoiceClick(idx, btn);
+      });
+    });
+  }
+
+  return { start: startGame, stop, showStartOverlay, backHome, localize };
+})();
+
+// ═══════════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════════
+// One-time migration for the L9 Speed Test renumber: old curriculum levels
+// 9..14 shift up to 10..15 (Speed Test takes the L9 slot). Only fires if the
+// new key is missing — safe to leave in for legacy save files.
+function migrateLevelNumbering_v9speedtest() {
+  // localStorage best-score keys (Ultimate Test): l14_best → l15_best
+  try {
+    const oldBest = localStorage.getItem('clockKingdom_l14_best');
+    const newBest = localStorage.getItem('clockKingdom_l15_best');
+    if (oldBest && !newBest) {
+      localStorage.setItem('clockKingdom_l15_best', oldBest);
+      localStorage.removeItem('clockKingdom_l14_best');
+    }
+  } catch(e) {}
+  // In-memory state.progress: shift indices 14→15, 13→14, … 9→10. DESC order
+  // so the source slot is always read before the destination slot is written.
+  try {
+    if (state && state.progress && typeof state.progress === 'object') {
+      let mutated = false;
+      for (let n = 14; n >= 9; n--) {
+        if (state.progress[n] !== undefined && state.progress[n + 1] === undefined) {
+          state.progress[n + 1] = state.progress[n];
+          delete state.progress[n];
+          mutated = true;
+        }
+      }
+      if (mutated) saveState();
+    }
+  } catch(e) {}
+}
+
 (async () => {
   // Render immediately from localStorage so the screen is never blank
   // while the CrazyGames SDK is still downloading/initialising.
@@ -4530,6 +5988,7 @@ function goNextLevel() {
     const s = localStorage.getItem('clockgame_v8');
     if (s) { const p = JSON.parse(s); if (p.version === 8) state = p; }
   } catch(e) {}
+  migrateLevelNumbering_v9speedtest();
   showHome();
 
   // Upgrade to SDK storage in the background — cap at 2 s so a slow or
@@ -4541,7 +6000,7 @@ function goNextLevel() {
       const s = await storage.getItem('clockgame_v8');
       if (s) {
         const p = JSON.parse(s);
-        if (p.version === 8) { state = p; renderHome(); }
+        if (p.version === 8) { state = p; migrateLevelNumbering_v9speedtest(); renderHome(); }
       }
     } catch(e) {}
   }
