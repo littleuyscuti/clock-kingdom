@@ -2982,21 +2982,10 @@ function renderHome() {
 
   const grid = document.getElementById('level-grid');
 
-  // Fast path — tiles already exist in the right structure (e.g. user toggled
-  // language). Update each tile's level-name text in place instead of tearing
-  // down and rebuilding the DOM, which would restart bounce animations and
-  // shift the grid around. Star/score state isn't language-dependent so it
-  // doesn't need to be touched on a pure language flip.
-  const existingTiles = grid.querySelectorAll('.level-stop');
-  if (existingTiles.length === TOTAL_LEVELS) {
-    let idx = 0;
-    for (let n = 1; n <= TOTAL_LEVELS; n++) {
-      const tile = existingTiles[idx++];
-      const lnameEl = tile.querySelector('.lname');
-      if (lnameEl) lnameEl.textContent = t(LEVEL_NAMES[n]);
-    }
-    return;
-  }
+  // (Previous "fast path" that only updated lname text on re-render was
+  // removed: it short-circuited locked/unlocked/completed/star-class refresh
+  // when returning home after completing a level, leaving stale tile state
+  // until a hard reload. The full rebuild below is cheap on a 17-tile grid.)
 
   // Build tiles into a detached fragment first so the grid never goes through
   // an empty intermediate state during a full re-render (initial load, or
@@ -6570,6 +6559,25 @@ const SpeedTest = (function () {
 // 9..14 shift up to 10..15 (Speed Test takes the L9 slot). Only fires if the
 // new key is missing — safe to leave in for legacy save files.
 function migrateLevelNumbering_v9speedtest() {
+  // Idempotent — once applied, never re-shift. Without this flag the migration
+  // loop would cascade on every boot: a fresh save with progress through L10
+  // would shift L10→L11, then on next refresh shift L9→L10 (because the
+  // old L10 slot is now empty), and so on, corrupting unlock state.
+  try {
+    if (!state || typeof state !== 'object') return;
+    if (!state.migrations || typeof state.migrations !== 'object') state.migrations = {};
+    if (state.migrations.v9speedtest) return;
+    // Heal pre-existing saves: if the later v10read1min migration already ran,
+    // the v9 migrations had already been applied (or wouldn't apply) before
+    // v10read1min was introduced. Mark them done without re-shifting so the
+    // cascade bug stops on the next boot for users whose saves are already
+    // partially shifted by previous unguarded runs.
+    if (state.migrations.v10read1min) {
+      state.migrations.v9speedtest = true;
+      saveState();
+      return;
+    }
+  } catch(e) { return; }
   // localStorage best-score keys (Ultimate Test): l14_best → l15_best
   try {
     const oldBest = localStorage.getItem('clockKingdom_l14_best');
@@ -6582,17 +6590,16 @@ function migrateLevelNumbering_v9speedtest() {
   // In-memory state.progress: shift indices 14→15, 13→14, … 9→10. DESC order
   // so the source slot is always read before the destination slot is written.
   try {
-    if (state && state.progress && typeof state.progress === 'object') {
-      let mutated = false;
+    if (state.progress && typeof state.progress === 'object') {
       for (let n = 14; n >= 9; n--) {
         if (state.progress[n] !== undefined && state.progress[n + 1] === undefined) {
           state.progress[n + 1] = state.progress[n];
           delete state.progress[n];
-          mutated = true;
         }
       }
-      if (mutated) saveState();
     }
+    state.migrations.v9speedtest = true;
+    saveState();
   } catch(e) {}
 }
 
@@ -6601,21 +6608,33 @@ function migrateLevelNumbering_v9speedtest() {
 // Speed Test). Speed Test stays at L10, takes its old slot. L9 starts blank.
 // Only fires if the new key is missing — safe to leave in for legacy save files.
 function migrateLevelNumbering_v9readclock() {
+  // Idempotent — same reason as v9speedtest above. Without the flag the loop
+  // re-shifts every boot, cascading state.progress keys upward.
+  try {
+    if (!state || typeof state !== 'object') return;
+    if (!state.migrations || typeof state.migrations !== 'object') state.migrations = {};
+    if (state.migrations.v9readclock) return;
+    // Heal pre-existing saves (see v9speedtest above for the same reasoning).
+    if (state.migrations.v10read1min) {
+      state.migrations.v9readclock = true;
+      saveState();
+      return;
+    }
+  } catch(e) { return; }
   // Best-score key stays the same (clockKingdom_l15_best is just an identifier;
   // the score IS the Ultimate Test best regardless of level number).
   // In-memory state.progress: shift indices 15→16, 14→15, … 10→11. DESC order.
   try {
-    if (state && state.progress && typeof state.progress === 'object') {
-      let mutated = false;
+    if (state.progress && typeof state.progress === 'object') {
       for (let n = 15; n >= 10; n--) {
         if (state.progress[n] !== undefined && state.progress[n + 1] === undefined) {
           state.progress[n + 1] = state.progress[n];
           delete state.progress[n];
-          mutated = true;
         }
       }
-      if (mutated) saveState();
     }
+    state.migrations.v9readclock = true;
+    saveState();
   } catch(e) {}
 }
 
