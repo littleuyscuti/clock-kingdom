@@ -1447,8 +1447,10 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
     min-width: 140px;
   }
   .feedback-msg { font-size: 15px; min-height: 20px; height: 24px; line-height: 20px; overflow: visible; }
-  #read-prompt { font-size: 16px; min-height: 22px; padding: 0 12px; }
-  #read-feedback { font-size: 22px; top: 100px; height: 32px; line-height: 26px; overflow: visible; }
+  #read-prompt { font-size: 22px; min-height: 30px; padding: 0 12px; }
+  #read-feedback { font-size: 17px; top: 100px; height: 26px; line-height: 22px; overflow: visible; }
+  /* Match L1 tour wrong-feedback to L2+ #read-feedback on mobile (desktop default 22px stays). */
+  .tour-tap-hint.wrong { font-size: 17px; line-height: 22px; min-height: 26px; }
 
   /* ── Tutorial screen ── */
   .tutorial-body { padding: 12px 16px 20px; gap: 18px; }
