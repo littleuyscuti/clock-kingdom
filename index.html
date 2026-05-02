@@ -1612,6 +1612,11 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
    Ticky is fixed-positioned outside #screen-speedtest, so we toggle a body class. */
 body.st-active .ticky-container { display: none !important; }
 
+/* Hide global Ticky mascot while the per-level guide card (tutorial screen) is open.
+   Ticky sits at bottom-left and overlaps the guide card on small viewports —
+   re-shown automatically on tutorial dismiss via hideAllScreens(). */
+body.tut-active .ticky-container { display: none !important; }
+
 /* Play area */
 #screen-speedtest .st-play-area {
   position: relative;
@@ -3166,6 +3171,10 @@ function hideAllScreens() {
   if (typeof SpeedTest !== 'undefined' && SpeedTest && typeof SpeedTest.stop === 'function') SpeedTest.stop();
   // Clear the body marker that hides Ticky during Speed Test — re-shown on next screen.
   document.body.classList.remove('st-active');
+  // Same idea for the per-level guide card (tutorial screen): the marker is
+  // re-applied by showTutorial/reviewTutorial; clearing it here means Ticky
+  // reappears the moment the guide card is dismissed (game/home/tour/etc.).
+  document.body.classList.remove('tut-active');
   // Clear tour clock SVG so its duplicate-id hand elements don't shadow the game screen's hand elements
   const tw = document.getElementById('tour-clock-wrap');
   if (tw) tw.innerHTML = '';
@@ -3793,6 +3802,9 @@ function tourNext() {
 function showTutorial(n) {
   hideAllScreens();
   document.getElementById('screen-tutorial').classList.remove('hidden');
+  // Mark the body so the global Ticky mascot (fixed at bottom-left) is hidden
+  // while the guide card is up. Cleared by hideAllScreens() on dismiss.
+  document.body.classList.add('tut-active');
   // Reset cursor color to pink (Level 4 uses purple, others use pink or none)
   tutorCursorSetColor('pink');
   tutorCursorClearAnchor();
@@ -3813,6 +3825,8 @@ function reviewTutorial() {
   const resumeAt = qIndex;
   hideAllScreens();
   document.getElementById('screen-tutorial').classList.remove('hidden');
+  // Hide global Ticky while the guide card is up (cleared on dismiss).
+  document.body.classList.add('tut-active');
   renderTutorial(n);
   document.getElementById('tut-start-btn').textContent = t('tourContinue');
   document.getElementById('tut-start-btn').onclick = () => {
