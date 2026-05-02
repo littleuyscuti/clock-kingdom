@@ -5078,6 +5078,17 @@ function showQuestion(i) {
   cw.classList.remove('correct','wrong');
   updateProgressDots();
 
+  // L6/L7/L8 difficulty ramp: hide the 5×-multiples minute label ring on the
+  // last 2 questions of each level. Earlier questions keep the labels as a
+  // learning aid; the last 2 drop them. Hour numbers (1–12) stay regardless.
+  if (currentLevel === 6 || currentLevel === 7 || currentLevel === 8) {
+    const isLastTwo = i >= questions.length - 2;
+    const labelMode = isLastTwo ? 'none' : getMinLabelMode(currentLevel);
+    cw.innerHTML = buildClockSVG(labelMode);
+    setMinuteHandVisible(!HIDE_MINUTE.has(currentLevel));
+    setHourHandVisible(!HIDE_HOUR.has(currentLevel));
+  }
+
   const dt = document.getElementById('digital-target');
   // Compact digital target whenever the analog clock is the hero and the
   // digital is just a reference: L4 (Set Hour), L12 (Set 5 min), L13 (Set 1 min),
