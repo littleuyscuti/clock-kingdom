@@ -6562,6 +6562,22 @@ const SpeedTest = (function () {
     const s = localStorage.getItem('clockgame_v8');
     if (s) { const p = JSON.parse(s); if (p.version === 8) state = p; }
   } catch(e) {}
+  // One-time auto-heal: detect cascade-shift corruption from the pre-renumber
+  // era. L11 is the Speed Test slot now and never writes into state.progress
+  // — its best score lives in `clockKingdom_speedtest_best`. So if
+  // state.progress[11] is set, this save was cascade-shifted from when L11 was
+  // a regular level. Wipe progress + best-score keys once and mark a flag so
+  // we don't repeat on every boot.
+  try {
+    if (!state.healedCascade && state.progress && state.progress[11]) {
+      console.warn('[heal] Corrupted save detected (state.progress[11] set); resetting progress.');
+      state.progress = {};
+      state.healedCascade = true;
+      try { localStorage.removeItem('clockKingdom_speedtest_best'); } catch(e) {}
+      try { localStorage.removeItem('clockKingdom_l15_best'); } catch(e) {}
+      saveState();
+    }
+  } catch(e) {}
   showHome();
 
   // Upgrade to SDK storage in the background — cap at 2 s so a slow or
