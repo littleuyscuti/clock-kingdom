@@ -5062,6 +5062,9 @@ function showQuestion(i) {
   wrongCountThisQ = 0;
   l15FirstTry = true; // reset per question for Ultimate Test scoring
   l15PenaltyApplied = false; // reset per-question penalty gate
+  // Defensive: if any prior path left the success-transition gate hanging,
+  // release it here so the next question's Confirm/choice taps work.
+  correctPopupTimeoutId = null;
   const qc = document.getElementById('q-counter');
   if (currentLevel === 17) {
     // Score-attack mode: show "Q12" instead of "X / Total"
@@ -5459,6 +5462,10 @@ function getSpecificHint(level, q) {
 }
 
 function checkReadAnswer(chosen, q, btn) {
+  // Guard: ignore taps while the success transition is in flight (matches
+  // the gate in checkSetAnswer). The onclick=null below already protects
+  // multiple-choice; this is belt-and-braces against any rebound path.
+  if (correctPopupTimeoutId !== null) return;
   const allBtns = document.querySelectorAll('.choice-btn');
   allBtns.forEach(b => b.onclick = null);
   if (chosen === q.correct) {
@@ -5478,7 +5485,7 @@ function checkReadAnswer(chosen, q, btn) {
       ultimateDeadline += 5000;
       showL15TimeDelta(true);
     }
-    correctPopupTimeoutId = setTimeout(() => { hideCorrectPopup(); qIndex++; showQuestion(qIndex); }, 1100);
+    correctPopupTimeoutId = setTimeout(() => { correctPopupTimeoutId = null; hideCorrectPopup(); qIndex++; showQuestion(qIndex); }, 1100);
   } else {
     wrongCount++; wrongCountThisQ++;
     updateGameStars(); // update live star indicator
@@ -5535,7 +5542,9 @@ function checkReadAnswer(chosen, q, btn) {
 function showSetControls(q) {
   document.getElementById('choices').classList.add('hidden');
   document.getElementById('set-controls').classList.remove('hidden');
-  document.getElementById('confirm-btn').textContent = t('confirm');
+  const confirmBtn = document.getElementById('confirm-btn');
+  confirmBtn.textContent = t('confirm');
+  confirmBtn.disabled = false;
   const prompt = document.getElementById('read-prompt');
   if (currentLevel === 4) prompt.textContent = t('setHour');
   else if ((currentLevel === 15 || currentLevel === 16 || currentLevel === 17) && q.subtype === 'setFromPM') prompt.textContent = t('l15subtitle3');
@@ -5545,6 +5554,12 @@ function showSetControls(q) {
 }
 
 function checkSetAnswer() {
+  // Guard: ignore Confirm spam-taps while the success transition is in flight.
+  // Without this, each tap during the 1100ms correct-popup window queues
+  // another qIndex++/showQuestion(qIndex) timeout, letting the user skip past
+  // Q2..QN without dragging or re-validating. Belt-and-braces with
+  // confirm-btn.disabled (which can race rapid touch events on mobile).
+  if (correctPopupTimeoutId !== null) return;
   const q = questions[qIndex];
   const targetHAngle = (q.hour % 12) * 30 + q.min * 0.5;
   const targetMAngle = q.min * 6;
@@ -5567,6 +5582,7 @@ function checkSetAnswer() {
     tickySay(randomHappy(), 'happy', 2000);
     document.getElementById('feedback-msg').textContent = '';
     document.getElementById('hint-msg').textContent = '';
+    document.getElementById('confirm-btn').disabled = true;
     if (currentLevel === 17 && l15FirstTry) {
       l15QAnswered++;
       const marks = 10 + 5 * Math.floor((l15QAnswered - 1) / 4);
@@ -5577,7 +5593,7 @@ function checkSetAnswer() {
       ultimateDeadline += 5000;
       showL15TimeDelta(true);
     }
-    correctPopupTimeoutId = setTimeout(() => { hideCorrectPopup(); qIndex++; showQuestion(qIndex); }, 1100);
+    correctPopupTimeoutId = setTimeout(() => { correctPopupTimeoutId = null; hideCorrectPopup(); qIndex++; showQuestion(qIndex); }, 1100);
   } else {
     wrongCount++; wrongCountThisQ++;
     updateGameStars(); // update live star indicator
