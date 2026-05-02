@@ -1447,8 +1447,17 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
     min-width: 140px;
   }
   .feedback-msg { font-size: 15px; min-height: 20px; height: 24px; line-height: 20px; overflow: visible; }
-  #read-prompt { font-size: 22px; min-height: 30px; padding: 0 12px; }
-  #read-feedback { font-size: 17px; top: 100px; height: 26px; line-height: 22px; overflow: visible; }
+  #read-prompt { font-size: 22px; min-height: 30px; padding: 0 12px; margin-bottom: 14px; }
+  #read-feedback { font-size: 17px; top: 100px; height: 26px; line-height: 22px; overflow: visible; margin-top: 12px; }
+  /* L2 only: bump the number-clock (digital-target) larger on phones. Scoped via
+     digital-target--l2 (added in showQuestion) so L11/L17/other levels are unaffected. */
+  .digital-target.digital-target--l2 {
+    font-size: 64px;
+    letter-spacing: 5px;
+    padding: 12px 32px;
+    min-width: 220px;
+    min-height: 104px;
+  }
   /* Match L1 tour wrong-feedback to L2+ #read-feedback on mobile (desktop default 22px stays). */
   .tour-tap-hint.wrong { font-size: 17px; line-height: 22px; min-height: 26px; }
 
@@ -5076,6 +5085,8 @@ function showQuestion(i) {
   const isSetFromPM = q && q.subtype === 'setFromPM';
   dt.classList.toggle('digital-target--compact',
     currentLevel === 4 || currentLevel === 12 || currentLevel === 13 || isSetFromPM);
+  // L2 read-digital: bump the number-clock larger on phones (handled in mobile media query)
+  dt.classList.toggle('digital-target--l2', currentLevel === 2 && q && q.type === 'read');
   const gameBody = document.querySelector('#screen-game .game-body');
   if (gameBody) gameBody.classList.remove('no-clock');
 
