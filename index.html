@@ -6555,118 +6555,6 @@ const SpeedTest = (function () {
 // ═══════════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════════
-// One-time migration for the L9 Speed Test renumber: old curriculum levels
-// 9..14 shift up to 10..15 (Speed Test takes the L9 slot). Only fires if the
-// new key is missing — safe to leave in for legacy save files.
-function migrateLevelNumbering_v9speedtest() {
-  // Idempotent — once applied, never re-shift. Without this flag the migration
-  // loop would cascade on every boot: a fresh save with progress through L10
-  // would shift L10→L11, then on next refresh shift L9→L10 (because the
-  // old L10 slot is now empty), and so on, corrupting unlock state.
-  try {
-    if (!state || typeof state !== 'object') return;
-    if (!state.migrations || typeof state.migrations !== 'object') state.migrations = {};
-    if (state.migrations.v9speedtest) return;
-    // Heal pre-existing saves: if the later v10read1min migration already ran,
-    // the v9 migrations had already been applied (or wouldn't apply) before
-    // v10read1min was introduced. Mark them done without re-shifting so the
-    // cascade bug stops on the next boot for users whose saves are already
-    // partially shifted by previous unguarded runs.
-    if (state.migrations.v10read1min) {
-      state.migrations.v9speedtest = true;
-      saveState();
-      return;
-    }
-  } catch(e) { return; }
-  // localStorage best-score keys (Ultimate Test): l14_best → l15_best
-  try {
-    const oldBest = localStorage.getItem('clockKingdom_l14_best');
-    const newBest = localStorage.getItem('clockKingdom_l15_best');
-    if (oldBest && !newBest) {
-      localStorage.setItem('clockKingdom_l15_best', oldBest);
-      localStorage.removeItem('clockKingdom_l14_best');
-    }
-  } catch(e) {}
-  // In-memory state.progress: shift indices 14→15, 13→14, … 9→10. DESC order
-  // so the source slot is always read before the destination slot is written.
-  try {
-    if (state.progress && typeof state.progress === 'object') {
-      for (let n = 14; n >= 9; n--) {
-        if (state.progress[n] !== undefined && state.progress[n + 1] === undefined) {
-          state.progress[n + 1] = state.progress[n];
-          delete state.progress[n];
-        }
-      }
-    }
-    state.migrations.v9speedtest = true;
-    saveState();
-  } catch(e) {}
-}
-
-// One-time migration for the L9 Read-the-Clock restore: old curriculum levels
-// 10..15 shift up to 11..16 (the new L9 read-both-hands level slots in below
-// Speed Test). Speed Test stays at L10, takes its old slot. L9 starts blank.
-// Only fires if the new key is missing — safe to leave in for legacy save files.
-function migrateLevelNumbering_v9readclock() {
-  // Idempotent — same reason as v9speedtest above. Without the flag the loop
-  // re-shifts every boot, cascading state.progress keys upward.
-  try {
-    if (!state || typeof state !== 'object') return;
-    if (!state.migrations || typeof state.migrations !== 'object') state.migrations = {};
-    if (state.migrations.v9readclock) return;
-    // Heal pre-existing saves (see v9speedtest above for the same reasoning).
-    if (state.migrations.v10read1min) {
-      state.migrations.v9readclock = true;
-      saveState();
-      return;
-    }
-  } catch(e) { return; }
-  // Best-score key stays the same (clockKingdom_l15_best is just an identifier;
-  // the score IS the Ultimate Test best regardless of level number).
-  // In-memory state.progress: shift indices 15→16, 14→15, … 10→11. DESC order.
-  try {
-    if (state.progress && typeof state.progress === 'object') {
-      for (let n = 15; n >= 10; n--) {
-        if (state.progress[n] !== undefined && state.progress[n + 1] === undefined) {
-          state.progress[n + 1] = state.progress[n];
-          delete state.progress[n];
-        }
-      }
-    }
-    state.migrations.v9readclock = true;
-    saveState();
-  } catch(e) {}
-}
-
-// One-time migration for the L10 Read-1-min insertion: old curriculum levels
-// 11..16 shift up to 12..17 to make room for the new L10 (Read both hands · 1 min).
-// Speed Test moves from L10 to L11 (its slot index increases by 1). Idempotent
-// via a stored flag on state.migrations so it only runs once even if the user's
-// save already happens to look "shifted".
-function migrateLevelNumbering_v10read1min() {
-  try {
-    if (!state || typeof state !== 'object') return;
-    if (!state.migrations || typeof state.migrations !== 'object') state.migrations = {};
-    if (state.migrations.v10read1min) return;
-    if (state.progress && typeof state.progress === 'object') {
-      // Shift 16→17, 15→16, … 11→12 (DESC). Skip 10 — Speed Test never recorded
-      // stars there, and the new L10 (Read 1-min) starts blank.
-      for (let n = 16; n >= 11; n--) {
-        if (state.progress[n] !== undefined && state.progress[n + 1] === undefined) {
-          state.progress[n + 1] = state.progress[n];
-          delete state.progress[n];
-        }
-      }
-      // Old L10 slot was Speed Test (no progress recorded), but if any stale
-      // value lives there from earlier saves, drop it — the new L10 is a fresh
-      // curriculum level and shouldn't inherit Speed Test artifacts.
-      if (state.progress[10] !== undefined) delete state.progress[10];
-    }
-    state.migrations.v10read1min = true;
-    saveState();
-  } catch(e) {}
-}
-
 (async () => {
   // Render immediately from localStorage so the screen is never blank
   // while the CrazyGames SDK is still downloading/initialising.
@@ -6674,9 +6562,6 @@ function migrateLevelNumbering_v10read1min() {
     const s = localStorage.getItem('clockgame_v8');
     if (s) { const p = JSON.parse(s); if (p.version === 8) state = p; }
   } catch(e) {}
-  migrateLevelNumbering_v9speedtest();
-  migrateLevelNumbering_v9readclock();
-  migrateLevelNumbering_v10read1min();
   showHome();
 
   // Upgrade to SDK storage in the background — cap at 2 s so a slow or
@@ -6703,14 +6588,9 @@ function migrateLevelNumbering_v10read1min() {
             const memStars = state.progress[k] || 0;
             if (sdkStars > memStars) state.progress[k] = sdkStars;
           }
-          // Union migration flags so a once-applied shift never re-runs.
-          state.migrations = Object.assign({}, p.migrations || {}, state.migrations || {});
           // Lang preference: prefer SDK if memory hasn't set one yet.
           if (!state.lang && p.lang) state.lang = p.lang;
           state.version = 8;
-          migrateLevelNumbering_v9speedtest();
-          migrateLevelNumbering_v9readclock();
-          migrateLevelNumbering_v10read1min();
           // Push the merged state back so SDK + localStorage converge.
           saveState();
           renderHome();
