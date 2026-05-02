@@ -330,6 +330,12 @@ body.is-zoomed .game-body {
   border-color: #FFD93D;
   box-shadow: 0 6px 0 #e6c200, 0 8px 20px rgba(255,217,61,0.35);
 }
+/* 1–2 stars: partway through a star level. Unsaturated orange so it reads as
+   "in progress" — not done yet (yellow) but more than just unlocked. */
+.level-stop.partial {
+  border-color: #E8A77C;
+  box-shadow: 0 6px 0 #C68A65, 0 8px 20px rgba(232,167,124,0.30);
+}
 .level-stop.current-level {
   border-color: var(--ck-teal);
   box-shadow: 0 6px 0 var(--ck-teal-shadow), 0 8px 20px rgba(78,205,196,0.35);
@@ -347,6 +353,7 @@ body.is-zoomed .game-body {
 .level-stop.locked .lnum { color: #B4B8C7; }
 .level-stop.locked .lname { color: #9094A8; }
 .level-stop.completed .lnum { color: #FFD93D; }
+.level-stop.partial .lnum { color: #B8704A; }
 .level-stop.current-level .lnum { color: var(--ck-teal); }
 .lname {
   font-size: 14px; color: #555; font-weight: 700;
@@ -398,10 +405,16 @@ body.is-zoomed .game-body {
 .game-level-label {
   font-family: 'Fredoka', sans-serif;
   font-size: 22px; font-weight: 600; color: var(--ck-bg-dark);
+  line-height: 1.4;
 }
 .game-stars-earned {
-  font-size: 22px; letter-spacing: 2px; min-width: 72px; text-align: right;
+  font-size: 28px; letter-spacing: 2.5px; min-width: 96px; text-align: right;
   font-weight: 700;
+  line-height: 1.4;
+  /* Optical centering: ★ glyphs sit slightly high in their em-box, so even with
+     line-height matched, the visible mass appears above the level-title text.
+     Nudge down 2px to align star optical center with "Level X" text optical center. */
+  transform: translateY(2px);
 }
 .help-btn {
   width: 36px; height: 36px; border-radius: 50%;
@@ -920,6 +933,18 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
   height: 100px;
 }
 .tour-tap-hint { font-size: 16px; color: #888; min-height: 24px; }
+/* L1 "Try again!" — must look identical to L2+ #read-feedback so wrong-answer
+   feedback is consistent across every level. Pink, Nunito, 22px/700,
+   centered, with the same reserved height as the read-feedback slot. */
+.tour-tap-hint.wrong {
+  color: var(--ck-pink);
+  font-family: 'Nunito', sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  text-align: center;
+  min-height: 32px;
+  line-height: 28px;
+}
 .tour-continue-btn {
   background: var(--ck-teal); color: white; border: none; border-radius: 24px;
   font-family: 'Fredoka', sans-serif;
@@ -1376,7 +1401,8 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
   /* ── Game screen ── */
   .back-btn { font-size: 15px; padding: 6px 12px; min-height: 36px; min-width: 44px; }
   .game-level-label { font-size: 17px; }
-  .game-stars-earned { font-size: 16px; min-width: 56px; }
+  .game-stars-earned { font-size: 20px; letter-spacing: 2px; min-width: 72px; }
+  #screen-speedtest .st-lives-display { font-size: 20px; letter-spacing: 2px; min-width: 72px; }
   .help-btn { width: 30px; height: 30px; font-size: 17px; }
 
   /* Extra bottom padding reserves space so content doesn't hide behind Ticky (fixed at bottom-left) */
@@ -1499,12 +1525,16 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
 }
 
 /* Lives indicator (in game-header, stars slot) — matches .game-stars-earned sizing.
-   Hearts use the same 22px font + letter-spacing as ★ so they read as the same component. */
+   Hearts use the same 32px font + letter-spacing as ★ so they read as the same component. */
 #screen-speedtest .st-lives-display {
   display: inline-block;
-  font-size: 22px; letter-spacing: 2px; min-width: 72px; text-align: right;
+  font-size: 28px; letter-spacing: 2.5px; min-width: 96px; text-align: right;
   font-weight: 700;
-  line-height: 1;
+  line-height: 1.4;
+  /* Optical centering: ♥ glyphs sit slightly high in their em-box. Hearts have
+     visible mass weighted lower than stars (pointed bottom, lobed top), so the
+     nudge is smaller than stars. */
+  transform: translateY(1px);
 }
 #screen-speedtest .st-life-heart {
   display: inline-block;
@@ -1974,7 +2004,6 @@ body.st-active .ticky-container { display: none !important; }
     <span class="game-level-label" id="tour-level-label"></span>
     <div style="display:flex;align-items:center;gap:8px;">
       <span class="game-stars-earned" id="tour-stars-earned"></span>
-      <button class="help-btn" onclick="startTour()" aria-label="Restart tour">?</button>
     </div>
   </div>
   <div class="tour-body" id="tour-body">
@@ -2247,6 +2276,7 @@ const S = {
     hintArrow:'這個才對',
     levelDone:'完成！',
     stars3:'完美！', stars2:'做得好！', stars1:'繼續加油！',
+    failHeader:'未通過', failWhy:'要拿到至少 1 顆星才能解鎖下一關', stFailWhy:'要得至少 1 分才能解鎖下一關',
     tapToContinue:'輕按繼續',
     tapHand:'輕按這根針',
     tourContinue:'繼續',
@@ -2451,6 +2481,7 @@ const S = {
     hintArrow:'This one!',
     levelDone:'Done!',
     stars3:'Perfect!', stars2:'Well done!', stars1:'Keep going!',
+    failHeader:"Didn't pass", failWhy:'Earn at least 1 ★ to unlock the next level', stFailWhy:'Score at least 1 to unlock the next level',
     tapToContinue:'Tap to continue',
     tapHand:'Tap this hand',
     tourContinue:'Continue',
@@ -2654,10 +2685,13 @@ const storage = {
     return localStorage.getItem(k);
   },
   setItem(k, v) {
+    // Dual-write — always hit both stores when SDK is available so they don't
+    // drift out of sync. Either side can fail (SDK unreachable, localStorage
+    // quota/private mode) without affecting the other.
     if (this.useSdk) {
-      try { window.CrazyGames.SDK.data.setItem(k, v); return; } catch(e) {}
+      try { window.CrazyGames.SDK.data.setItem(k, v); } catch(e) {}
     }
-    localStorage.setItem(k, v);
+    try { localStorage.setItem(k, v); } catch(e) {}
   },
   gameplayStart() {
     if (this.useSdk) try { window.CrazyGames.SDK.game.gameplayStart(); } catch(e) {}
@@ -2972,15 +3006,31 @@ function renderHome() {
   // routes into the SpeedTest IIFE rather than the curriculum flow.
   const buildSpeedTestTile = () => {
     const tile = document.createElement('div');
-    tile.className = 'level-stop';
-    tile.onclick = () => { beepTap(); startLevel(11); };
+    const unlocked = isUnlocked(11);
     let stBest = 0;
     try { stBest = parseInt(localStorage.getItem('clockKingdom_speedtest_best') || '0', 10); } catch(e) {}
-    tile.innerHTML = `
-      <div class="lnum">11</div>
-      <div class="lname">${t('stTileName')}</div>
-      <div class="stars" style="font-size:13px;"><span class="ultimate-score-icon">${SCORE_ICON_SVG}</span> ${stBest}</div>
-    `;
+    // Speed Test is score-based — mirrors the L17/3-star rule: any score > 0 = completed (yellow).
+    const stPerfect = stBest > 0;
+    tile.className = 'level-stop' + (!unlocked ? ' locked' : '') + (stPerfect ? ' completed' : '');
+    if (unlocked) {
+      tile.onclick = () => { beepTap(); startLevel(11); };
+      tile.innerHTML = `
+        <div class="lnum">11</div>
+        <div class="lname">${t('stTileName')}</div>
+        <div class="stars" style="font-size:13px;"><span class="ultimate-score-icon">${SCORE_ICON_SVG}</span> ${stBest}</div>
+      `;
+    } else {
+      tile.innerHTML = `<div class="lnum">11</div>
+        <div class="lname">${t('stTileName')}</div>
+        <div class="lock-badge">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M7 10V7a5 5 0 0 1 10 0v3" stroke="#8B8FA3" stroke-width="2.5" stroke-linecap="round"/>
+            <rect x="4.5" y="10" width="15" height="11" rx="2.5" fill="#A8ACBF"/>
+            <circle cx="12" cy="14.5" r="1.6" fill="white"/>
+            <rect x="11.2" y="14.5" width="1.6" height="3.2" rx="0.5" fill="white"/>
+          </svg>
+        </div>`;
+    }
     return tile;
   };
 
@@ -2991,14 +3041,22 @@ function renderHome() {
 
     const unlocked = isUnlocked(n);
     const stars = starsFor(n);
-    const perfect = stars === 3;            // yellow — all 3 stars
-    const isCurrent = n === currentLvl;     // pink — your next level
-    // Default teal/blue is used for a level that's been played but isn't perfect yet.
+    // L17 (Ultimate) is score-based, not star-based — read its best score
+    // from localStorage so we can mark the tile completed (yellow) once they've
+    // landed any score >0, matching the L11 Speed Test rule.
+    let l17Best = 0;
+    if (n === 17) {
+      try { l17Best = parseInt(localStorage.getItem('clockKingdom_l15_best') || '0', 10); } catch(e) {}
+    }
+    const perfect = (n === 17) ? (l17Best > 0) : (stars === 3);  // yellow
+    const partial = (n !== 17) && (stars === 1 || stars === 2);  // orange (1–2 stars)
+    const isCurrent = n === currentLvl;                          // teal pulse — next to play
 
     const stop = document.createElement('div');
     stop.className = 'level-stop' +
       (!unlocked ? ' locked' : '') +
       (perfect ? ' completed' : '') +
+      (partial ? ' partial' : '') +
       (isCurrent ? ' current-level' : '');
 
     if (unlocked) {
@@ -3006,8 +3064,6 @@ function renderHome() {
       // L17 (Ultimate Test): show best score instead of stars
       let bottomEl;
       if (n === 17) {
-        let l17Best = 0;
-        try { l17Best = parseInt(localStorage.getItem('clockKingdom_l15_best') || '0', 10); } catch(e) {}
         bottomEl = `<div class="stars" style="font-size:13px;"><span class="ultimate-score-icon">${SCORE_ICON_SVG}</span> ${l17Best}</div>`;
       } else {
         bottomEl = `<div class="stars">${starsStr(n)}</div>`;
@@ -3468,20 +3524,36 @@ function renderTourProgressDots() {
 }
 
 // Live star indicator in tour header — same widget used in game screens.
-// 3 stars at start, drops to 2 on first wrong, 1 on second+.
+// Mirrors updateGameStars() exactly: 0 wrong=3⭐, 1=2⭐, 2-3=1⭐, 4+=0⭐ (gold/gray).
 function renderTourStars() {
   const el = document.getElementById('tour-stars-earned');
   if (!el) return;
-  el.innerHTML = emptyStarsStr();
+  const stars = calcStarsFromWrongs(wrongCount);
+  let html = '';
+  for (let i = 1; i <= 3; i++) {
+    html += `<span class="${i <= stars ? 'star-on' : 'star-off'}">★</span>`;
+  }
+  el.innerHTML = html;
 }
 
 // Wrong-tap handler for unguided steps (4, 5). Same shake/beep/star-drop
 // the game uses, so Level 1 grades like every other level.
+// Also shows "Try again!" in the tour hint slot to match the L2+ feedback
+// pattern (checkReadAnswer/checkSetAnswer both write t('wrongMsg') to their
+// feedback elements). The text is auto-cleared when renderTourStep() runs
+// next (it sets hintEl.textContent = ''), so it doesn't leak between steps.
 function tourHandleWrongTap() {
   wrongCount++;
   beepWrong();
   shakeClock();
   renderTourStars();
+  const hintEl = document.getElementById('tour-hint');
+  if (hintEl) {
+    hintEl.textContent = t('wrongMsg');
+    // Apply the wrong-feedback styling so it visually matches L2+'s #read-feedback
+    // (pink, Nunito, 22px/700) instead of the gray default hint look.
+    hintEl.classList.add('wrong');
+  }
 }
 
 function startTour() {
@@ -3504,6 +3576,7 @@ function renderTourStep() {
 
   btn.classList.add('hidden');
   hintEl.textContent = '';
+  hintEl.classList.remove('wrong'); // clear wrong-feedback styling between steps
   tutorCursorClearAnchor(); // each step decides whether to show cursor
   textEl.classList.remove('has-sub'); // each step decides whether to show 2-row layout
   renderTourProgressDots();
@@ -3516,7 +3589,7 @@ function renderTourStep() {
     textEl.textContent = state.lang === 'zh' ? '這是時鐘！' : 'This is a clock!';
     stopTutorialLoop(); // No number-pulsing on step 0 — that's for step 1
     setClockHands(10, 10); setMinuteHandVisible(true);
-    hintEl.textContent = t('tapToContinue');
+    // Continue button is self-explanatory — suppress redundant "tap to continue" hint.
     btn.textContent = t('tourContinue');
     btn.classList.remove('hidden');
     tickySayKey('tickyHi', 'idle', 4000);
@@ -3528,7 +3601,7 @@ function renderTourStep() {
     activeTutorialLoop = makeTutLoop(() => [
       { fn: resolve => { pulseNumbers(); setTimeout(resolve, 12 * 120 + 350); }, delay: 800 }
     ]);
-    hintEl.textContent = t('tapToContinue');
+    // Continue button is self-explanatory — suppress redundant "tap to continue" hint.
     btn.textContent = t('tourContinue');
     btn.classList.remove('hidden');
     tickySayKey('tickyLetMe', 'thinking', 4000);
@@ -5782,17 +5855,34 @@ function endLevel() {
   const stars = wrongCount === 0 ? 3 : wrongCount === 1 ? 2 : wrongCount >= 4 ? 0 : 1;
   const prev = starsFor(n);
   if (stars > prev) { state.progress[n] = stars; saveState(); }
-  showCompleteOverlay(stars, n);
+  // Gate decision uses best-of-attempts: a 3-star replay with 0 stars today still passes.
+  showCompleteOverlay(stars, n, Math.max(prev, stars));
 }
 
-function showCompleteOverlay(stars, n) {
+function showCompleteOverlay(stars, n, bestStars) {
   storage.happytime();
   const overlay = document.getElementById('overlay-complete');
   overlay.classList.remove('hidden');
-  document.getElementById('complete-done-label').textContent = '🎉 ' + t('levelDone');
-  document.getElementById('complete-title').textContent = stars === 3 ? t('stars3') : stars === 2 ? t('stars2') : t('stars1');
+  // Pass-gate uses best across attempts (passed in from endLevel); falls back to this attempt for direct callers.
+  const effectiveStars = (typeof bestStars === 'number') ? bestStars : stars;
+  const failed = effectiveStars === 0;
+  // Headline: don't say "Done" on failure — that's misleading. Use a clear "didn't pass" instead, in red.
+  const doneLabelEl = document.getElementById('complete-done-label');
+  doneLabelEl.textContent = failed ? t('failHeader') : '🎉 ' + t('levelDone');
+  doneLabelEl.style.color = failed ? '#FF6B9D' : '';
+  // Subtitle: on failure, explain WHY — they need ≥1 star to unlock the next level.
+  document.getElementById('complete-title').textContent = failed ? t('failWhy') : stars === 3 ? t('stars3') : stars === 2 ? t('stars2') : t('stars1');
   const nextBtn = document.getElementById('next-btn');
-  nextBtn.textContent = n < TOTAL_LEVELS ? t('nextLevel') : t('title');
+  if (failed) {
+    nextBtn.textContent = t('tryAgainBtn');
+    nextBtn.onclick = () => {
+      document.getElementById('overlay-complete').classList.add('hidden');
+      beginLevel(currentLevel);
+    };
+  } else {
+    nextBtn.textContent = n < TOTAL_LEVELS ? t('nextLevel') : t('title');
+    nextBtn.onclick = goNextLevel;
+  }
 
   const starsEl = document.getElementById('complete-stars');
   let html = '';
@@ -5811,12 +5901,18 @@ function showCompleteOverlay(stars, n) {
     }, i * 250);
   }
 
-  // Confetti rain + fanfare
-  setTimeout(() => {
-    spawnConfettiRain(2200);
-    beepFanfare();
-    tickySayKey('tickyCheer', 'cheering', 5000);
-  }, 400);
+  if (failed) {
+    setTimeout(() => {
+      tickySayKey('failWhy', 'sad', 5000);
+    }, 400);
+  } else {
+    // Confetti rain + fanfare
+    setTimeout(() => {
+      spawnConfettiRain(2200);
+      beepFanfare();
+      tickySayKey('tickyCheer', 'cheering', 5000);
+    }, 400);
+  }
 }
 
 function goNextLevel() {
@@ -6319,12 +6415,13 @@ const SpeedTest = (function () {
       try { localStorage.setItem(bestKey, String(bestScore)); } catch(e) {}
       newBest = true;
     }
-    // Top message: "New best!" callout when applicable, otherwise empty so the
-    // score block (now its own section, mirrors regular #overlay-complete shape)
-    // is the dominant element.
+    // Top message: "New best!" callout if scoring up, "Didn't pass + why" if still at 0,
+    // otherwise empty so the score block is the dominant element.
     const msgEl = endMsgEl();
     if (newBest && score > 0) {
       msgEl.innerHTML = `<div style="color:#FF6B9D;font-size:22px;font-weight:700;">${t('stNewBest')}</div>`;
+    } else if (bestScore === 0) {
+      msgEl.innerHTML = `<div style="color:#FF6B9D;font-size:22px;font-weight:700;">${t('failHeader')}</div><div style="color:#2D3047;font-size:15px;font-weight:600;margin-top:4px;">${t('stFailWhy')}</div>`;
     } else {
       msgEl.innerHTML = '';
     }
@@ -6338,6 +6435,10 @@ const SpeedTest = (function () {
     if (valEl) valEl.textContent = String(score);
     const bestValEl = $('st-end-best-value');
     if (bestValEl) bestValEl.textContent = String(bestScore);
+    // Score=0 with no prior best fails the gate: hide "Next Level →" so the only path forward is Try Again.
+    // Matches isUnlocked(12) which already requires best > 0.
+    const nextBtn = $('st-btn-next');
+    if (nextBtn) nextBtn.style.display = bestScore > 0 ? '' : 'none';
     endOverlay().classList.remove('hidden');
   }
 
@@ -6530,7 +6631,33 @@ function migrateLevelNumbering_v10read1min() {
       const s = await storage.getItem('clockgame_v8');
       if (s) {
         const p = JSON.parse(s);
-        if (p.version === 8) { state = p; migrateLevelNumbering_v9speedtest(); migrateLevelNumbering_v9readclock(); migrateLevelNumbering_v10read1min(); renderHome(); }
+        if (p.version === 8) {
+          // MERGE — don't overwrite. While SDK init was in-flight, the user
+          // may have already played and earned stars; those saves went to
+          // localStorage only (useSdk was false at save time). Replacing
+          // `state` with the SDK snapshot would wipe that in-flight progress
+          // — exact symptom: pass L10 → press Next → back to home → L10
+          // shows locked because state.progress[10] just got clobbered.
+          // Take the max per level so we never lose stars from either side.
+          const sdkProgress = (p.progress && typeof p.progress === 'object') ? p.progress : {};
+          state.progress = state.progress || {};
+          for (const k of Object.keys(sdkProgress)) {
+            const sdkStars = sdkProgress[k] || 0;
+            const memStars = state.progress[k] || 0;
+            if (sdkStars > memStars) state.progress[k] = sdkStars;
+          }
+          // Union migration flags so a once-applied shift never re-runs.
+          state.migrations = Object.assign({}, p.migrations || {}, state.migrations || {});
+          // Lang preference: prefer SDK if memory hasn't set one yet.
+          if (!state.lang && p.lang) state.lang = p.lang;
+          state.version = 8;
+          migrateLevelNumbering_v9speedtest();
+          migrateLevelNumbering_v9readclock();
+          migrateLevelNumbering_v10read1min();
+          // Push the merged state back so SDK + localStorage converge.
+          saveState();
+          renderHome();
+        }
       }
     } catch(e) {}
   }
