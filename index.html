@@ -5912,8 +5912,11 @@ function endLevel() {
   const stars = wrongCount === 0 ? 3 : wrongCount === 1 ? 2 : wrongCount >= 4 ? 0 : 1;
   const prev = starsFor(n);
   if (stars > prev) { state.progress[n] = stars; saveState(); }
-  // Gate decision uses best-of-attempts: a 3-star replay with 0 stars today still passes.
-  showCompleteOverlay(stars, n, Math.max(prev, stars));
+  // Pass/fail reflects the CURRENT attempt — 0 stars (4+ wrong) always shows the fail screen,
+  // even on replays of an already-cleared level. The previous best is preserved on
+  // state.progress[n] above (we only overwrite when the new run is better), so the next
+  // level stays unlocked; the user just doesn't get a misleading "Done!" for a bad run.
+  showCompleteOverlay(stars, n);
 }
 
 function showCompleteOverlay(stars, n, bestStars) {
