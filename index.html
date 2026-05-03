@@ -2814,6 +2814,27 @@ function emptyStarsStr() {
   return '<span class="star-off">★</span>'.repeat(3);
 }
 
+// Walk state.progress in order and delete any entry whose level isn't actually
+// unlocked (i.e. an "orphan" star where the prerequisite chain is broken).
+// Symptom this prevents: a level appears in `current-level` (teal) or even
+// plays through, while the previous level is still grey/locked. Causes seen
+// in the wild: leftover saves from old PLAYTEST_UNLOCK_ALL test runs, and
+// SDK/localStorage merges where one side had partial progress. Walking from
+// L2 upward means cascading deletes work — clearing progress[k] flips
+// isUnlocked(k+1) to false on the next iteration so the whole orphan chain
+// gets scrubbed in one pass.
+function healOrphanProgress() {
+  if (!state.progress) return false;
+  let healed = false;
+  for (let n = 2; n <= TOTAL_LEVELS; n++) {
+    if (state.progress[n] && !isUnlocked(n)) {
+      delete state.progress[n];
+      healed = true;
+    }
+  }
+  return healed;
+}
+
 // Calculate stars earned based on wrongCount (matches end-of-level formula)
 function calcStarsFromWrongs(count) {
   return count === 0 ? 3 : count === 1 ? 2 : count >= 4 ? 0 : 1;
@@ -6622,6 +6643,10 @@ const SpeedTest = (function () {
       saveState();
     }
   } catch(e) {}
+  // Scrub orphan stars (entries whose prerequisite chain is broken) before the
+  // first paint — without this, a corrupted save renders one or more levels as
+  // unlocked even though the previous level is still grey/locked.
+  try { if (healOrphanProgress()) { console.warn('[heal] Removed orphan progress entries'); saveState(); } } catch(e) {}
   showHome();
 
   // Upgrade to SDK storage in the background — cap at 2 s so a slow or
@@ -6651,6 +6676,9 @@ const SpeedTest = (function () {
           // Lang preference: prefer SDK if memory hasn't set one yet.
           if (!state.lang && p.lang) state.lang = p.lang;
           state.version = 8;
+          // SDK side may have orphan progress that the merge just pulled in —
+          // re-run the scrub so we don't render with a broken unlock chain.
+          healOrphanProgress();
           // Push the merged state back so SDK + localStorage converge.
           saveState();
           renderHome();
