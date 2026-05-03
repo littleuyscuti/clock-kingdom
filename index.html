@@ -650,11 +650,18 @@ body.is-zoomed .game-body {
 .game-body:has(#choices.hidden) #read-feedback.hidden { display: none !important; }
 .hint-msg { font-size: 16px; color: #888; min-height: 22px; }
 
-/* Read prompt */
+/* Read prompt
+   flex-shrink:0 so this never collapses below its content height — without it,
+   long L5 prompts ("The hour hand is between 7 and 8. It hasn't reached 8 yet
+   — what hour?") wrap to 2–3 lines, but the flex parent shrinks the box to
+   min-height:30px and the overflowing text paints on top of the choices grid
+   below. line-height tightened so multi-line prompts stay compact. */
 #read-prompt {
   font-size: 22px; font-weight: 700; color: var(--ck-bg-dark);
   text-align: center; min-height: 30px;
   font-family: 'Nunito', sans-serif;
+  flex-shrink: 0;
+  line-height: 1.25;
 }
 #read-prompt:empty { min-height: 0; margin: 0; padding: 0; line-height: 0; }
 
@@ -1447,7 +1454,7 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
     min-width: 140px;
   }
   .feedback-msg { font-size: 15px; min-height: 20px; height: 24px; line-height: 20px; overflow: visible; }
-  #read-prompt { font-size: 22px; min-height: 30px; padding: 0 12px; margin-bottom: 14px; }
+  #read-prompt { font-size: 18px; min-height: 24px; padding: 0 8px; margin-bottom: 6px; line-height: 1.25; }
   #read-feedback { font-size: 17px; top: 100px; height: 26px; line-height: 22px; overflow: visible; margin-top: 12px; }
   /* L2 only: bump the number-clock (digital-target) larger on phones. Scoped via
      digital-target--l2 (added in showQuestion) so L11/L17/other levels are unaffected. */
@@ -1923,6 +1930,13 @@ body.tut-active .ticky-container { display: none !important; }
   #screen-speedtest .st-falling-clock,
   #screen-speedtest .st-clock-svg-wrap { width: 195px; }
   #screen-speedtest .st-clock-svg-wrap { height: 195px; }
+}
+/* Mobile-only: shrink falling clock ~88% to fit narrow screens better.
+   Overrides the 195px override above when viewport is narrow phone width. */
+@media (max-width: 500px) {
+  #screen-speedtest .st-falling-clock,
+  #screen-speedtest .st-clock-svg-wrap { width: 188px; }
+  #screen-speedtest .st-clock-svg-wrap { height: 188px; }
 }
 
 </style>
@@ -5991,11 +6005,13 @@ const SpeedTest = (function () {
   const MAX_LIVES = 3;
   const LAVA_ZONE_H = 90;
   const TIMING_WINDOWS = [
-    { start: 0,   end: 30,  fallDuration: 12000, intervalStart: 10000, intervalEnd: 8000, maxOnScreen: 1, emptyCatchup: 3000, points: 10 },
-    { start: 30,  end: 60,  fallDuration: 10000, intervalStart: 8000,  intervalEnd: 6500, maxOnScreen: 2, emptyCatchup: 2500, points: 15 },
-    { start: 60,  end: 90,  fallDuration: 8000,  intervalStart: 7000,  intervalEnd: 5500, maxOnScreen: 2, emptyCatchup: 2000, points: 20 },
-    { start: 90,  end: 120, fallDuration: 7000,  intervalStart: 6000,  intervalEnd: 5000, maxOnScreen: 3, emptyCatchup: 1500, points: 25 },
-    { start: 120, end: 180, fallDuration: 5500,  intervalStart: 5000,  intervalEnd: 4000, maxOnScreen: 3, emptyCatchup: 1000, points: 30 },
+    // Difficulty ramp ~1.4× steeper than original — fall durations & spawn intervals
+    // shrink faster window-to-window so mid/late game pressures up sooner.
+    { start: 0,   end: 30,  fallDuration: 11000, intervalStart: 10000, intervalEnd: 7500, maxOnScreen: 1, emptyCatchup: 3000, points: 10 },
+    { start: 30,  end: 60,  fallDuration: 8500,  intervalStart: 7500,  intervalEnd: 5800, maxOnScreen: 2, emptyCatchup: 2500, points: 15 },
+    { start: 60,  end: 90,  fallDuration: 6800,  intervalStart: 6200,  intervalEnd: 4700, maxOnScreen: 2, emptyCatchup: 2000, points: 20 },
+    { start: 90,  end: 120, fallDuration: 5700,  intervalStart: 5200,  intervalEnd: 4100, maxOnScreen: 3, emptyCatchup: 1500, points: 25 },
+    { start: 120, end: 180, fallDuration: 4400,  intervalStart: 4100,  intervalEnd: 3200, maxOnScreen: 3, emptyCatchup: 1000, points: 30 },
   ];
   const MIN_SPAWN_GAP  = 3500;
   const ST_CX = 120, ST_CY = 120, ST_R = 108;
@@ -6337,9 +6353,10 @@ const SpeedTest = (function () {
       setTimeout(() => btn.classList.remove('st-correct-flash'), 320);
       renderChoices();
     } else {
-      // Punish wrong taps by accelerating the targeted clock by 1.5× —
-      // compounds per wrong tap on the same clock.
-      target.speedMultiplier *= 1.5;
+      // Punish wrong taps by accelerating the targeted clock by 1.8× —
+      // compounds per wrong tap on the same clock. Bumped from 1.5× per
+      // Ariel's request for a noticeably bigger penalty.
+      target.speedMultiplier *= 1.8;
       btn.classList.remove('st-wrong-shake');
       void btn.offsetWidth;
       btn.classList.add('st-wrong-shake');
