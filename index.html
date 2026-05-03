@@ -3029,8 +3029,11 @@ function renderHome() {
     let stBest = 0;
     try { stBest = parseInt(localStorage.getItem('clockKingdom_speedtest_best') || '0', 10); } catch(e) {}
     // Speed Test is score-based — mirrors the L17/3-star rule: any score > 0 = completed (yellow).
+    // Locked is mutually exclusive with completed: an orphan best-score (locked tile with prior
+    // progress) must render as plain locked, not yellow + lock badge — `.completed` wins on border
+    // and shadow if both classes are present, producing the "locked-but-yellow" visual bug.
     const stPerfect = stBest > 0;
-    tile.className = 'level-stop' + (!unlocked ? ' locked' : '') + (stPerfect ? ' completed' : '');
+    tile.className = 'level-stop' + (!unlocked ? ' locked' : (stPerfect ? ' completed' : ''));
     if (unlocked) {
       tile.onclick = () => { beepTap(); startLevel(11); };
       tile.innerHTML = `
@@ -3072,11 +3075,16 @@ function renderHome() {
     const isCurrent = n === currentLvl;                          // teal pulse — next to play
 
     const stop = document.createElement('div');
-    stop.className = 'level-stop' +
-      (!unlocked ? ' locked' : '') +
-      (perfect ? ' completed' : '') +
-      (partial ? ' partial' : '') +
-      (isCurrent ? ' current-level' : '');
+    // Locked is mutually exclusive with completed/partial/current-level. Orphan progress
+    // (state.progress[n] set on a still-locked level — possible after save migrations or
+    // the cascade-shift heal) used to render as `locked completed`, and `.completed`'s
+    // later source position made the tile show yellow border + shadow with the lock badge
+    // overlaid on top. A locked level should always look locked, regardless of any
+    // stale stars data.
+    const stateClass = !unlocked
+      ? ' locked'
+      : (isCurrent ? ' current-level' : '') + (perfect ? ' completed' : '') + (partial ? ' partial' : '');
+    stop.className = 'level-stop' + stateClass;
 
     if (unlocked) {
       stop.onclick = () => { beepTap(); startLevel(n); };
