@@ -143,12 +143,11 @@ body {
 /* Home fills viewport on tall screens; scrolls vertically on short viewports
    (e.g. CrazyGames iframe) so level tile text never clips. */
 #screen-home {
-  /* Lock to viewport: CrazyGames iframes set scrolling="no" so the
-     outer document can't scroll. #screen-home must be the scroll
-     container, which requires a fixed height (not min-height) so its
-     content genuinely overflows it. */
-  height: 100dvh;
-  max-height: 100dvh;
+  /* Height-stable: take at least the viewport height but allow the
+     page to extend and scroll naturally on shorter viewports
+     (e.g. CrazyGames iframe ~686px). No height squeeze. */
+  min-height: 100dvh;
+  max-height: none;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
@@ -284,8 +283,8 @@ body.is-zoomed .game-body {
 
 .level-stop {
   width: auto; min-height: 0; height: 100%; background: white;
-  border-radius: clamp(14px, 2vh, 22px);
-  padding: clamp(6px, 1vh, 14px) clamp(4px, 1vw, 10px);
+  border-radius: clamp(14px, 1.4vw, 22px);
+  padding: clamp(6px, 0.7vw, 14px) clamp(4px, 1vw, 10px);
   text-align: center; cursor: pointer;
   /* Default neutral border — completed levels overlay yellow, current
      overlays brand teal, locked overlays gray + lock badge. Keeps the
@@ -545,16 +544,17 @@ body.is-zoomed .game-body {
 .clock-wrap svg, .tut-visual svg, #tour-clock-wrap svg {
   filter: drop-shadow(0 8px 24px rgba(0,0,0,0.18));
 }
-/* Make clock SVG scale down on narrow/short screens.
+/* Make clock SVG scale down on narrow screens.
    Default rule covers phones + iPads. Desktop is bumped below.
-   Caps bumped 300→338, 62vw→70vw, 38vh→43vh to compensate for the larger
+   Caps bumped 300→338, 62vw→70vw to compensate for the larger
    viewBox (-20 -20 360 360 vs old 0 0 320 320) — keeps the inner clock
    face at the same on-screen size as before while letting the outer
    minute labels (radius R+18) render outside the rim instead of being
-   clipped. Ratio: 338/300 ≈ 360/320 = 1.125. */
+   clipped. Ratio: 338/300 ≈ 360/320 = 1.125. Height-stable: no vh cap,
+   so short iframes don't shrink the clock — page just scrolls. */
 .clock-wrap svg, .tut-visual svg, #tour-clock-wrap svg {
   display: block;
-  width: min(338px, 70vw, 43vh);
+  width: min(338px, 70vw);
   height: auto;
 }
 /* Desktop only — bigger clock. Triple-gated to exclude touch devices:
@@ -562,10 +562,11 @@ body.is-zoomed .game-body {
    • hover: hover  → real mouse / trackpad with hover state
    • pointer: fine → precise pointer (excludes finger touchscreens)
    Phones + iPads keep the default cap. Caps bumped 380→428 / 38vw→43vw
-   / 52vh→58vh for the same viewBox-compensation reason as above. */
+   for the same viewBox-compensation reason as above. Height-stable:
+   no vh cap, so short iframes don't shrink the clock. */
 @media (min-width: 1100px) and (hover: hover) and (pointer: fine) {
   .clock-wrap svg, .tut-visual svg, #tour-clock-wrap svg {
-    width: min(428px, 43vw, 58vh);
+    width: min(428px, 43vw);
   }
 }
 /* Correct state: turn the clock's own face border green (instead of drawing
@@ -1356,10 +1357,11 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
    heights, font sizes, or paddings — only the grid scroll changes.
 ══════════════════════════════════════ */
 @media (max-width: 500px), (max-height: 500px) {
-  /* Lock game/tutorial/tour screens to viewport. Home screen scrolls when short. */
+  /* Height-stable: take at least the viewport height but allow the page
+     to extend on shorter viewports (e.g. CrazyGames iframe). */
   #screen-game, #screen-tutorial, #screen-tour, #screen-speedtest {
-    height: 100dvh;
-    max-height: 100dvh;
+    min-height: 100dvh;
+    max-height: none;
     overflow: hidden;
   }
   #screen-home {
@@ -1521,8 +1523,8 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
    Home uses identical CSS in both orientations. */
 @media (max-height: 700px) {
   #screen-game, #screen-tutorial, #screen-tour, #screen-speedtest {
-    height: 100dvh;
-    max-height: 100dvh;
+    min-height: 100dvh;
+    max-height: none;
     overflow: hidden;
   }
   .game-body { gap: 7px; padding: 6px 16px 72px; }
