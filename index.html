@@ -249,18 +249,14 @@ body.is-zoomed .game-body {
   50%      { transform: translateZ(0) scale(1.02); }
 }
 
-/* World map path area — flex-fills the middle band between sticky
-   header and footer, and scrolls its own grid internally when the
-   grid exceeds available height. Previously used overflow:visible
-   which let tiles spill into the footer and overlap the reset button
-   on short viewports / iframes. */
+/* World map path area. Let the BROWSER viewport handle scroll on
+   short windows — no inner overflow:auto here, otherwise wheel events
+   are captured here and require a second wheel to chain to viewport. */
 .world-map {
   flex: 1 1 auto; min-height: 0;
   position: relative; padding: 16px 20px 24px;
   display: flex; flex-direction: column; align-items: center;
   justify-content: flex-start;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
 }
 /* Level grid — 3 cols, min 118px tall rows. `margin: auto 0` centers
    the grid within .world-map when spare vertical space exists, and
