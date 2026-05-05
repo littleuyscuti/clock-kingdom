@@ -1365,7 +1365,7 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
    on the same rules means rotation doesn't have to reflow header
    heights, font sizes, or paddings — only the grid scroll changes.
 ══════════════════════════════════════ */
-@media (max-width: 500px), (max-height: 500px) {
+@media (max-width: 500px) {
   /* Height-stable: locked to designed pixel height so interior layout
      does not change with viewport. */
   #screen-game, #screen-tutorial, #screen-tour, #screen-speedtest {
@@ -1531,7 +1531,7 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
 
 /* Extra squeeze for very short viewports — game/tutorial/tour only.
    Home uses identical CSS in both orientations. */
-@media (max-height: 700px) {
+@media (max-width: 500px) and (max-height: 700px) {
   #screen-game, #screen-tutorial, #screen-tour, #screen-speedtest {
     height: 760px;
     max-height: 760px;
