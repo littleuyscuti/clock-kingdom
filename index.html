@@ -79,15 +79,23 @@ html {
   /* Solid blue so iOS overscroll bounce (top AND bottom) is unified blue,
      not the gradient's orange bottom. Gradient moved to .sky-bg below. */
   background-color: #B8E1FF;
-  min-height: 100dvh;
+  /* No fixed height — let the page grow to fit the 760px game container
+     and let the browser/iframe scroll vertically when the viewport is
+     shorter. Previously used `min-height: 100dvh` which (combined with
+     interior `flex: 1` children) caused vertical squish in short
+     iframes (e.g. CrazyGames). */
+  overflow-y: auto;
 }
 body {
   font-family: 'Nunito', 'Noto Sans TC', 'PingFang TC', sans-serif;
-  min-height: 100dvh;
   font-size: 20px;
   user-select: none;
   -webkit-user-select: none;
   background: transparent;
+  /* Allow vertical scroll when viewport is shorter than the 760px game
+     container. No min-height: 100dvh — that constrained body to the
+     viewport and prevented natural scroll growth. */
+  overflow-y: auto;
 }
 
 /* ── Sky background — fixed-viewport gradient + clouds. Fixed so it
@@ -136,18 +144,19 @@ body {
 
 /* ── Layout ── */
 #screen-home, #screen-game, #screen-tutorial, #screen-tour, #screen-speedtest {
-  min-height: 100dvh;
+  height: 760px;
+  max-height: 760px;
   display: flex; flex-direction: column;
   position: relative; z-index: 1;
 }
 /* Home fills viewport on tall screens; scrolls vertically on short viewports
    (e.g. CrazyGames iframe) so level tile text never clips. */
 #screen-home {
-  /* Height-stable: take at least the viewport height but allow the
-     page to extend and scroll naturally on shorter viewports
-     (e.g. CrazyGames iframe ~686px). No height squeeze. */
-  min-height: 100dvh;
-  max-height: none;
+  /* Height-stable: locked to designed pixel height so interior layout
+     does not change with viewport. On taller viewports the sky-bg
+     gradient fills the rest; on shorter viewports the body scrolls. */
+  height: 760px;
+  max-height: 760px;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
@@ -1357,15 +1366,16 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
    heights, font sizes, or paddings — only the grid scroll changes.
 ══════════════════════════════════════ */
 @media (max-width: 500px), (max-height: 500px) {
-  /* Height-stable: take at least the viewport height but allow the page
-     to extend on shorter viewports (e.g. CrazyGames iframe). */
+  /* Height-stable: locked to designed pixel height so interior layout
+     does not change with viewport. */
   #screen-game, #screen-tutorial, #screen-tour, #screen-speedtest {
-    min-height: 100dvh;
-    max-height: none;
+    height: 760px;
+    max-height: 760px;
     overflow: hidden;
   }
   #screen-home {
-    min-height: 100dvh;
+    height: 760px;
+    max-height: 760px;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
   }
@@ -1523,8 +1533,8 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
    Home uses identical CSS in both orientations. */
 @media (max-height: 700px) {
   #screen-game, #screen-tutorial, #screen-tour, #screen-speedtest {
-    min-height: 100dvh;
-    max-height: none;
+    height: 760px;
+    max-height: 760px;
     overflow: hidden;
   }
   .game-body { gap: 7px; padding: 6px 16px 72px; }
