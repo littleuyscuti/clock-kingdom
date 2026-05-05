@@ -141,16 +141,13 @@ body {
   display: flex; flex-direction: column;
   position: relative; z-index: 1;
 }
-/* Home fills viewport on tall screens; scrolls vertically on short viewports
-   (e.g. CrazyGames iframe) so level tile text never clips. */
+/* Home is a fixed 760px box; on short viewports the BROWSER (not an
+   inner scroll container) handles scroll. Inner overflow:auto here
+   caused "scroll twice" — wheel got eaten by this container before
+   chaining to the viewport. */
 #screen-home {
-  /* Height-stable: locked to designed pixel height so interior layout
-     does not change with viewport. On taller viewports the sky-bg
-     gradient fills the rest; on shorter viewports the body scrolls. */
   height: 760px;
   max-height: 760px;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
 }
 .hidden { display: none !important; }
 .hand-hidden { display: none !important; }
