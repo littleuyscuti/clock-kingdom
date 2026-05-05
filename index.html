@@ -79,12 +79,8 @@ html {
   /* Solid blue so iOS overscroll bounce (top AND bottom) is unified blue,
      not the gradient's orange bottom. Gradient moved to .sky-bg below. */
   background-color: #B8E1FF;
-  /* No fixed height — let the page grow to fit the 760px game container
-     and let the browser/iframe scroll vertically when the viewport is
-     shorter. Previously used `min-height: 100dvh` which (combined with
-     interior `flex: 1` children) caused vertical squish in short
-     iframes (e.g. CrazyGames). */
-  overflow-y: auto;
+  /* No height/overflow set — content (760px game container) extends past
+     short viewports and the browser's natural viewport scroll kicks in. */
 }
 body {
   font-family: 'Nunito', 'Noto Sans TC', 'PingFang TC', sans-serif;
@@ -92,10 +88,6 @@ body {
   user-select: none;
   -webkit-user-select: none;
   background: transparent;
-  /* Allow vertical scroll when viewport is shorter than the 760px game
-     container. No min-height: 100dvh — that constrained body to the
-     viewport and prevented natural scroll growth. */
-  overflow-y: auto;
 }
 
 /* ── Sky background — fixed-viewport gradient + clouds. Fixed so it
