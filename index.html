@@ -79,11 +79,11 @@ html {
   /* Solid blue so iOS overscroll bounce (top AND bottom) is unified blue,
      not the gradient's orange bottom. Gradient moved to .sky-bg below. */
   background-color: #B8E1FF;
-  /* No height/overflow set — content (760px game container) extends past
-     short viewports and the browser's natural viewport scroll kicks in. */
+  min-height: 100dvh;
 }
 body {
   font-family: 'Nunito', 'Noto Sans TC', 'PingFang TC', sans-serif;
+  min-height: 100dvh;
   font-size: 20px;
   user-select: none;
   -webkit-user-select: none;
@@ -136,18 +136,21 @@ body {
 
 /* ── Layout ── */
 #screen-home, #screen-game, #screen-tutorial, #screen-tour, #screen-speedtest {
-  height: 760px;
-  max-height: 760px;
+  min-height: 100dvh;
   display: flex; flex-direction: column;
   position: relative; z-index: 1;
 }
-/* Home is a fixed 760px box; on short viewports the BROWSER (not an
-   inner scroll container) handles scroll. Inner overflow:auto here
-   caused "scroll twice" — wheel got eaten by this container before
-   chaining to the viewport. */
+/* Home fills viewport on tall screens; scrolls vertically on short viewports
+   (e.g. CrazyGames iframe) so level tile text never clips. */
 #screen-home {
-  height: 760px;
-  max-height: 760px;
+  /* Lock to viewport: CrazyGames iframes set scrolling="no" so the
+     outer document can't scroll. #screen-home must be the scroll
+     container, which requires a fixed height (not min-height) so its
+     content genuinely overflows it. */
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 .hidden { display: none !important; }
 .hand-hidden { display: none !important; }
@@ -249,14 +252,18 @@ body.is-zoomed .game-body {
   50%      { transform: translateZ(0) scale(1.02); }
 }
 
-/* World map path area. Let the BROWSER viewport handle scroll on
-   short windows — no inner overflow:auto here, otherwise wheel events
-   are captured here and require a second wheel to chain to viewport. */
+/* World map path area — flex-fills the middle band between sticky
+   header and footer, and scrolls its own grid internally when the
+   grid exceeds available height. Previously used overflow:visible
+   which let tiles spill into the footer and overlap the reset button
+   on short viewports / iframes. */
 .world-map {
   flex: 1 1 auto; min-height: 0;
   position: relative; padding: 16px 20px 24px;
   display: flex; flex-direction: column; align-items: center;
   justify-content: flex-start;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 /* Level grid — 3 cols, min 118px tall rows. `margin: auto 0` centers
    the grid within .world-map when spare vertical space exists, and
@@ -277,8 +284,8 @@ body.is-zoomed .game-body {
 
 .level-stop {
   width: auto; min-height: 0; height: 100%; background: white;
-  border-radius: clamp(14px, 1.4vw, 22px);
-  padding: clamp(6px, 0.7vw, 14px) clamp(4px, 1vw, 10px);
+  border-radius: clamp(14px, 2vh, 22px);
+  padding: clamp(6px, 1vh, 14px) clamp(4px, 1vw, 10px);
   text-align: center; cursor: pointer;
   /* Default neutral border — completed levels overlay yellow, current
      overlays brand teal, locked overlays gray + lock badge. Keeps the
@@ -538,17 +545,16 @@ body.is-zoomed .game-body {
 .clock-wrap svg, .tut-visual svg, #tour-clock-wrap svg {
   filter: drop-shadow(0 8px 24px rgba(0,0,0,0.18));
 }
-/* Make clock SVG scale down on narrow screens.
+/* Make clock SVG scale down on narrow/short screens.
    Default rule covers phones + iPads. Desktop is bumped below.
-   Caps bumped 300→338, 62vw→70vw to compensate for the larger
+   Caps bumped 300→338, 62vw→70vw, 38vh→43vh to compensate for the larger
    viewBox (-20 -20 360 360 vs old 0 0 320 320) — keeps the inner clock
    face at the same on-screen size as before while letting the outer
    minute labels (radius R+18) render outside the rim instead of being
-   clipped. Ratio: 338/300 ≈ 360/320 = 1.125. Height-stable: no vh cap,
-   so short iframes don't shrink the clock — page just scrolls. */
+   clipped. Ratio: 338/300 ≈ 360/320 = 1.125. */
 .clock-wrap svg, .tut-visual svg, #tour-clock-wrap svg {
   display: block;
-  width: min(338px, 70vw);
+  width: min(338px, 70vw, 43vh);
   height: auto;
 }
 /* Desktop only — bigger clock. Triple-gated to exclude touch devices:
@@ -556,11 +562,10 @@ body.is-zoomed .game-body {
    • hover: hover  → real mouse / trackpad with hover state
    • pointer: fine → precise pointer (excludes finger touchscreens)
    Phones + iPads keep the default cap. Caps bumped 380→428 / 38vw→43vw
-   for the same viewBox-compensation reason as above. Height-stable:
-   no vh cap, so short iframes don't shrink the clock. */
+   / 52vh→58vh for the same viewBox-compensation reason as above. */
 @media (min-width: 1100px) and (hover: hover) and (pointer: fine) {
   .clock-wrap svg, .tut-visual svg, #tour-clock-wrap svg {
-    width: min(428px, 43vw);
+    width: min(428px, 43vw, 58vh);
   }
 }
 /* Correct state: turn the clock's own face border green (instead of drawing
@@ -1350,17 +1355,15 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
    on the same rules means rotation doesn't have to reflow header
    heights, font sizes, or paddings — only the grid scroll changes.
 ══════════════════════════════════════ */
-@media (max-width: 500px) {
-  /* Height-stable: locked to designed pixel height so interior layout
-     does not change with viewport. */
+@media (max-width: 500px), (max-height: 500px) {
+  /* Lock game/tutorial/tour screens to viewport. Home screen scrolls when short. */
   #screen-game, #screen-tutorial, #screen-tour, #screen-speedtest {
-    height: 760px;
-    max-height: 760px;
+    height: 100dvh;
+    max-height: 100dvh;
     overflow: hidden;
   }
   #screen-home {
-    height: 760px;
-    max-height: 760px;
+    min-height: 100dvh;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
   }
@@ -1516,10 +1519,10 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
 
 /* Extra squeeze for very short viewports — game/tutorial/tour only.
    Home uses identical CSS in both orientations. */
-@media (max-width: 500px) and (max-height: 700px) {
+@media (max-height: 700px) {
   #screen-game, #screen-tutorial, #screen-tour, #screen-speedtest {
-    height: 760px;
-    max-height: 760px;
+    height: 100dvh;
+    max-height: 100dvh;
     overflow: hidden;
   }
   .game-body { gap: 7px; padding: 6px 16px 72px; }
