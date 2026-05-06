@@ -70,25 +70,117 @@
   --ck-correct-shadow: #4aa84a;
   /* Surfaces */
   --ck-bg-dark: #2D3047;
+  /* Topbar height — clamps to viewport so topbar + #screen-home stay in sync.
+     Conservative range: ~72px on a normal desktop, shrinks to 56 on narrow,
+     grows to 80 on tall windows. Used by #topbar height + #screen-home top. */
+  --topbar-h: clamp(56px, 8vh, 80px);
 }
 
 /* ── Reset ── */
 * { box-sizing: border-box; margin: 0; padding: 0; touch-action: manipulation; }
 
-html {
-  /* Solid blue so iOS overscroll bounce (top AND bottom) is unified blue,
-     not the gradient's orange bottom. Gradient moved to .sky-bg below. */
+/* ── Fixed-canvas + transform:scale() layout ──
+   Two design sizes:
+     • Landscape (default): 1280×900 — taller than 16:9 to fit clock +
+       prompt + choice grid + feedback without cropping.
+     • Portrait (body.portrait): 720×1280 — for phones held vertically.
+   JS detects orientation on resize and sets stage size + transform:scale()
+   accordingly. body letterboxes with #B8E1FF so bars match the sky
+   background. */
+html, body {
+  width: 100%;
+  height: 100%;
+  margin: 0; padding: 0;
+  overflow: hidden;
   background-color: #B8E1FF;
-  min-height: 100dvh;
 }
 body {
   font-family: 'Nunito', 'Noto Sans TC', 'PingFang TC', sans-serif;
-  min-height: 100dvh;
   font-size: 20px;
   user-select: none;
   -webkit-user-select: none;
-  background: transparent;
 }
+
+/* The unified scaled canvas. EVERYTHING (topbar + home + game screens +
+   overlays + ticky) lives inside this stage, so JS scaling via
+   transform:scale() makes the whole UI grow/shrink together. JS sets
+   width/height (1280×900 landscape, 720×1280 portrait) + transform:scale()
+   + integer absolute left/top on resize. Letterbox bars (sky-bg) fill the
+   gap when window aspect ratio doesn't match the canvas. */
+#game-stage {
+  width: 1280px;
+  height: 900px;
+  position: absolute;
+  top: 0; left: 0;
+  transform-origin: top left;
+  overflow: hidden;
+}
+body.portrait #game-stage {
+  width: 720px;
+  height: 1280px;
+}
+
+/* ── Top-bar HUD ──
+   Lives OUTSIDE #game-stage now — pinned to the viewport so it spans the
+   real window width and reflows with viewport changes (instead of being a
+   1280-wide bar that gets uniform-scaled with the canvas). Height clamps
+   to viewport via --topbar-h so #screen-home offset stays in sync. */
+#topbar {
+  position: fixed; top: 0; left: 0;
+  width: 100vw; height: var(--topbar-h);
+  z-index: 50;
+  /* Inline the same translucent-white gradient that the old extender used,
+     so the bar still reads as a glassy edge-to-edge surface. */
+  background: linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0.25));
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 2px solid rgba(255,255,255,0.55);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  box-sizing: border-box;
+  display: flex; align-items: center;
+  padding: clamp(6px, 1vh, 12px) clamp(12px, 2.5vw, 32px);
+}
+/* #topbar-extender removed — the real fixed topbar now spans the viewport
+   on its own, so the separate extender layer is no longer needed. */
+#topbar .topbar-mode {
+  width: 100%;
+  display: none;
+  align-items: center;
+  gap: 10px;
+}
+#topbar .topbar-mode.active { display: flex; }
+/* Home mode: brand on left, lang on right */
+#topbar .topbar-mode[data-mode="home"] {
+  justify-content: space-between;
+}
+/* Game/tutorial/tour/speedtest mode: 3-column grid (back | label | right-slot) */
+#topbar .topbar-mode[data-mode="game"],
+#topbar .topbar-mode[data-mode="tutorial"],
+#topbar .topbar-mode[data-mode="tour"],
+#topbar .topbar-mode[data-mode="speedtest"] {
+  display: none;
+}
+#topbar .topbar-mode[data-mode="game"].active,
+#topbar .topbar-mode[data-mode="tutorial"].active,
+#topbar .topbar-mode[data-mode="tour"].active,
+#topbar .topbar-mode[data-mode="speedtest"].active {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  width: 100%;
+}
+#topbar .topbar-mode[data-mode="game"] > :first-child,
+#topbar .topbar-mode[data-mode="tutorial"] > :first-child,
+#topbar .topbar-mode[data-mode="tour"] > :first-child,
+#topbar .topbar-mode[data-mode="speedtest"] > :first-child { justify-self: start; }
+#topbar .topbar-mode[data-mode="game"] > .game-level-label,
+#topbar .topbar-mode[data-mode="tutorial"] > .game-level-label,
+#topbar .topbar-mode[data-mode="tour"] > .game-level-label,
+#topbar .topbar-mode[data-mode="speedtest"] > .game-level-label { justify-self: center; text-align: center; }
+#topbar .topbar-mode[data-mode="game"] > :last-child,
+#topbar .topbar-mode[data-mode="tutorial"] > :last-child,
+#topbar .topbar-mode[data-mode="tour"] > :last-child,
+#topbar .topbar-mode[data-mode="speedtest"] > :last-child { justify-self: end; }
 
 /* ── Sky background — fixed-viewport gradient + clouds. Fixed so it
    stays put when inner content scrolls; overscroll bounce past it
@@ -134,23 +226,35 @@ body {
 
 @keyframes cloud-drift { from { transform: translateX(0); } to { transform: translateX(calc(100vw + 200px)); } }
 
-/* ── Layout ── */
-#screen-home, #screen-game, #screen-tutorial, #screen-tour, #screen-speedtest {
-  min-height: 100dvh;
+/* ── Layout ──
+   Game screens fill 100% of the parent #game-stage so they work in both
+   landscape (1280×900) and portrait (720×1280) without per-screen overrides.
+   #screen-home is intentionally excluded — it lives outside #game-stage and
+   is sized to the full viewport (below the topbar) so it renders like a
+   regular responsive web page. */
+#screen-game, #screen-tutorial, #screen-tour, #screen-speedtest {
+  width: 100%;
+  height: 100%;
   display: flex; flex-direction: column;
   position: relative; z-index: 1;
 }
-/* Home fills viewport on tall screens; scrolls vertically on short viewports
-   (e.g. CrazyGames iframe) so level tile text never clips. */
+/* Home screen — lives OUTSIDE #game-stage now. Pinned to the viewport
+   below the fixed topbar (top: var(--topbar-h)) so it fills the actual
+   window and reflows responsively, instead of being trapped inside the
+   1280×900 canvas. Scrolls internally so any extra tile rows can be
+   reached. Game/tutorial/tour/speedtest screens still live inside the
+   scaled stage — only home is hoisted out. */
 #screen-home {
-  /* Lock to viewport: CrazyGames iframes set scrolling="no" so the
-     outer document can't scroll. #screen-home must be the scroll
-     container, which requires a fixed height (not min-height) so its
-     content genuinely overflows it. */
-  height: 100dvh;
-  max-height: 100dvh;
+  position: fixed;
+  top: var(--topbar-h);
+  left: 0;
+  right: 0;
+  bottom: 0;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+  z-index: 20;  /* above #game-stage's letterbox + extender layer */
 }
 .hidden { display: none !important; }
 .hand-hidden { display: none !important; }
@@ -166,33 +270,24 @@ body {
    pan. The is-zoomed class (toggled by JS via window.visualViewport)
    disables inner overflow:auto so two-finger scroll pans the whole
    zoomed view as expected. Reverts automatically at scale 1. */
-body.is-zoomed #screen-home,
-body.is-zoomed .world-map,
-body.is-zoomed .game-body {
-  overflow: visible !important;
-  height: auto !important;
-  max-height: none !important;
-}
+/* Home now lives inside the scaled #game-stage and has its own internal
+   scroll, so the previous body.is-zoomed #screen-home / .world-map /
+   .game-body unwrappers (which broke out of the layout on pinch-zoom)
+   are no longer needed — pinch-zoom just scales the whole stage uniformly. */
 
 /* ══════════════════════════════════════
    HOME SCREEN — World Map style
 ══════════════════════════════════════ */
-.home-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 10px 18px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0.25));
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border-bottom: 2px solid rgba(255,255,255,0.55);
-  height: 72px; box-sizing: border-box;
-  gap: 10px;
-}
+/* Old .home-header rule removed — its content lives in #topbar [data-mode="home"]. */
 .brand-lockup {
   display: flex; align-items: center; gap: 10px;
   min-width: 0; flex: 1;
 }
 .brand-ticky-mini {
-  width: 46px; height: 50px; flex-shrink: 0;
+  /* clamp() so the brand mascot scales gently with viewport instead of
+     being frozen at 46×50 like before. Conservative: ~46–52 on a normal
+     desktop, shrinks on phones, grows a touch on big monitors. */
+  width: clamp(34px, 4.5vw, 62px); height: clamp(38px, 5vw, 68px); flex-shrink: 0;
   filter: drop-shadow(0 3px 4px rgba(45,48,71,0.18));
   animation: brand-bob 3.2s ease-in-out infinite;
 }
@@ -210,7 +305,9 @@ body.is-zoomed .game-body {
 .brand-stars svg { width: 12px; height: 12px; display: block; }
 .home-title {
   font-family: 'Fredoka', 'Noto Sans TC', sans-serif;
-  font-size: 28px; font-weight: 700; color: var(--ck-bg-dark);
+  /* clamp() viewport-responsive — ~28–30 on a normal desktop, shrinks on
+     narrow windows, grows mildly on wide monitors. Was hard 28px. */
+  font-size: clamp(20px, 2.4vw, 30px); font-weight: 700; color: var(--ck-bg-dark);
   letter-spacing: 1.5px;
   text-transform: uppercase;
   text-shadow: 0 2px 4px rgba(45,48,71,0.18);
@@ -226,7 +323,9 @@ body.is-zoomed .game-body {
 }
 .lang-btn {
   background: var(--ck-pink); color: white; border: none; border-radius: 20px;
-  padding: 8px 18px; font-size: 18px; font-weight: 700; cursor: pointer;
+  padding: 8px 18px;
+  /* clamp() so the lang button text breathes with the topbar height. */
+  font-size: clamp(14px, 1.6vw, 20px); font-weight: 700; cursor: pointer;
   min-width: 72px; min-height: 44px;
   box-shadow: 0 4px 0 var(--ck-pink-shadow);
   transition: transform 0.1s;
@@ -265,18 +364,31 @@ body.is-zoomed .game-body {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
-/* Level grid — 3 cols, min 118px tall rows. `margin: auto 0` centers
-   the grid within .world-map when spare vertical space exists, and
-   gracefully collapses to 0 when the grid has to scroll. */
+/* Level grid — auto-fit responsive columns. minmax(160px, 1fr) lets the
+   grid grow from 2 cols on a phone-width window all the way to 6+ cols
+   on a wide monitor, so home no longer feels "tiny" inside a desktop
+   browser. max-width caps it on huge monitors so tiles don't sprawl.
+   Portrait override below clamps to 2 cols for tappability on narrow
+   phones. `margin: 0 auto` centers the grid horizontally; `auto 0` was
+   for vertical centering inside the old fixed-canvas layout and is no
+   longer needed now that home is a normal scrolling page. */
 .level-stops {
   position: relative; z-index: 1;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  grid-auto-rows: minmax(118px, 1fr);
-  gap: 12px;
+  /* auto-fit + minmax() gives a genuinely responsive grid: 2 cols on a
+     narrow window, 3–4 on a typical desktop, 5–6+ on a wide monitor —
+     instead of the hard `repeat(3,1fr)` that used to look frozen. */
+  grid-template-columns: repeat(3, 1fr);
+  grid-auto-rows: minmax(118px, 140px);
+  gap: 18px;
   width: 100%;
-  max-width: min(640px, 100%);
-  margin: auto 0;
+  /* Was 720px — capped on big monitors so the grid wouldn't sprawl, but
+     also kneecapped wide windows to a phone-sized strip. min(1400px, 95vw)
+     lets it actually expand on desktop while still leaving margins. */
+  max-width: min(960px, 95vw);
+  margin: 0 auto;
+  padding: 24px;
+  box-sizing: border-box;
   flex-shrink: 0;
 }
 /* Legacy row classes (no longer used by JS but kept for safety) */
@@ -284,8 +396,8 @@ body.is-zoomed .game-body {
 
 .level-stop {
   width: auto; min-height: 0; height: 100%; background: white;
-  border-radius: clamp(14px, 2vh, 22px);
-  padding: clamp(6px, 1vh, 14px) clamp(4px, 1vw, 10px);
+  border-radius: 18px;
+  padding: 10px 8px;
   text-align: center; cursor: pointer;
   /* Default neutral border — completed levels overlay yellow, current
      overlays brand teal, locked overlays gray + lock badge. Keeps the
@@ -348,7 +460,8 @@ body.is-zoomed .game-body {
 
 .lnum {
   font-family: 'Fredoka', sans-serif;
-  font-size: 32px; font-weight: 700; color: var(--ck-teal); line-height: 1;
+  /* clamp() so the level number breathes with tile size. ~32 on desktop. */
+  font-size: clamp(26px, 2.4vw, 38px); font-weight: 700; color: var(--ck-teal); line-height: 1;
 }
 .level-stop.locked .lnum { color: #B4B8C7; }
 .level-stop.locked .lname { color: #9094A8; }
@@ -356,7 +469,8 @@ body.is-zoomed .game-body {
 .level-stop.partial .lnum { color: #B8704A; }
 .level-stop.current-level .lnum { color: var(--ck-teal); }
 .lname {
-  font-size: 14px; color: #555; font-weight: 700;
+  /* clamp() so tile labels breathe with viewport. ~14 on desktop. */
+  font-size: clamp(13px, 1.2vw, 17px); color: #555; font-weight: 700;
   margin-top: 6px;
   line-height: 1.2; height: 2.4em;
   white-space: pre-line;
@@ -380,18 +494,7 @@ body.is-zoomed .game-body {
 /* ══════════════════════════════════════
    GAME SCREEN
 ══════════════════════════════════════ */
-.game-header {
-  display: grid; grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  padding: 12px 20px;
-  height: 68px; box-sizing: border-box;
-  background: rgba(255,255,255,0.4);
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
-}
-.game-header > :first-child { justify-self: start; }
-.game-header > .game-level-label { justify-self: center; text-align: center; }
-.game-header > :last-child { justify-self: end; }
+/* Old .game-header rule removed — its content lives in #topbar [data-mode="game"|"tutorial"|"tour"|"speedtest"]. */
 .back-btn {
   background: var(--ck-pink); border: none; color: white;
   border-radius: 20px; padding: 8px 16px; font-size: 18px; cursor: pointer;
@@ -545,28 +648,19 @@ body.is-zoomed .game-body {
 .clock-wrap svg, .tut-visual svg, #tour-clock-wrap svg {
   filter: drop-shadow(0 8px 24px rgba(0,0,0,0.18));
 }
-/* Make clock SVG scale down on narrow/short screens.
-   Default rule covers phones + iPads. Desktop is bumped below.
-   Caps bumped 300→338, 62vw→70vw, 38vh→43vh to compensate for the larger
-   viewBox (-20 -20 360 360 vs old 0 0 320 320) — keeps the inner clock
-   face at the same on-screen size as before while letting the outer
-   minute labels (radius R+18) render outside the rim instead of being
-   clipped. Ratio: 338/300 ≈ 360/320 = 1.125. */
+/* Clock SVG — fixed pixel size since the whole stage scales as one.
+   360px ≈ 40% of landscape stage height (900px); leaves room for header,
+   prompt, choice buttons, feedback. Portrait shrinks to 300px (override
+   below) so the same vertical budget works on a 720-wide canvas. */
 .clock-wrap svg, .tut-visual svg, #tour-clock-wrap svg {
   display: block;
-  width: min(338px, 70vw, 43vh);
+  width: 360px;
   height: auto;
 }
-/* Desktop only — bigger clock. Triple-gated to exclude touch devices:
-   • min-width 1100px (above any iPad landscape except 12.9" Pro)
-   • hover: hover  → real mouse / trackpad with hover state
-   • pointer: fine → precise pointer (excludes finger touchscreens)
-   Phones + iPads keep the default cap. Caps bumped 380→428 / 38vw→43vw
-   / 52vh→58vh for the same viewBox-compensation reason as above. */
-@media (min-width: 1100px) and (hover: hover) and (pointer: fine) {
-  .clock-wrap svg, .tut-visual svg, #tour-clock-wrap svg {
-    width: min(428px, 43vw, 58vh);
-  }
+body.portrait .clock-wrap svg,
+body.portrait .tut-visual svg,
+body.portrait #tour-clock-wrap svg {
+  width: 300px;
 }
 /* Correct state: turn the clock's own face border green (instead of drawing
    an external ring around the wrapper). */
@@ -853,25 +947,53 @@ body.is-zoomed .game-body {
   0%, 100% { transform: translateX(0); }
   50%      { transform: translateX(-5%); }
 }
-@media (max-width: 480px) {
-  .l11-stage { max-width: 320px; }
-}
+/* Topbar/home brand/title sizes now use clamp() at their primary rules
+   above (search ".home-title", ".brand-ticky-mini") — the old
+   unconditional "desktop bump" overrides for those have been removed
+   since they would defeat clamp(). Tutorial/reset values below stay as
+   plain pixel sizes since those screens still live inside the scaled
+   1280×900 canvas. */
+.tut-card { max-width: 640px; padding: 32px 32px 26px; }
+.tut-title { font-size: 36px; }
+.tut-section { max-width: 480px; }
+.tut-text { font-size: 20px; }
+.tut-example .tut-ex-a { font-size: 21px; }
+.tut-example .tut-ex-q { font-size: 21px; }
+.reset-btn { font-size: 16px; }
 
-
-/* Desktop scale-up — base CSS stays phone-first. Level grid sizes itself via clamp()+vh, so no per-tile overrides here. */
-@media (min-width: 900px) {
-  .home-title { font-size: 34px; }
-  .brand-ticky-mini { width: 54px; height: 58px; }
-  .brand-stars svg { width: 14px; height: 14px; }
-  .level-stops { max-width: 720px; }
-  .tut-card { max-width: 640px; padding: 32px 32px 26px; }
-  .tut-title { font-size: 36px; }
-  .tut-section { max-width: 480px; }
-  .tut-text { font-size: 20px; }
-  .tut-example .tut-ex-a { font-size: 21px; }
-  .tut-example .tut-ex-q { font-size: 21px; }
-  .reset-btn { font-size: 16px; }
+/* ══════════════════════════════════════
+   PORTRAIT OVERRIDES (body.portrait → 720×1280 stage)
+   Topbar + home overrides removed — they used to hard-set sizes that
+   would defeat clamp() now that those elements are viewport-fixed and
+   responsive. Game-screen overrides below remain (they still live
+   inside the scaled canvas and need portrait-specific tuning).
+══════════════════════════════════════ */
+body.portrait .game-level-label { font-size: 18px; }
+body.portrait .back-btn { padding: 6px 12px; font-size: 16px; min-width: 50px; }
+body.portrait .game-stars-earned { font-size: 22px; min-width: 72px; }
+body.portrait .digital-target {
+  font-size: 64px; letter-spacing: 4px;
+  padding: 12px 28px; min-width: 220px; min-height: 110px;
+  border-width: 5px;
 }
+body.portrait .digital-target.digital-target--compact {
+  font-size: 44px; padding: 8px 24px; min-width: 160px; min-height: 80px;
+}
+body.portrait .choices { max-width: 100%; gap: 14px 10px; }
+body.portrait .choice-btn { font-size: 22px; min-height: 56px; padding: 12px 6px; }
+body.portrait .confirm-btn { font-size: 20px; padding: 12px 32px; min-height: 54px; min-width: 160px; }
+body.portrait .tut-card { max-width: 100%; padding: 22px 18px 18px; }
+body.portrait .tut-title { font-size: 26px; }
+body.portrait .tut-section { max-width: 100%; }
+body.portrait .tutorial-body { padding: 14px 14px 22px; gap: 24px; }
+body.portrait .tour-body { padding: 6px 14px 60px; gap: 18px; }
+body.portrait .tour-step-text { font-size: 24px; max-width: 100%; min-height: 70px; }
+/* Speed-test play area — already uses % widths; just tighten the bottom panel grid */
+body.portrait #screen-speedtest .st-choice-grid { max-width: 100%; gap: 14px 10px; }
+body.portrait #screen-speedtest .st-bottom-panel { padding: 20px 14px 24px; }
+body.portrait #screen-speedtest .st-falling-clock,
+body.portrait #screen-speedtest .st-clock-svg-wrap { width: 165px; }
+body.portrait #screen-speedtest .st-clock-svg-wrap { height: 165px; }
 
 .tut-start-btn {
   background: var(--ck-pink); color: white; border: none; border-radius: 24px;
@@ -1030,14 +1152,7 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
   pointer-events: none;
   opacity: 0;
 }
-/* Smaller cursor on phones / short viewports so the pink-purple ring
-   doesn't bury the target. Was max-width:360px which only caught the SE —
-   widened to 500px so iPhone 12/13/14/15 etc. also get the small cursor. */
-@media (max-height: 700px), (max-width: 500px) {
-  .tutor-cursor { width: 26px; height: 26px; }
-  .tutor-dot { border-width: 3px; }
-  .tutor-ring { border-width: 2px; }
-}
+/* Stage is fixed-size now, so no small-screen tutor-cursor override needed. */
 
 /* ══════════════════════════════════════
    CORRECT POPUP
@@ -1288,6 +1403,9 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
   animation: ticky-idle 2s ease-in-out infinite;
   cursor: default;
 }
+/* Gentle viewport-aware sizing for the home-screen ticky SVG so it doesn't
+   look frozen on huge or tiny windows. Conservative range. */
+.ticky-svg-wrap svg { width: clamp(48px, 8vw, 120px); height: auto; }
 @keyframes ticky-idle {
   0%,100% { transform: translateY(0) scale(1); }
   50%      { transform: translateY(-6px) scale(1.02); }
@@ -1347,197 +1465,9 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
   100% { opacity: 0; transform: scale(0.3) translateY(-20px); }
 }
 
-/* ══════════════════════════════════════
-   MOBILE PHONE — both orientations
-   Matches if EITHER axis is ≤500px, so portrait phone (390×844) and
-   landscape phone (844×390) both pick up the same mobile styling. Big
-   iPad (1024+) stays on the desktop defaults. Keeping both orientations
-   on the same rules means rotation doesn't have to reflow header
-   heights, font sizes, or paddings — only the grid scroll changes.
-══════════════════════════════════════ */
-@media (max-width: 500px), (max-height: 500px) {
-  /* Lock game/tutorial/tour screens to viewport. Home screen scrolls when short. */
-  #screen-game, #screen-tutorial, #screen-tour, #screen-speedtest {
-    height: 100dvh;
-    max-height: 100dvh;
-    overflow: hidden;
-  }
-  #screen-home {
-    min-height: 100dvh;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  /* Body base font */
-  body { font-size: 16px; }
-
-  /* ── Home screen ── */
-  .home-header, .game-header {
-    height: 56px;
-    padding: 8px 14px;
-  }
-  .home-title { font-size: 20px; letter-spacing: 1px; }
-  .brand-ticky-mini { width: 38px; height: 42px; }
-  .brand-stars svg { width: 10px; height: 10px; }
-  .lang-btn { font-size: 15px; padding: 6px 12px; min-height: 36px; min-width: 56px; }
-
-  /* Mobile breathing room: side padding keeps tiles away from screen
-     edges, vertical padding separates grid from header/footer. */
-  .world-map { padding: 14px 18px 20px; }
-
-  /* Level grid — comfortable gaps, max-width ensures tiles don't hug edges. */
-  .level-stops { gap: 10px; max-width: 100%; }
-  .level-stop {
-    border-width: 3px;
-    box-shadow: 0 4px 0 #C5C9D8, 0 6px 12px rgba(0,0,0,0.10);
-  }
-  .level-stop.locked { box-shadow: 0 3px 0 #C5C9D8, 0 5px 10px rgba(0,0,0,0.06); }
-  .level-stop.completed { box-shadow: 0 4px 0 #e6c200, 0 6px 14px rgba(255,217,61,0.35); }
-  .level-stop.current-level {
-    border-width: 2px;
-    box-shadow: 0 2px 0 var(--ck-teal-shadow), 0 3px 6px rgba(78,205,196,0.22);
-    animation: current-pulse-sm 1.5s ease-in-out infinite;
-  }
-  @keyframes current-pulse-sm {
-    0%,100% { transform: translateY(0) scale(1);    box-shadow: 0 2px 0 var(--ck-teal-shadow), 0 3px 6px rgba(78,205,196,0.22); }
-    50%      { transform: translateY(-1px) scale(1.005); box-shadow: 0 3px 0 var(--ck-teal-shadow), 0 4px 8px rgba(78,205,196,0.28); }
-  }
-  /* Narrow mobile tiles: shrink number + label so longer names like
-     "Minute Hand 1: every 15 min" fit on 2 lines without wrapping the
-     first segment onto a second line (which would push content to line 3). */
-  .lnum { font-size: 28px; }
-  .lname {
-    font-size: 12px; margin-top: 4px; line-height: 1.15; height: 2.3em;
-    word-break: break-word; hyphens: auto;
-  }
-  .stars { font-size: 13px; margin-top: 2px; letter-spacing: 1.5px; }
-  .home-footer { padding: 6px; }
-
-  /* ── Game screen ── */
-  .back-btn { font-size: 15px; padding: 6px 12px; min-height: 36px; min-width: 44px; }
-  .game-level-label { font-size: 17px; }
-  .game-stars-earned { font-size: 20px; letter-spacing: 2px; min-width: 72px; }
-  #screen-speedtest .st-lives-display { font-size: 20px; letter-spacing: 2px; min-width: 72px; }
-  .help-btn { width: 30px; height: 30px; font-size: 17px; }
-
-  /* Extra bottom padding reserves space so content doesn't hide behind Ticky (fixed at bottom-left) */
-  .game-body { padding: 8px 18px 90px; gap: 10px; }
-  .progress-dots { gap: 5px; }
-  .progress-dot { width: 14px; height: 14px; border-width: 2px; }
-  .question-counter { font-size: 13px; }
-
-  /* Digital time display */
-  .digital-target {
-    font-size: 50px;
-    letter-spacing: 4px;
-    padding: 8px 24px;
-    min-width: 180px;
-    min-height: 84px;
-    border-width: 4px;
-    border-radius: 14px;
-  }
-  .digital-target.digital-target--compact {
-    font-size: 34px;
-    letter-spacing: 3px;
-    padding: 6px 18px;
-    min-width: 130px;
-    min-height: 60px;
-    border-width: 3px;
-  }
-
-  /* Choice buttons — narrower grid with side margins so text doesn't hug screen edge */
-  .choices { gap: 12px 8px; max-width: min(300px, 80vw); }
-  .choice-btn {
-    font-size: 18px;
-    padding: 10px 8px;
-    min-height: 48px;
-    border-radius: 16px;
-  }
-
-  /* Confirm / set mode */
-  .confirm-btn {
-    font-size: 18px;
-    padding: 10px 26px;
-    min-height: 46px;
-    min-width: 140px;
-  }
-  .feedback-msg { font-size: 15px; min-height: 20px; height: 24px; line-height: 20px; overflow: visible; }
-  #read-prompt { font-size: 18px; min-height: 24px; padding: 0 8px; margin-bottom: 6px; line-height: 1.25; }
-  #read-feedback { font-size: 17px; top: 100px; height: 26px; line-height: 22px; overflow: visible; margin-top: 12px; }
-  /* L2 only: bump the number-clock (digital-target) larger on phones. Scoped via
-     digital-target--l2 (added in showQuestion) so L11/L17/other levels are unaffected. */
-  .digital-target.digital-target--l2 {
-    font-size: 64px;
-    letter-spacing: 5px;
-    padding: 12px 32px;
-    min-width: 220px;
-    min-height: 104px;
-  }
-  /* Match L1 tour wrong-feedback to L2+ #read-feedback on mobile (desktop default 22px stays). */
-  .tour-tap-hint.wrong { font-size: 17px; line-height: 22px; min-height: 26px; }
-
-  /* ── Tutorial screen ── */
-  .tutorial-body { padding: 12px 16px 20px; gap: 18px; }
-  .tut-card { padding: 14px 14px 12px; border-width: 4px; border-radius: 18px; }
-  .tut-card { padding: 20px 18px 18px; }
-  .tut-title { font-size: 26px; margin-bottom: 10px; }
-  .tut-text { font-size: 17px; line-height: 1.55; }
-  .tut-section { margin-top: 14px; padding-top: 14px; }
-  .tut-section-title { font-size: 14px; letter-spacing: 1.4px; margin-bottom: 8px; }
-  .tut-example .tut-ex-q { font-size: 16px; }
-  .tut-example .tut-ex-a { font-size: 16px; }
-  .num-pairs { font-size: 18px; padding: 10px 12px; gap: 6px 16px; margin: 4px auto; }
-  .num-pairs > span {
-    grid-template-columns: 36px 20px 36px auto;
-  }
-  /* L15/L16 mapping grid: stack mappings 1-per-row on phones so 22px labels
-     and the "→" arrow stay on a single line without shrinking. */
-  .tut-24h-grid { grid-template-columns: 1fr; }
-  .tut-start-btn { font-size: 18px; padding: 10px 28px; min-height: 46px; }
-
-  /* ── Tour screen ── */
-  .tour-body { padding: 12px 16px 90px; gap: 10px; }
-  .tour-step-text { font-size: 26px; padding: 4px 12px; min-height: 76px; height: auto; }
-  .tour-step-text .ts-sub { font-size: 12px; }
-  .tour-continue-btn { font-size: 18px; padding: 10px 28px; min-height: 46px; }
-
-  /* Shrink the "Correct!" popup on phones so it doesn't dominate the screen */
-  .correct-popup { font-size: 38px; padding: 14px 32px; border-radius: 22px; }
-
-  /* ── Ticky mascot — shrink on small screens so it doesn't crowd game UI ── */
-  .ticky-container { bottom: 10px; left: 14px; }
-  .ticky-svg-wrap svg { width: 62px; height: 70px; }
-  .ticky-bubble { font-size: 11px; padding: 5px 9px; max-width: 130px; }
-
-  /* Level complete overlay */
-  .complete-card { padding: 24px 20px; border-radius: 24px; }
-  .complete-done-label { font-size: 32px; }
-  .complete-title { font-size: 22px; }
-  .complete-stars { font-size: 40px; letter-spacing: 5px; margin: 10px 0; }
-  .next-btn { font-size: 20px; padding: 12px 32px; min-height: 52px; margin-top: 10px; }
-}
-
-/* Extra squeeze for very short viewports — game/tutorial/tour only.
-   Home uses identical CSS in both orientations. */
-@media (max-height: 700px) {
-  #screen-game, #screen-tutorial, #screen-tour, #screen-speedtest {
-    height: 100dvh;
-    max-height: 100dvh;
-    overflow: hidden;
-  }
-  .game-body { gap: 7px; padding: 6px 16px 72px; }
-  .tutorial-body { padding: 8px 16px 72px; gap: 20px; }
-  .tut-card { padding: 10px 12px 10px; }
-  .tut-title { font-size: 21px; margin-bottom: 6px; }
-  .tut-text { font-size: 16px; }
-  .tour-body { padding: 8px 16px 72px; gap: 8px; }
-  .tour-step-text { font-size: 22px; padding: 2px 10px; min-height: 62px; height: auto; }
-  .tour-step-text .ts-sub { font-size: 11px; }
-  .digital-target { font-size: 34px; min-height: 56px; }
-  .choice-btn { min-height: 44px; font-size: 18px; padding: 8px 6px; }
-  .progress-dot { width: 12px; height: 12px; }
-  .confirm-btn { font-size: 17px; padding: 8px 22px; min-height: 42px; }
-}
+/* Old @media phone-mobile + @media short-viewport blocks deleted —
+   stage is fixed 1280×720 so they could never match. Desktop defaults
+   above are now the only layout. */
 
 /* ══════════════════════════════════════
    SPEED TEST SCREEN (falling-clock mode, ported from clock-lava prototype)
@@ -1553,9 +1483,10 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
   min-height: 0;
 }
 
-/* Lives indicator (in game-header, stars slot) — matches .game-stars-earned sizing.
-   Hearts use the same 32px font + letter-spacing as ★ so they read as the same component. */
-#screen-speedtest .st-lives-display {
+/* Lives indicator (in #topbar speedtest mode, stars slot) — matches .game-stars-earned sizing.
+   Hearts use the same 32px font + letter-spacing as ★ so they read as the same component.
+   No #screen-speedtest prefix because the element now lives inside #topbar (outside the stage). */
+.st-lives-display {
   display: inline-block;
   font-size: 28px; letter-spacing: 2.5px; min-width: 96px; text-align: right;
   font-weight: 700;
@@ -1565,13 +1496,13 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
      nudge is smaller than stars. */
   transform: translateY(1px);
 }
-#screen-speedtest .st-life-heart {
+.st-life-heart {
   display: inline-block;
   transition: opacity 0.3s ease, transform 0.3s ease, color 0.3s ease;
   color: #E63946;
   -webkit-text-stroke: 1px #b82c38;
 }
-#screen-speedtest .st-life-heart.st-lost {
+.st-life-heart.st-lost {
   color: #E2E5EE;
   -webkit-text-stroke: 1px #B4B8C7;
   opacity: 0.55;
@@ -1583,7 +1514,7 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
   25% { transform: translateX(-4px); }
   75% { transform: translateX(4px); }
 }
-#screen-speedtest .st-lives-shake { animation: st-lives-shake-anim 0.3s ease-out; }
+.st-lives-shake { animation: st-lives-shake-anim 0.3s ease-out; }
 
 /* Score-pill icon (Speed Test + L15 Ultimate Test). Inline trophy SVG from Phosphor Icons
    (trophy-fill, MIT license — https://github.com/phosphor-icons/core).
@@ -1660,7 +1591,7 @@ body.tut-active .ticky-container { display: none !important; }
 #screen-speedtest .st-countdown-num {
   font-family: 'Fredoka', sans-serif;
   font-weight: 700;
-  font-size: min(40vw, 200px);
+  font-size: 200px;
   line-height: 1;
   color: white;
   text-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
@@ -1829,8 +1760,7 @@ body.tut-active .ticky-container { display: none !important; }
   padding: 36px 32px 28px;
   text-align: center;
   box-shadow: 0 12px 40px rgba(45,48,71,0.22), 0 4px 0 rgba(45,48,71,0.10);
-  max-width: 360px;
-  width: 88vw;
+  width: 360px;
   animation: st-card-pop 0.28s ease-out both;
 }
 @keyframes st-card-pop {
@@ -1937,18 +1867,8 @@ body.tut-active .ticky-container { display: none !important; }
   0%,100% { transform: translateY(0); box-shadow: 0 6px 0 #d94f7e, 0 8px 18px rgba(255,107,157,0.30); }
   50%     { transform: translateY(-3px); box-shadow: 0 9px 0 #d94f7e, 0 12px 22px rgba(255,107,157,0.45); }
 }
-@media (max-height: 700px) {
-  #screen-speedtest .st-falling-clock,
-  #screen-speedtest .st-clock-svg-wrap { width: 195px; }
-  #screen-speedtest .st-clock-svg-wrap { height: 195px; }
-}
-/* Mobile-only: shrink falling clock ~88% to fit narrow screens better.
-   Overrides the 195px override above when viewport is narrow phone width. */
-@media (max-width: 500px) {
-  #screen-speedtest .st-falling-clock,
-  #screen-speedtest .st-clock-svg-wrap { width: 188px; }
-  #screen-speedtest .st-clock-svg-wrap { height: 188px; }
-}
+/* Old speedtest size overrides for short/narrow viewports deleted —
+   stage is fixed 1280×720, so the default falling-clock size always applies. */
 
 </style>
 </head>
@@ -1990,9 +1910,14 @@ body.tut-active .ticky-container { display: none !important; }
 })();
 </script>
 
-<!-- HOME SCREEN -->
-<div id="screen-home">
-  <div class="home-header">
+<!-- ── Top-bar HUD ──
+     Lives OUTSIDE #game-stage so it gets real viewport width + responsive
+     height (var(--topbar-h)) instead of being uniform-scaled with the
+     1280-wide canvas. Per-screen content lives in .topbar-mode containers;
+     setTopbarMode(mode) is called at every screen-switch site. -->
+<header id="topbar">
+  <!-- HOME mode -->
+  <div class="topbar-mode active" data-mode="home">
     <div class="brand-lockup">
       <svg class="brand-ticky-mini" viewBox="0 0 90 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
         <ellipse cx="45" cy="96" rx="22" ry="4" fill="rgba(0,0,0,0.12)"/>
@@ -2017,6 +1942,47 @@ body.tut-active .ticky-container { display: none !important; }
     </div>
     <button class="lang-btn" id="lang-btn" onclick="toggleLang()"></button>
   </div>
+
+  <!-- TUTORIAL mode -->
+  <div class="topbar-mode" data-mode="tutorial">
+    <button class="back-btn" onclick="showHome()">←</button>
+    <span class="game-level-label" id="tut-level-label"></span>
+    <span style="min-width:60px"></span>
+  </div>
+
+  <!-- TOUR mode (Level 1 guided tour) -->
+  <div class="topbar-mode" data-mode="tour">
+    <button class="back-btn" onclick="showHome()">←</button>
+    <span class="game-level-label" id="tour-level-label"></span>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span class="game-stars-earned" id="tour-stars-earned"></span>
+    </div>
+  </div>
+
+  <!-- GAME mode -->
+  <div class="topbar-mode" data-mode="game">
+    <button class="back-btn" onclick="showHome()">←</button>
+    <span class="game-level-label" id="game-level-label"></span>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span class="game-stars-earned" id="game-stars-earned"></span>
+      <button class="help-btn" onclick="reviewTutorial()" aria-label="Guide">?</button>
+    </div>
+  </div>
+
+  <!-- SPEEDTEST mode -->
+  <div class="topbar-mode" data-mode="speedtest">
+    <button class="back-btn" onclick="SpeedTest.backHome()">←</button>
+    <span class="game-level-label" id="st-level-label"></span>
+    <span class="st-lives-display" id="st-lives-display" aria-label="Lives">
+      <span class="st-life-heart" id="st-heart-1">♥</span><span class="st-life-heart" id="st-heart-2">♥</span><span class="st-life-heart" id="st-heart-3">♥</span>
+    </span>
+  </div>
+</header>
+
+<!-- HOME SCREEN — pinned below the topbar inside #game-stage; scales with
+     the rest of the canvas. Internal overflow-y:auto handles tile rows
+     that exceed canvas height. -->
+<div id="screen-home">
   <div class="world-map">
     <div class="level-stops" id="level-grid"></div>
   </div>
@@ -2025,28 +1991,25 @@ body.tut-active .ticky-container { display: none !important; }
   </div>
 </div>
 
-<!-- TUTORIAL SCREEN -->
+<!-- ── Unified scaled canvas ──
+     Tutorial / tour / game / speedtest screens live inside #game-stage so
+     they all scale together via transform:scale() (1280×900 landscape /
+     720×1280 portrait). Topbar + #screen-home are intentionally OUTSIDE so
+     they breathe with the real viewport. Sky-bg + tutor-cursor stay
+     outside on purpose: sky fills the letterbox bars, tutor-cursor uses
+     position:fixed which would break inside a transformed parent. -->
+<div id="game-stage">
+
+<!-- TUTORIAL SCREEN (header moved to #topbar [data-mode="tutorial"]) -->
 <div id="screen-tutorial" class="hidden">
-  <div class="game-header">
-    <button class="back-btn" onclick="showHome()">←</button>
-    <span class="game-level-label" id="tut-level-label"></span>
-    <span style="min-width:60px"></span>
-  </div>
   <div class="tutorial-body">
     <div id="tut-body"></div>
     <button class="tut-start-btn" id="tut-start-btn"></button>
   </div>
 </div>
 
-<!-- LEVEL 1 GUIDED TOUR SCREEN -->
+<!-- LEVEL 1 GUIDED TOUR SCREEN (header moved to #topbar [data-mode="tour"]) -->
 <div id="screen-tour" class="hidden">
-  <div class="game-header">
-    <button class="back-btn" onclick="showHome()">←</button>
-    <span class="game-level-label" id="tour-level-label"></span>
-    <div style="display:flex;align-items:center;gap:8px;">
-      <span class="game-stars-earned" id="tour-stars-earned"></span>
-    </div>
-  </div>
   <div class="tour-body" id="tour-body">
     <div class="progress-dots" id="tour-progress-dots"></div>
     <div class="question-counter" id="tour-q-counter"></div>
@@ -2059,16 +2022,8 @@ body.tut-active .ticky-container { display: none !important; }
   </div>
 </div>
 
-<!-- GAME SCREEN -->
+<!-- GAME SCREEN (header moved to #topbar [data-mode="game"]) -->
 <div id="screen-game" class="hidden">
-  <div class="game-header">
-    <button class="back-btn" onclick="showHome()">←</button>
-    <span class="game-level-label" id="game-level-label"></span>
-    <div style="display:flex;align-items:center;gap:8px;">
-      <span class="game-stars-earned" id="game-stars-earned"></span>
-      <button class="help-btn" onclick="reviewTutorial()" aria-label="Guide">?</button>
-    </div>
-  </div>
   <div class="game-body">
     <div class="ultimate-score hidden" id="ultimate-score-display" aria-label="Score"><span class="ultimate-score-icon"><svg class="score-icon-svg" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M232,64H208V48a8,8,0,0,0-8-8H56a8,8,0,0,0-8,8V64H24A16,16,0,0,0,8,80V96a40,40,0,0,0,40,40h3.65A80.13,80.13,0,0,0,120,191.61V216H96a8,8,0,0,0,0,16h64a8,8,0,0,0,0-16H136V191.58c31.94-3.23,58.44-25.64,68.08-55.58H208a40,40,0,0,0,40-40V80A16,16,0,0,0,232,64ZM48,120A24,24,0,0,1,24,96V80H48v32q0,4,.39,8ZM232,96a24,24,0,0,1-24,24h-.5a81.81,81.81,0,0,0,.5-8.9V80h24Z"/></svg></span> 0</div>
     <div class="ultimate-timer hidden" id="ultimate-timer-display"></div>
@@ -2089,16 +2044,8 @@ body.tut-active .ticky-container { display: none !important; }
   </div>
 </div>
 
-<!-- SPEED TEST SCREEN (falling-clock challenge mode) -->
+<!-- SPEED TEST SCREEN (header moved to #topbar [data-mode="speedtest"]) -->
 <div id="screen-speedtest" class="hidden">
-  <div class="game-header">
-    <button class="back-btn" onclick="SpeedTest.backHome()">←</button>
-    <span class="game-level-label" id="st-level-label"></span>
-    <span class="st-lives-display" id="st-lives-display" aria-label="Lives">
-      <span class="st-life-heart" id="st-heart-1">♥</span><span class="st-life-heart" id="st-heart-2">♥</span><span class="st-life-heart" id="st-heart-3">♥</span>
-    </span>
-  </div>
-
   <div class="st-shell">
     <div class="st-play-area" id="st-play-area">
       <!-- Score pill (matches L15 .ultimate-score visual treatment). Inline
@@ -2220,7 +2167,9 @@ body.tut-active .ticky-container { display: none !important; }
   </div>
 </div>
 
-<!-- TICKY MASCOT -->
+</div><!-- /#game-stage -->
+
+<!-- TICKY MASCOT — sibling of #game-stage so position:fixed is relative to viewport (parent's transform:scale would otherwise create a containing block and pin ticky to the scaled canvas instead of the window). -->
 <div class="ticky-container" id="ticky-container">
   <div class="ticky-bubble" id="ticky-bubble"></div>
   <div class="ticky-svg-wrap" id="ticky-wrap">
@@ -2278,6 +2227,58 @@ body.tut-active .ticky-container { display: none !important; }
     </svg>
   </div>
 </div>
+
+<script>
+// ── Fit the #game-stage to the window via transform:scale().
+// Two design sizes selected by orientation:
+//   landscape: 1280×900  (default)
+//   portrait:   720×1280 (when window taller than wide)
+// Picks the smaller of width-fit / height-fit so aspect ratio is preserved;
+// remaining space becomes letterbox bars (sky-bg fills them). Centers the
+// scaled stage with integer absolute left/top to avoid sub-pixel drift that
+// caused the top bar to jitter at certain viewport heights. Body has
+// margin:0 / padding:0 so no ancestor offsets stack on top.
+(function () {
+  function fitGameStage() {
+    var stage = document.getElementById('game-stage');
+    if (!stage) return;
+    var portrait = window.innerHeight > window.innerWidth;
+    var designW = portrait ? 720 : 1280;
+    var designH = portrait ? 1280 : 900;
+    stage.style.width  = designW + 'px';
+    stage.style.height = designH + 'px';
+    document.body.classList.toggle('portrait', portrait);
+    document.body.classList.toggle('landscape', !portrait);
+    // Topbar now lives OUTSIDE #game-stage and uses var(--topbar-h) clamped
+    // to viewport. Reserve its real rendered height before fitting the
+    // canvas, so the scaled stage starts below the topbar (no overlap) and
+    // height-fit math accounts for the bar.
+    var topbarEl = document.getElementById('topbar');
+    var topbarH = topbarEl ? topbarEl.getBoundingClientRect().height : 0;
+    var availH = window.innerHeight - topbarH;
+    var scale = Math.min(window.innerWidth / designW, availH / designH);
+    var offsetX = Math.floor((window.innerWidth - designW * scale) / 2);
+    var offsetY = topbarH + Math.floor((availH - designH * scale) / 2);
+    stage.style.transform = 'scale(' + scale + ')';
+    stage.style.left = offsetX + 'px';
+    stage.style.top  = offsetY + 'px';
+  }
+  window.addEventListener('resize', fitGameStage);
+  window.addEventListener('orientationchange', fitGameStage);
+  window.addEventListener('load', fitGameStage);
+  fitGameStage();
+})();
+
+// ── Topbar mode switcher ──
+// Toggles which .topbar-mode block is visible inside #topbar. Called from every
+// screen-switch site (showHome, showTutorial, reviewTutorial, startTour,
+// beginLevel, and the L11 speedtest hand-off).
+function setTopbarMode(mode) {
+  document.querySelectorAll('#topbar .topbar-mode').forEach(function (el) {
+    el.classList.toggle('active', el.dataset.mode === mode);
+  });
+}
+</script>
 
 <script>
 // ═══════════════════════════════════════════════════════
@@ -2998,6 +2999,10 @@ function showHome() {
   stopUltimateTimer();
   hideAllScreens();
   document.getElementById('screen-home').classList.remove('hidden');
+  // Home now lives inside the scaled stage and scrolls internally
+  // (overflow-y:auto on #screen-home). body.overflow stays 'hidden' so the
+  // page itself never scrolls — letterbox bars stay put.
+  setTopbarMode('home');
   setMinuteHandVisible(true);
   renderHome();
   // Ticky greeting — no delay so the bubble text swaps instantly on screen switch
@@ -3210,6 +3215,9 @@ function doReset() {
 function hideAllScreens() {
   ['screen-home','screen-game','screen-tutorial','screen-tour','screen-speedtest','overlay-complete','overlay-correct','overlay-timeout','overlay-reset']
     .forEach(id => { const el = document.getElementById(id); if (el) el.classList.add('hidden'); });
+  // The unified scaled stage stays visible always — every screen lives
+  // inside it now. body.overflow is permanently 'hidden' (set in CSS), so
+  // no toggling is needed here.
   // Stop speedtest if it was running.
   if (typeof SpeedTest !== 'undefined' && SpeedTest && typeof SpeedTest.stop === 'function') SpeedTest.stop();
   // Clear the body marker that hides Ticky during Speed Test — re-shown on next screen.
@@ -3625,6 +3633,7 @@ function startTour() {
   wrongCount = 0; // reset star count for this run
   hideAllScreens();
   document.getElementById('screen-tour').classList.remove('hidden');
+  setTopbarMode('tour');
   document.getElementById('tour-clock-wrap').innerHTML = buildClockSVG(false, true);
   setClockHands(10, 10);
   renderTourStep();
@@ -3845,6 +3854,7 @@ function tourNext() {
 function showTutorial(n) {
   hideAllScreens();
   document.getElementById('screen-tutorial').classList.remove('hidden');
+  setTopbarMode('tutorial');
   // Mark the body so the global Ticky mascot (fixed at bottom-left) is hidden
   // while the guide card is up. Cleared by hideAllScreens() on dismiss.
   document.body.classList.add('tut-active');
@@ -3868,6 +3878,7 @@ function reviewTutorial() {
   const resumeAt = qIndex;
   hideAllScreens();
   document.getElementById('screen-tutorial').classList.remove('hidden');
+  setTopbarMode('tutorial');
   // Hide global Ticky while the guide card is up (cleared on dismiss).
   document.body.classList.add('tut-active');
   renderTutorial(n);
@@ -3877,6 +3888,7 @@ function reviewTutorial() {
     stopTutorialLoop();
     hideAllScreens();
     document.getElementById('screen-game').classList.remove('hidden');
+    setTopbarMode('game');
     showQuestion(resumeAt);
   };
 }
@@ -3913,6 +3925,7 @@ function renderTutorial(n) {
       stopTutorialLoop();
       hideAllScreens();
       document.getElementById('screen-speedtest').classList.remove('hidden');
+      setTopbarMode('speedtest');
       document.body.classList.add('st-active');
       SpeedTest.localize();
       SpeedTest.start();
@@ -4349,6 +4362,7 @@ function beginLevel(n) {
   qIndex = 0; wrongCount = 0; wrongCountThisQ = 0;
   hideAllScreens();
   document.getElementById('screen-game').classList.remove('hidden');
+  setTopbarMode('game');
   const labelMode = getMinLabelMode(n);
   const cw = document.getElementById('clock-wrap');
   cw.style.display = '';  // always re-show; showQuestion will hide if needed
@@ -6039,6 +6053,7 @@ function showSpeedTest() {
   stopUltimateTimer();
   hideAllScreens();
   document.getElementById('screen-speedtest').classList.remove('hidden');
+  setTopbarMode('speedtest');
   document.body.classList.add('st-active');
   SpeedTest.localize();
   SpeedTest.start();
