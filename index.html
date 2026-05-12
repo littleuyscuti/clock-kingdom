@@ -82,6 +82,7 @@
   --ck-correct-shadow: #4aa84a;
   /* Surfaces */
   --ck-bg-dark: #2D3047;
+  --stage-scale: 1;
   /* Topbar height — clamps to viewport so topbar + #screen-home stay in sync.
      Conservative range: ~72px on a normal desktop, shrinks to 56 on narrow,
      grows to 80 on tall windows. Used by #topbar height + #screen-home top. */
@@ -246,10 +247,70 @@ body.portrait #game-stage {
   --play-w: 360px;
   --choice-h: 64px;
   --game-pad-y: 32px;
+  --game-gap: 22px;
+  --choice-gap-y: 18px;
+  --choice-gap-x: 10px;
+  --choice-font: 26px;
+  --choice-pad-y: 14px;
+  --choice-pad-x: 8px;
+  --digital-h: 140px;
+  --digital-font: 88px;
+  --compact-digital-h: 96px;
+  --compact-digital-font: 56px;
+  --set-digital-h: 82px;
+  --set-digital-font: 48px;
+  --feedback-h: 38px;
+  --feedback-font: 28px;
+  --confirm-h: 60px;
+  --confirm-font: 24px;
+  --progress-dot-size: 18px;
+  --guide-body-pad-top: 20px;
+  --guide-body-pad-bottom: 28px;
+  --guide-gap: 36px;
+  --guide-card-pad-top: 32px;
+  --guide-card-pad-x: 32px;
+  --guide-card-pad-bottom: 26px;
+  --guide-card-max-w: 640px;
+  --guide-title-font: 36px;
+  --guide-title-mb: 14px;
+  --guide-section-max-w: 480px;
+  --guide-section-mt: 18px;
+  --guide-section-pad-top: 18px;
+  --guide-section-title-font: 15px;
+  --guide-section-title-mb: 10px;
+  --guide-text-font: 20px;
+  --guide-text-line: 1.65;
+  --guide-example-font: 21px;
+  --guide-example-line: 1.5;
+  --guide-start-font: 22px;
+  --guide-start-h: 60px;
+  --guide-start-pad-y: 14px;
   width: 100%;
   height: 100%;
   display: flex; flex-direction: column;
   position: relative; z-index: 1;
+}
+#screen-game {
+  --play-w: var(--game-play-w, 360px);
+  --choice-h: var(--game-choice-h, 64px);
+  --game-pad-y: var(--game-pad-y-dynamic, 32px);
+  --game-gap: var(--game-gap-dynamic, 22px);
+  --choice-gap-y: var(--game-choice-gap-y, 18px);
+  --choice-gap-x: var(--game-choice-gap-x, 10px);
+  --choice-font: var(--game-choice-font, 26px);
+  --choice-pad-y: var(--game-choice-pad-y, 14px);
+  --choice-pad-x: var(--game-choice-pad-x, 8px);
+  --digital-h: var(--game-digital-h, 140px);
+  --digital-font: var(--game-digital-font, 88px);
+  --compact-digital-h: var(--game-compact-digital-h, 96px);
+  --compact-digital-font: var(--game-compact-digital-font, 56px);
+  --set-digital-h: var(--game-set-digital-h, 82px);
+  --set-digital-font: var(--game-set-digital-font, 48px);
+  --feedback-h: var(--game-feedback-h, 38px);
+  --feedback-font: var(--game-feedback-font, 28px);
+  --confirm-h: var(--game-confirm-h, 60px);
+  --confirm-font: var(--game-confirm-font, 24px);
+  --progress-dot-size: var(--game-progress-dot-size, 18px);
 }
 /* Home screen — inside #game-stage so it scales from the same fullscreen
    design as gameplay. Internal scrolling still handles extra tile rows. */
@@ -696,25 +757,30 @@ body.level-world-active .map-bg-img { display: block; }
 }
 .help-btn {
   position: fixed;
-  left: max(clamp(12px, 2.5vw, 32px), env(safe-area-inset-left));
-  bottom: max(18px, env(safe-area-inset-bottom));
+  left: max(calc(32px * var(--stage-scale)), env(safe-area-inset-left));
+  bottom: max(calc(18px * var(--stage-scale)), env(safe-area-inset-bottom));
   z-index: 130;
-  min-width: 112px;
-  height: 56px;
-  border-radius: 28px;
+  min-width: calc(112px * var(--stage-scale));
+  height: calc(56px * var(--stage-scale));
+  border-radius: calc(28px * var(--stage-scale));
   background: linear-gradient(180deg, #FFBE55 0%, #FF932F 100%);
   color: white;
-  border: 3px solid #FFE1A8;
-  font-family: 'Fredoka', sans-serif; font-weight: 700; font-size: 24px;
+  border: calc(3px * var(--stage-scale)) solid #FFE1A8;
+  font-family: 'Fredoka', sans-serif;
+  font-weight: 700;
+  font-size: calc(24px * var(--stage-scale));
   cursor: pointer;
   box-shadow:
-    0 5px 0 #D56A16,
-    0 10px 18px rgba(124,72,18,0.18);
+    0 calc(5px * var(--stage-scale)) 0 #D56A16,
+    0 calc(10px * var(--stage-scale)) calc(18px * var(--stage-scale)) rgba(124,72,18,0.18);
   display: flex; align-items: center; justify-content: center;
   transition: transform 0.1s, box-shadow 0.1s;
   text-shadow: 0 1px 0 rgba(123,61,10,0.28);
 }
-.help-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #D56A16; }
+.help-btn:active {
+  transform: translateY(calc(3px * var(--stage-scale)));
+  box-shadow: 0 calc(2px * var(--stage-scale)) 0 #D56A16;
+}
 .help-btn:not(.hint-ready) {
   display: none;
   pointer-events: none;
@@ -726,7 +792,7 @@ body.level-world-active .map-bg-img { display: block; }
 .help-btn.hint-ready:active { animation: none; }
 @keyframes hint-breathe {
   0%, 100% { transform: translateY(0) scale(1); }
-  50% { transform: translateY(-5px) scale(1.13); }
+  50% { transform: translateY(calc(-5px * var(--stage-scale))) scale(1.13); }
 }
 @media (prefers-reduced-motion: reduce) {
   .help-btn.hint-ready { animation: none; }
@@ -735,9 +801,8 @@ body.level-world-active .map-bg-img { display: block; }
 .game-body {
   flex: 1; display: flex; flex-direction: column; align-items: center;
   justify-content: center;
-  padding: var(--game-pad-y) 16px; gap: 22px; position: relative; z-index: 1;
-  overflow-x: auto;
-  overflow-y: auto;
+  padding: var(--game-pad-y) 16px; gap: var(--game-gap); position: relative; z-index: 1;
+  overflow: hidden;
   min-height: 0;
   /* Allow users to pan when zoomed in on the view. touch-action: auto
      re-enables pinch-zoom and pan scrolling on this container. */
@@ -755,12 +820,12 @@ body.level-world-active .tutorial-body {
 /* Extra vertical gap between the digital-target (number clock) and the
    analog clock when BOTH are visible (levels 4, 12, 14-setFromPM). */
 .game-body > div:has(> .digital-target:not(.hidden-target)) + .clock-wrap {
-  margin-top: 14px;
+  margin-top: var(--game-extra-gap, 14px);
 }
 /* No-clock screens (L2 digital-format, L12 match, L13/L14 convert): give the
    digital-target a bit more breathing room before the question prompt. */
 .game-body.no-clock > div:has(> .digital-target:not(.hidden-target)) {
-  margin-bottom: 14px;
+  margin-bottom: var(--game-extra-gap, 14px);
 }
 
 /* No-clock screens now rely on .game-body's justify-content:center to
@@ -768,10 +833,10 @@ body.level-world-active .tutorial-body {
 
 /* Progress dots */
 .progress-dots {
-  display: flex; gap: 8px; align-items: center; margin-bottom: 2px;
+  display: flex; gap: 8px; align-items: center; margin-bottom: 0;
 }
 .progress-dot {
-  width: 18px; height: 18px; border-radius: 50%;
+  width: var(--progress-dot-size); height: var(--progress-dot-size); border-radius: 50%;
   background: rgba(255,255,255,0.9);
   border: 3px solid var(--ck-teal);
   box-shadow: 0 2px 4px rgba(0,0,0,0.12);
@@ -795,7 +860,7 @@ body.level-world-active .tutorial-body {
   position: relative;
   overflow: hidden;
   font-family: 'Fredoka', sans-serif;
-  font-size: 88px; font-weight: 700; color: #075F74; letter-spacing: 6px;
+  font-size: var(--digital-font); font-weight: 700; color: #075F74; letter-spacing: 6px;
   background:
     radial-gradient(circle at 18% 16%, rgba(255,255,255,0.98), transparent 36%),
     linear-gradient(90deg, rgba(78,205,196,0.16), transparent 28%, transparent 72%, rgba(255,107,157,0.12)),
@@ -806,7 +871,7 @@ body.level-world-active .tutorial-body {
     0 7px 0 #57BDB4,
     0 12px 22px rgba(45,48,71,0.18);
   text-shadow: 0 2px 0 rgba(255,255,255,0.82);
-  width: var(--play-w); min-width: 0; min-height: 140px; box-sizing: border-box;
+  width: var(--play-w); min-width: 0; min-height: var(--digital-h); box-sizing: border-box;
   display: flex; align-items: center; justify-content: center;
   text-align: center;
 }
@@ -819,17 +884,17 @@ body.level-world-active .tutorial-body {
 /* L4 "Set the clock" — the analog clock is the focus (user drags the hands);
    the digital target is a small reference badge, not the hero element. */
 .digital-target.digital-target--compact {
-  font-size: 56px; letter-spacing: 4px;
+  font-size: var(--compact-digital-font); letter-spacing: 4px;
   padding: 10px 32px;
-  min-width: 200px; min-height: 96px;
+  min-width: min(200px, var(--play-w)); min-height: var(--compact-digital-h);
   border-width: 6px;
 }
 .digital-target.digital-target--set {
   width: min(260px, var(--play-w));
   min-width: 0;
-  min-height: 82px;
+  min-height: var(--set-digital-h);
   padding: 8px 24px;
-  font-size: 48px;
+  font-size: var(--set-digital-font);
   letter-spacing: 3px;
 }
 
@@ -873,6 +938,9 @@ body.level-world-active .tutorial-body {
 .clock-wrap svg, .tut-visual svg, #tour-clock-wrap svg {
   filter: drop-shadow(0 8px 24px rgba(0,0,0,0.18));
 }
+body.stage-short .clock-wrap svg {
+  filter: drop-shadow(0 5px 14px rgba(0,0,0,0.16));
+}
 /* Clock SVG — fixed pixel size since the whole stage scales as one.
    360px ≈ 40% of landscape stage height (900px); leaves room for header,
    prompt, choice buttons, feedback. Portrait shrinks to 300px (override
@@ -901,13 +969,13 @@ body.level-world-active .tutorial-body {
 }
 
 /* Choices */
-.choices { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 10px; width: var(--play-w); max-width: var(--play-w); }
+.choices { display: grid; grid-template-columns: 1fr 1fr; gap: var(--choice-gap-y) var(--choice-gap-x); width: var(--play-w); max-width: var(--play-w); }
 .choice-btn {
   border: 3px solid #EAD6B5; border-radius: 18px;
   font-family: 'Fredoka', sans-serif;
-  font-size: clamp(18px, 13cqw, 26px); font-weight: 600; color: #075F74;
+  font-size: var(--choice-font); font-weight: 600; color: #075F74;
   line-height: 1.06;
-  padding: 14px 8px; cursor: pointer; min-height: var(--choice-h);
+  padding: var(--choice-pad-y) var(--choice-pad-x); cursor: pointer; min-height: var(--choice-h);
   transition: transform 0.12s, box-shadow 0.12s;
   position: relative;
   animation: btn-breathe 2.5s ease-in-out infinite;
@@ -974,8 +1042,8 @@ body.level-world-active .tutorial-body {
   background: var(--ck-btn-pink-bg);
   color: white; border: 3px solid var(--ck-btn-pink-border); border-radius: 18px;
   font-family: 'Fredoka', sans-serif;
-  font-size: 24px; font-weight: 600; padding: 14px 40px; cursor: pointer;
-  min-height: 60px; min-width: 180px; margin-top: 4px;
+  font-size: var(--confirm-font); font-weight: 600; padding: 10px 32px; cursor: pointer;
+  min-height: var(--confirm-h); min-width: min(180px, var(--play-w)); margin-top: 0;
   box-shadow:
     0 6px 0 var(--ck-pink-shadow),
     0 11px 20px rgba(184,31,99,0.18);
@@ -985,11 +1053,11 @@ body.level-world-active .tutorial-body {
 }
 .confirm-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 var(--ck-pink-shadow); }
 .feedback-msg {
-  font-size: 26px;
+  font-size: calc(var(--feedback-font) - 2px);
   font-weight: 900;
-  min-height: 34px;
-  height: 38px;
-  line-height: 34px;
+  min-height: calc(var(--feedback-h) - 4px);
+  height: var(--feedback-h);
+  line-height: calc(var(--feedback-h) - 4px);
   overflow: visible;
   color: #C72A1A;
   font-family: 'Fredoka', 'Nunito', sans-serif;
@@ -1003,9 +1071,9 @@ body.level-world-active .tutorial-body {
    hiding it doesn't shift any other content. */
 #read-feedback {
   color: #C72A1A;
-  font-family: 'Fredoka', 'Nunito', sans-serif; font-size: 28px; font-weight: 900;
+  font-family: 'Fredoka', 'Nunito', sans-serif; font-size: var(--feedback-font); font-weight: 900;
   text-align: center;
-  min-height: 34px; height: 38px; line-height: 34px; overflow: visible;
+  min-height: calc(var(--feedback-h) - 4px); height: var(--feedback-h); line-height: calc(var(--feedback-h) - 4px); overflow: visible;
   margin: 4px 0 0; padding: 0;
   text-shadow:
     0 2px 0 rgba(255,255,255,0.95),
@@ -1169,7 +1237,7 @@ body.portrait .hint-card .hint-step {
    min-height:30px and the overflowing text paints on top of the choices grid
    below. line-height tightened so multi-line prompts stay compact. */
 #read-prompt {
-  font-size: 22px; font-weight: 700; color: var(--ck-bg-dark);
+  font-size: var(--game-prompt-font, 22px); font-weight: 700; color: var(--ck-bg-dark);
   text-align: center; min-height: 30px;
   font-family: 'Nunito', sans-serif;
   flex-shrink: 0;
@@ -1182,7 +1250,7 @@ body.level-world-active .tour-step-text {
   border: 2px solid var(--ck-prompt-border);
   border-radius: 18px;
   box-shadow: 0 5px 0 rgba(200,167,123,0.48), 0 10px 22px rgba(45,48,71,0.16);
-  padding: 8px 18px;
+  padding: var(--game-prompt-pad-y, 8px) 18px;
   min-width: min(280px, var(--play-w));
   max-width: min(560px, calc(var(--play-w) + 120px));
   color: #25304A;
@@ -1197,8 +1265,10 @@ body.level-world-active .tour-step-text {
 ══════════════════════════════════════ */
 .tutorial-body {
   flex: 1; display: flex; flex-direction: column; align-items: center;
-  justify-content: safe center; padding: 20px 16px 28px; gap: 36px; text-align: center;
-  overflow-y: auto; position: relative; z-index: 1; min-height: 0;
+  justify-content: center;
+  padding: var(--guide-body-pad-top) 16px var(--guide-body-pad-bottom);
+  gap: var(--guide-gap); text-align: center;
+  overflow: hidden; position: relative; z-index: 1; min-height: 0;
 }
 
 /* Tutorial card — unified guide card across every level.
@@ -1215,11 +1285,11 @@ body.level-world-active .tour-step-text {
     inset 0 0 0 2px rgba(255,248,232,0.75),
     0 8px 0 #C8A77B,
     0 14px 36px rgba(45,48,71,0.16);
-  padding: 26px 24px 22px;
-  max-width: 600px; width: 100%;
+  padding: var(--guide-card-pad-top) var(--guide-card-pad-x) var(--guide-card-pad-bottom);
+  max-width: var(--guide-card-max-w); width: 100%;
   position: relative;
   text-align: center;
-  overflow: hidden;
+  overflow: visible;
 }
 .tut-card > * {
   position: relative;
@@ -1227,8 +1297,8 @@ body.level-world-active .tour-step-text {
 }
 .tut-title {
   font-family: 'Fredoka', sans-serif;
-  font-size: 32px; font-weight: 700; color: #075F74; line-height: 1.15;
-  margin-bottom: 14px;
+  font-size: var(--guide-title-font); font-weight: 700; color: #075F74; line-height: 1.15;
+  margin-bottom: var(--guide-title-mb);
   letter-spacing: 0.2px;
   text-shadow: 0 2px 0 rgba(255,255,255,0.75);
 }
@@ -1242,38 +1312,38 @@ body.level-world-active .tour-step-text {
 }
 .tut-section {
   text-align: left;
-  max-width: 380px; margin: 18px auto 0;
-  padding-top: 18px;
+  max-width: var(--guide-section-max-w); margin: var(--guide-section-mt) auto 0;
+  padding-top: var(--guide-section-pad-top);
   border-top: 2px solid rgba(234,214,181,0.72);
 }
 .tut-section-title {
   font-family: 'Fredoka', sans-serif;
   display: inline-flex;
   align-items: center;
-  font-size: 15px; font-weight: 800; color: #067184;
+  font-size: var(--guide-section-title-font); font-weight: 800; color: #067184;
   text-transform: uppercase; letter-spacing: 1.6px;
-  margin-bottom: 10px;
+  margin-bottom: var(--guide-section-title-mb);
   padding: 4px 10px;
   border-radius: 999px;
   background: rgba(78,205,196,0.16);
 }
 .tut-text {
-  font-size: 19px; line-height: 1.65; color: var(--ck-bg-dark);
+  font-size: var(--guide-text-font); line-height: var(--guide-text-line); color: var(--ck-bg-dark);
   white-space: pre-line; margin: 0;
 }
 .tut-example b { color: #FF6B9D; font-weight: 800; }
 .tut-example .tut-ex-q {
   display: block; color: #6B7388; font-weight: 700;
-  font-size: 19px; line-height: 1.5; margin-bottom: 4px;
+  font-size: var(--guide-example-font); line-height: var(--guide-example-line); margin-bottom: 4px;
 }
 .tut-example .tut-ex-a {
   display: block; color: var(--ck-bg-dark); font-weight: 800;
-  font-size: 19px; line-height: 1.5;
+  font-size: var(--guide-example-font); line-height: var(--guide-example-line);
 }
 /* Space between consecutive Q/A pairs in the Examples section */
 .tut-example .tut-ex-a + .tut-ex-q { margin-top: 14px; }
 .tut-bullet {
-  position: relative; padding-left: 26px; line-height: 1.55;
+  position: relative; padding-left: 26px; line-height: var(--guide-text-line);
   margin: 6px 0;
   text-spacing-trim: trim-start;
   -webkit-text-spacing-trim: trim-start;
@@ -1405,15 +1475,8 @@ body.level-world-active .tour-step-text {
 /* Topbar/home brand/title sizes now use clamp() at their primary rules
    above (search ".home-title", ".brand-ticky-mini") — the old
    unconditional "desktop bump" overrides for those have been removed
-   since they would defeat clamp(). Tutorial/reset values below stay as
-   plain pixel sizes since those screens still live inside the scaled
-   1280×900 canvas. */
-.tut-card { max-width: 640px; padding: 32px 32px 26px; }
-.tut-title { font-size: 36px; }
-.tut-section { max-width: 480px; }
-.tut-text { font-size: 20px; }
-.tut-example .tut-ex-a { font-size: 21px; }
-.tut-example .tut-ex-q { font-size: 21px; }
+   since they would defeat clamp(). Tutorial guide card sizing now comes
+   from fitGameStage() variables, so short windows can shrink without scroll. */
 .reset-btn { font-size: 16px; }
 
 /* ══════════════════════════════════════
@@ -1423,10 +1486,9 @@ body.level-world-active .tour-step-text {
    that creates a hard visual jump when a resizable browser crosses into
    portrait shape.
 ══════════════════════════════════════ */
-body.portrait .tut-card { max-width: 100%; padding: 22px 18px 18px; }
-body.portrait .tut-title { font-size: 26px; }
+body.portrait .tut-card { max-width: 100%; }
 body.portrait .tut-section { max-width: 100%; }
-body.portrait .tutorial-body { padding: 14px 14px 22px; gap: 24px; }
+body.portrait .tutorial-body { padding-left: 14px; padding-right: 14px; }
 body.portrait .tour-body { padding: 6px 14px 60px; gap: 18px; }
 body.portrait .tour-step-text { font-size: 24px; max-width: 100%; min-height: 70px; }
 /* Speed-test play area — already uses % widths; just tighten the bottom panel grid */
@@ -1449,8 +1511,9 @@ body.portrait .ticky-bubble {
   background: var(--ck-btn-pink-bg);
   color: white; border: 3px solid var(--ck-btn-pink-border); border-radius: 18px;
   font-family: 'Fredoka', sans-serif;
-  font-size: 22px; font-weight: 600; padding: 14px 40px; cursor: pointer;
-  min-height: 60px; max-width: 280px; flex-shrink: 0;
+  font-size: var(--guide-start-font); font-weight: 600;
+  padding: var(--guide-start-pad-y) 40px; cursor: pointer;
+  min-height: var(--guide-start-h); max-width: 280px; flex-shrink: 0;
   box-shadow:
     0 6px 0 var(--ck-pink-shadow),
     0 11px 20px rgba(184,31,99,0.18);
@@ -3009,6 +3072,7 @@ body.st-countdown-active #screen-speedtest { z-index: 120; }
     var portrait = viewA <= portA + 0.02;
     document.body.classList.toggle('portrait', portrait);
     document.body.classList.toggle('landscape', !portrait);
+    document.body.classList.toggle('stage-short', designH < 780);
     stage.style.width  = designW + 'px';
     stage.style.height = designH + 'px';
     var homeGap = Math.max(10, Math.min(16, designH * 0.018));
@@ -3022,6 +3086,105 @@ body.st-countdown-active #screen-speedtest { z-index: 120; }
     stage.style.setProperty('--home-gap', homeGap + 'px');
     stage.style.setProperty('--home-pad-top', homePadTop + 'px');
     stage.style.setProperty('--home-pad-bottom', homePadBottom + 'px');
+    var compactT = Math.max(0, Math.min(1, (designH - 720) / 180));
+    // One shared content scale keeps the level UI visually balanced while the
+    // stage itself shrinks. Avoid separate per-control curves that make one
+    // element feel chunky while another becomes tiny.
+    var levelUiScale = 0.66 + 0.34 * compactT;
+    var gamePlayW = 360 * levelUiScale;
+    var gameChoiceH = 64 * levelUiScale;
+    var gamePadY = 32 * levelUiScale;
+    var gameGap = 22 * levelUiScale;
+    var gameChoiceGapY = 18 * levelUiScale;
+    var gameChoiceGapX = 10 * levelUiScale;
+    var gameChoiceFont = 26 * levelUiScale;
+    var gameChoicePadY = 14 * levelUiScale;
+    var gameChoicePadX = 8 * levelUiScale;
+    var gamePromptFont = 22 * levelUiScale;
+    var gamePromptPadY = 8 * levelUiScale;
+    var gameDigitalH = 140 * levelUiScale;
+    var gameDigitalFont = 88 * levelUiScale;
+    var gameCompactDigitalH = 96 * levelUiScale;
+    var gameCompactDigitalFont = 56 * levelUiScale;
+    var gameSetDigitalH = 82 * levelUiScale;
+    var gameSetDigitalFont = 48 * levelUiScale;
+    var gameFeedbackH = 38 * levelUiScale;
+    var gameFeedbackFont = 28 * levelUiScale;
+    var gameConfirmH = 60 * levelUiScale;
+    var gameConfirmFont = 24 * levelUiScale;
+    var gameProgressDotSize = 18 * levelUiScale;
+    var gameExtraGap = 14 * levelUiScale;
+    var guideBodyPadTop = 20 * levelUiScale;
+    var guideBodyPadBottom = 28 * levelUiScale;
+    var guideGap = 36 * levelUiScale;
+    var guideCardPadTop = 32 * levelUiScale;
+    var guideCardPadX = 32 * levelUiScale;
+    var guideCardPadBottom = 26 * levelUiScale;
+    var guideCardMaxW = 640 * levelUiScale;
+    var guideTitleFont = 36 * levelUiScale;
+    var guideTitleMb = 14 * levelUiScale;
+    var guideSectionMaxW = 480 * levelUiScale;
+    var guideSectionMt = 18 * levelUiScale;
+    var guideSectionPadTop = 18 * levelUiScale;
+    var guideSectionTitleFont = 15 * levelUiScale;
+    var guideSectionTitleMb = 10 * levelUiScale;
+    var guideTextFont = 20 * levelUiScale;
+    var guideTextLine = 1.65;
+    var guideExampleFont = 21 * levelUiScale;
+    var guideExampleLine = 1.5;
+    var guideStartFont = 22 * levelUiScale;
+    var guideStartH = 60 * levelUiScale;
+    var guideStartPadY = 14 * levelUiScale;
+    stage.style.setProperty('--level-ui-scale', levelUiScale);
+    stage.style.setProperty('--game-play-w', gamePlayW + 'px');
+    stage.style.setProperty('--game-choice-h', gameChoiceH + 'px');
+    stage.style.setProperty('--game-pad-y-dynamic', gamePadY + 'px');
+    stage.style.setProperty('--game-gap-dynamic', gameGap + 'px');
+    stage.style.setProperty('--game-choice-gap-y', gameChoiceGapY + 'px');
+    stage.style.setProperty('--game-choice-gap-x', gameChoiceGapX + 'px');
+    stage.style.setProperty('--game-choice-font', gameChoiceFont + 'px');
+    stage.style.setProperty('--game-choice-pad-y', gameChoicePadY + 'px');
+    stage.style.setProperty('--game-choice-pad-x', gameChoicePadX + 'px');
+    stage.style.setProperty('--game-prompt-font', gamePromptFont + 'px');
+    stage.style.setProperty('--game-prompt-pad-y', gamePromptPadY + 'px');
+    stage.style.setProperty('--game-digital-h', gameDigitalH + 'px');
+    stage.style.setProperty('--game-digital-font', gameDigitalFont + 'px');
+    stage.style.setProperty('--game-compact-digital-h', gameCompactDigitalH + 'px');
+    stage.style.setProperty('--game-compact-digital-font', gameCompactDigitalFont + 'px');
+    stage.style.setProperty('--game-set-digital-h', gameSetDigitalH + 'px');
+    stage.style.setProperty('--game-set-digital-font', gameSetDigitalFont + 'px');
+    stage.style.setProperty('--game-feedback-h', gameFeedbackH + 'px');
+    stage.style.setProperty('--game-feedback-font', gameFeedbackFont + 'px');
+    stage.style.setProperty('--game-confirm-h', gameConfirmH + 'px');
+    stage.style.setProperty('--game-confirm-font', gameConfirmFont + 'px');
+    stage.style.setProperty('--game-progress-dot-size', gameProgressDotSize + 'px');
+    stage.style.setProperty('--game-extra-gap', gameExtraGap + 'px');
+    var tutorialScreen = document.getElementById('screen-tutorial');
+    function setGuideVar(name, value) {
+      stage.style.setProperty(name, value);
+      if (tutorialScreen) tutorialScreen.style.setProperty(name, value);
+    }
+    setGuideVar('--guide-body-pad-top', guideBodyPadTop + 'px');
+    setGuideVar('--guide-body-pad-bottom', guideBodyPadBottom + 'px');
+    setGuideVar('--guide-gap', guideGap + 'px');
+    setGuideVar('--guide-card-pad-top', guideCardPadTop + 'px');
+    setGuideVar('--guide-card-pad-x', guideCardPadX + 'px');
+    setGuideVar('--guide-card-pad-bottom', guideCardPadBottom + 'px');
+    setGuideVar('--guide-card-max-w', guideCardMaxW + 'px');
+    setGuideVar('--guide-title-font', guideTitleFont + 'px');
+    setGuideVar('--guide-title-mb', guideTitleMb + 'px');
+    setGuideVar('--guide-section-max-w', guideSectionMaxW + 'px');
+    setGuideVar('--guide-section-mt', guideSectionMt + 'px');
+    setGuideVar('--guide-section-pad-top', guideSectionPadTop + 'px');
+    setGuideVar('--guide-section-title-font', guideSectionTitleFont + 'px');
+    setGuideVar('--guide-section-title-mb', guideSectionTitleMb + 'px');
+    setGuideVar('--guide-text-font', guideTextFont + 'px');
+    setGuideVar('--guide-text-line', guideTextLine);
+    setGuideVar('--guide-example-font', guideExampleFont + 'px');
+    setGuideVar('--guide-example-line', guideExampleLine);
+    setGuideVar('--guide-start-font', guideStartFont + 'px');
+    setGuideVar('--guide-start-h', guideStartH + 'px');
+    setGuideVar('--guide-start-pad-y', guideStartPadY + 'px');
     document.body.classList.remove('stage-compact');
     var scale = Math.min(window.innerWidth / designW, availH / designH);
     var rawOffsetX = (window.innerWidth - designW * scale) / 2;
@@ -3037,6 +3200,7 @@ body.st-countdown-active #screen-speedtest { z-index: 120; }
     stage.style.transform = 'scale(' + scale + ')';
     stage.style.left = offsetX + 'px';
     stage.style.top  = offsetY + 'px';
+    document.documentElement.style.setProperty('--stage-scale', scale);
   }
   window.addEventListener('resize', fitGameStage);
   window.addEventListener('orientationchange', fitGameStage);
@@ -5138,7 +5302,7 @@ function renderTutorial(n) {
       if (wrapperL6 && !document.getElementById('tut-min-counter')) {
         const lbl = document.createElement('div');
         lbl.id = 'tut-min-counter';
-        lbl.style.cssText = 'position:absolute;top:-4px;left:100%;margin-left:8px;background:#FF6B9D;color:white;border-radius:12px;padding:6px 14px;font-family:"Fredoka",sans-serif;font-size:20px;font-weight:700;pointer-events:none;min-width:68px;text-align:center;white-space:nowrap;box-shadow:0 4px 0 #d94f7e;';
+        lbl.style.cssText = 'position:absolute;top:-4px;left:100%;margin-left:8px;background:#FF6B9D;color:white;border-radius:12px;padding:6px 14px;font-family:"Fredoka",sans-serif;font-size:20px;font-weight:700;pointer-events:none;min-width:68px;text-align:center;white-space:nowrap;box-shadow:0 4px 0 #d94f7e;z-index:5;box-sizing:border-box;';
         lbl.textContent = (state.lang === 'zh') ? '0 分' : '0 min';
         wrapperL6.appendChild(lbl);
       }
@@ -5180,7 +5344,7 @@ function renderTutorial(n) {
       if (wrapper) {
         const lbl = document.createElement('div');
         lbl.id = 'tut-min-counter';
-        lbl.style.cssText = 'position:absolute;top:-4px;left:100%;margin-left:8px;background:#FF6B9D;color:white;border-radius:12px;padding:6px 14px;font-family:"Fredoka",sans-serif;font-size:20px;font-weight:700;pointer-events:none;min-width:68px;text-align:center;white-space:nowrap;box-shadow:0 4px 0 #d94f7e;';
+        lbl.style.cssText = 'position:absolute;top:-4px;left:100%;margin-left:8px;background:#FF6B9D;color:white;border-radius:12px;padding:6px 14px;font-family:"Fredoka",sans-serif;font-size:20px;font-weight:700;pointer-events:none;min-width:68px;text-align:center;white-space:nowrap;box-shadow:0 4px 0 #d94f7e;z-index:5;box-sizing:border-box;';
         lbl.textContent = (state.lang === 'zh') ? '0 分' : '0 min';
         wrapper.appendChild(lbl);
       }
@@ -5225,7 +5389,7 @@ function renderTutorial(n) {
       if (wrapperL5 && !document.getElementById('tut-min-counter')) {
         const lbl = document.createElement('div');
         lbl.id = 'tut-min-counter';
-        lbl.style.cssText = 'position:absolute;top:-4px;left:100%;margin-left:8px;background:#FF6B9D;color:white;border-radius:12px;padding:6px 14px;font-family:"Fredoka",sans-serif;font-size:20px;font-weight:700;pointer-events:none;min-width:68px;text-align:center;white-space:nowrap;box-shadow:0 4px 0 #d94f7e;';
+        lbl.style.cssText = 'position:absolute;top:-4px;left:100%;margin-left:8px;background:#FF6B9D;color:white;border-radius:12px;padding:6px 14px;font-family:"Fredoka",sans-serif;font-size:20px;font-weight:700;pointer-events:none;min-width:68px;text-align:center;white-space:nowrap;box-shadow:0 4px 0 #d94f7e;z-index:5;box-sizing:border-box;';
         lbl.textContent = (state.lang === 'zh') ? '0 分' : '0 min';
         wrapperL5.appendChild(lbl);
       }
@@ -6263,14 +6427,14 @@ function showClockTiles(q) {
   const el = document.getElementById('choices');
   el.className = 'choices';
   el.innerHTML = '';
-  el.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;max-width:360px;';
+  el.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:var(--choice-gap-y) var(--choice-gap-x);width:var(--play-w);max-width:var(--play-w);';
 
   q.choices.forEach(([ch, cm], idx) => {
     const btn = document.createElement('button');
     btn.className = 'choice-btn';
     btn.dataset.val = String(idx);
-    btn.style.cssText = 'background:white;padding:8px;display:flex;align-items:center;justify-content:center;min-height:160px;animation:none;box-shadow:0 4px 0 #ccd;color:#2D3047;';
-    btn.innerHTML = buildClockTileSVG(ch, cm, 130);
+    btn.style.cssText = 'background:white;padding:4px;display:flex;align-items:center;justify-content:center;min-height:calc(var(--play-w) * 0.36);animation:none;box-shadow:0 4px 0 #ccd;color:#2D3047;';
+    btn.innerHTML = buildClockTileSVG(ch, cm, 102);
     btn.onclick = () => { beepTap(); checkReadAnswer(String(idx), q, btn); };
     el.appendChild(btn);
   });
