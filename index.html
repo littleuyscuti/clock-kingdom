@@ -54,6 +54,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>時鐘王國 / Clock Kingdom</title>
+<link rel="preload" as="image" href="images/clock-kingdom-map-bg-v2.webp" type="image/webp" fetchpriority="high">
 <script src="https://sdk.crazygames.com/crazygames-sdk-v3.js" defer></script>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Nunito:wght@600;700;800&family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
 <style>
@@ -2756,7 +2757,10 @@ body.st-countdown-active #screen-speedtest { z-index: 120; }
 })();
 </script>
 
-<img class="map-bg-img" src="images/clock-kingdom-map-bg-v2.png" alt="" aria-hidden="true" draggable="false" decoding="async">
+<picture>
+  <source srcset="images/clock-kingdom-map-bg-v2.webp" type="image/webp">
+  <img class="map-bg-img" src="images/clock-kingdom-map-bg-v2.png" alt="" aria-hidden="true" draggable="false" loading="eager" decoding="async" fetchpriority="high">
+</picture>
 
 <!-- ── Top-bar HUD ──
      Lives OUTSIDE #game-stage so it gets real viewport width + responsive
