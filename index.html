@@ -65,6 +65,18 @@
   --ck-pink-shadow: #d94f7e;
   --ck-teal: #4ECDC4;
   --ck-teal-shadow: #2ea89e;
+  --ck-btn-pink-bg: linear-gradient(180deg, #FF8BBA 0%, #FF5C98 100%);
+  --ck-btn-teal-bg: linear-gradient(180deg, #74E6DC 0%, #42C7BE 100%);
+  --ck-btn-pink-border: #FFD6E7;
+  --ck-btn-teal-border: #BDF4EF;
+  --ck-prompt-surface: rgba(255,253,247,0.90);
+  --ck-prompt-border: rgba(234,214,181,0.86);
+  --ck-bg-text-shadow:
+    0 2px 0 rgba(255,255,255,0.95),
+    1px 0 0 rgba(255,255,255,0.86),
+    -1px 0 0 rgba(255,255,255,0.86),
+    0 -1px 0 rgba(255,255,255,0.86),
+    0 6px 14px rgba(45,48,71,0.22);
   /* Semantic */
   --ck-correct: #6BE86B;
   --ck-correct-shadow: #4aa84a;
@@ -73,7 +85,7 @@
   /* Topbar height — clamps to viewport so topbar + #screen-home stay in sync.
      Conservative range: ~72px on a normal desktop, shrinks to 56 on narrow,
      grows to 80 on tall windows. Used by #topbar height + #screen-home top. */
-  --topbar-h: clamp(56px, 8vh, 80px);
+  --topbar-h: clamp(44px, 8vh, 80px);
 }
 
 /* ── Reset ── */
@@ -101,9 +113,9 @@ body {
   -webkit-user-select: none;
 }
 
-/* The unified scaled canvas. EVERYTHING (topbar + home + game screens +
-   overlays + ticky) lives inside this stage, so JS scaling via
-   transform:scale() makes the whole UI grow/shrink together. JS sets
+/* The unified scaled canvas. Home + tutorial + game screens live inside
+   this stage, so JS scaling via transform:scale() makes the main play UI
+   grow/shrink together. JS sets
    width/height (1280×900 landscape, 720×1280 portrait) + transform:scale()
    + integer absolute left/top on resize. Letterbox bars (sky-bg) fill the
    gap when window aspect ratio doesn't match the canvas. */
@@ -112,6 +124,7 @@ body {
   height: 900px;
   position: absolute;
   top: 0; left: 0;
+  z-index: 10;
   transform-origin: top left;
   overflow: hidden;
 }
@@ -129,13 +142,11 @@ body.portrait #game-stage {
   position: fixed; top: 0; left: 0;
   width: 100vw; height: var(--topbar-h);
   z-index: 50;
-  /* Inline the same translucent-white gradient that the old extender used,
-     so the bar still reads as a glassy edge-to-edge surface. */
-  background: linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0.25));
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border-bottom: 2px solid rgba(255,255,255,0.55);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  background: rgba(255,255,255,0.50);
+  backdrop-filter: blur(8px) saturate(1.06);
+  -webkit-backdrop-filter: blur(8px) saturate(1.06);
+  border-bottom: none;
+  box-shadow: none;
   box-sizing: border-box;
   display: flex; align-items: center;
   padding: clamp(6px, 1vh, 12px) clamp(12px, 2.5vw, 32px);
@@ -227,34 +238,45 @@ body.portrait #game-stage {
 @keyframes cloud-drift { from { transform: translateX(0); } to { transform: translateX(calc(100vw + 200px)); } }
 
 /* ── Layout ──
-   Game screens fill 100% of the parent #game-stage so they work in both
+   Main stage screens fill 100% of #game-stage so they work in both
    landscape (1280×900) and portrait (720×1280) without per-screen overrides.
-   #screen-home is intentionally excluded — it lives outside #game-stage and
-   is sized to the full viewport (below the topbar) so it renders like a
-   regular responsive web page. */
-#screen-game, #screen-tutorial, #screen-tour, #screen-speedtest {
+   #screen-speedtest is intentionally excluded because its falling-clock math
+   depends on real CSS pixels, not transformed stage pixels. */
+#screen-home, #screen-game, #screen-tutorial, #screen-tour {
+  --play-w: 360px;
+  --choice-h: 64px;
+  --game-pad-y: 32px;
   width: 100%;
   height: 100%;
   display: flex; flex-direction: column;
   position: relative; z-index: 1;
 }
-/* Home screen — lives OUTSIDE #game-stage now. Pinned to the viewport
-   below the fixed topbar (top: var(--topbar-h)) so it fills the actual
-   window and reflows responsively, instead of being trapped inside the
-   1280×900 canvas. Scrolls internally so any extra tile rows can be
-   reached. Game/tutorial/tour/speedtest screens still live inside the
-   scaled stage — only home is hoisted out. */
+/* Home screen — inside #game-stage so it scales from the same fullscreen
+   design as gameplay. Internal scrolling still handles extra tile rows. */
 #screen-home {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  z-index: 20;
+}
+#screen-speedtest {
+  --st-clock-size: clamp(150px, 17vw, 215px);
+  --st-lava-height: 90px;
   position: fixed;
   top: var(--topbar-h);
   left: 0;
   right: 0;
   bottom: 0;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
+  width: 100vw;
+  height: auto;
   display: flex;
   flex-direction: column;
-  z-index: 20;  /* above #game-stage's letterbox + extender layer */
+  z-index: 15;
 }
 .hidden { display: none !important; }
 .hand-hidden { display: none !important; }
@@ -267,13 +289,8 @@ body {
 
 /* When the visual viewport is zoomed in (pinch / Cmd+), inner scroll
    containers steal trackpad/touch scroll instead of letting the page
-   pan. The is-zoomed class (toggled by JS via window.visualViewport)
-   disables inner overflow:auto so two-finger scroll pans the whole
-   zoomed view as expected. Reverts automatically at scale 1. */
-/* Home now lives inside the scaled #game-stage and has its own internal
-   scroll, so the previous body.is-zoomed #screen-home / .world-map /
-   .game-body unwrappers (which broke out of the layout on pinch-zoom)
-   are no longer needed — pinch-zoom just scales the whole stage uniformly. */
+   pan. The previous unwrappers are removed; pinch-zoom just scales the
+   whole stage uniformly. */
 
 /* ══════════════════════════════════════
    HOME SCREEN — World Map style
@@ -287,9 +304,10 @@ body {
   /* clamp() so the brand mascot scales gently with viewport instead of
      being frozen at 46×50 like before. Conservative: ~46–52 on a normal
      desktop, shrinks on phones, grows a touch on big monitors. */
-  width: clamp(34px, 4.5vw, 62px); height: clamp(38px, 5vw, 68px); flex-shrink: 0;
+  width: clamp(28px, 6.4vmin, 62px); height: clamp(32px, 7vmin, 68px); flex-shrink: 0;
   filter: drop-shadow(0 3px 4px rgba(45,48,71,0.18));
   animation: brand-bob 3.2s ease-in-out infinite;
+  display: none;
 }
 @keyframes brand-bob {
   0%,100% { transform: translateY(0) rotate(-2deg); }
@@ -307,7 +325,7 @@ body {
   font-family: 'Fredoka', 'Noto Sans TC', sans-serif;
   /* clamp() viewport-responsive — ~28–30 on a normal desktop, shrinks on
      narrow windows, grows mildly on wide monitors. Was hard 28px. */
-  font-size: clamp(20px, 2.4vw, 30px); font-weight: 700; color: var(--ck-bg-dark);
+  font-size: clamp(16px, 3.4vmin, 30px); font-weight: 700; color: var(--ck-bg-dark);
   letter-spacing: 1.5px;
   text-transform: uppercase;
   text-shadow: 0 2px 4px rgba(45,48,71,0.18);
@@ -322,14 +340,18 @@ body {
   letter-spacing: 2px;
 }
 .lang-btn {
-  background: var(--ck-pink); color: white; border: none; border-radius: 20px;
-  padding: 8px 18px;
+  background: var(--ck-btn-pink-bg); color: white; border: 2px solid var(--ck-btn-pink-border); border-radius: 20px;
+  padding: clamp(2px, 0.9vmin, 8px) clamp(10px, 2.6vmin, 18px);
   /* clamp() so the lang button text breathes with the topbar height. */
-  font-size: clamp(14px, 1.6vw, 20px); font-weight: 700; cursor: pointer;
-  min-width: 72px; min-height: 44px;
-  box-shadow: 0 4px 0 var(--ck-pink-shadow);
-  transition: transform 0.1s;
-  font-family: 'Nunito', sans-serif;
+  font-size: clamp(12px, 2.4vmin, 20px); font-weight: 700; cursor: pointer;
+  min-width: clamp(44px, 9vmin, 72px); min-height: clamp(22px, 4.5vmin, 38px);
+  box-shadow:
+    0 4px 0 var(--ck-pink-shadow),
+    0 8px 14px rgba(184,31,99,0.15);
+  transition: transform 0.1s, box-shadow 0.1s;
+  font-family: 'Fredoka', 'Nunito', sans-serif;
+  display: inline-flex; align-items: center; justify-content: center;
+  text-shadow: 0 1px 0 rgba(143,33,82,0.24);
   animation: btn-breathe 2s ease-in-out infinite;
 }
 .lang-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #d94f7e; }
@@ -342,6 +364,9 @@ body {
   will-change: transform;
   transform: translateZ(0);
   -webkit-tap-highlight-color: transparent;
+}
+.choice-btn, #screen-speedtest .st-choice-btn {
+  container-type: inline-size;
 }
 .choice-btn:focus, .confirm-btn:focus, .lang-btn:focus, .tut-start-btn:focus, .level-stop:focus {
   outline: none;
@@ -357,37 +382,51 @@ body {
    which let tiles spill into the footer and overlap the reset button
    on short viewports / iframes. */
 .world-map {
-  flex: 1 1 auto; min-height: 0;
-  position: relative; padding: 16px 20px 24px;
+  flex: 0 1 auto; min-height: 0;
+  position: relative; z-index: 1; padding: 0 20px 8px;
   display: flex; flex-direction: column; align-items: center;
-  justify-content: flex-start;
+  justify-content: safe center;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  isolation: isolate;
+  background: transparent;
+  contain: layout;
 }
+.world-map::before {
+  content: none;
+}
+.map-bg-img {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  width: 100vw;
+  height: 100vh;
+  object-fit: cover;
+  object-position: center center;
+  pointer-events: none;
+  user-select: none;
+  transform: translateZ(0);
+  will-change: transform;
+  display: none;
+}
+body.home-active .map-bg-img,
+body.level-world-active .map-bg-img { display: block; }
 /* Level grid — auto-fit responsive columns. minmax(160px, 1fr) lets the
    grid grow from 2 cols on a phone-width window all the way to 6+ cols
    on a wide monitor, so home no longer feels "tiny" inside a desktop
    browser. max-width caps it on huge monitors so tiles don't sprawl.
-   Portrait override below clamps to 2 cols for tappability on narrow
-   phones. `margin: 0 auto` centers the grid horizontally; `auto 0` was
-   for vertical centering inside the old fixed-canvas layout and is no
-   longer needed now that home is a normal scrolling page. */
+   It intentionally stays 3 columns at every size; the stage scale handles
+   window resizing as one piece. */
 .level-stops {
-  position: relative; z-index: 1;
+  position: relative; z-index: 2;
   display: grid;
-  /* auto-fit + minmax() gives a genuinely responsive grid: 2 cols on a
-     narrow window, 3–4 on a typical desktop, 5–6+ on a wide monitor —
-     instead of the hard `repeat(3,1fr)` that used to look frozen. */
-  grid-template-columns: repeat(3, 1fr);
-  grid-auto-rows: minmax(118px, 140px);
-  gap: 18px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-auto-rows: var(--home-row-h, 112px);
+  gap: var(--home-gap, 16px);
   width: 100%;
-  /* Was 720px — capped on big monitors so the grid wouldn't sprawl, but
-     also kneecapped wide windows to a phone-sized strip. min(1400px, 95vw)
-     lets it actually expand on desktop while still leaving margins. */
-  max-width: min(960px, 95vw);
+  max-width: 1060px;
   margin: 0 auto;
-  padding: 24px;
+  padding: var(--home-pad-top, 48px) 20px var(--home-pad-bottom, 36px);
   box-sizing: border-box;
   flex-shrink: 0;
 }
@@ -395,21 +434,48 @@ body {
 .level-row, .level-row-inner { display: contents; }
 
 .level-stop {
-  width: auto; min-height: 0; height: 100%; background: white;
-  border-radius: 18px;
-  padding: 10px 8px;
-  text-align: center; cursor: pointer;
-  /* Default neutral border — completed levels overlay yellow, current
-     overlays brand teal, locked overlays gray + lock badge. Keeps the
-     grid quiet so completed/current tiles do all the visual talking. */
-  border: 4px solid #D4D7E3;
-  box-shadow: 0 6px 0 #C5C9D8, 0 8px 16px rgba(0,0,0,0.10);
+  --lnum-bg: #FFF9EC;
+  --lnum-border: #E9D7B7;
+  --lnum-color: #067184;
+  container-type: inline-size;
+  width: auto; min-height: 0; height: 100%;
+  background: linear-gradient(180deg, #FFFDF7 0%, #F8EEDC 100%);
+  border-radius: clamp(12px, 1.55vw, 20px);
+  padding: clamp(7px, 1vw, 14px);
+  text-align: left; cursor: pointer;
+  border: clamp(2px, 0.35vw, 4px) solid #EAD6B5;
+  box-shadow:
+    0 7px 0 #C8A77B,
+    0 12px 22px rgba(45,48,71,0.20);
   transition: transform 0.1s, box-shadow 0.1s;
   position: relative;
-  animation: stop-bounce 2.5s ease-in-out infinite;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  animation: none;
+  display: grid;
+  grid-template-columns: clamp(40px, 18cqw, 58px) minmax(0, 1fr);
+  grid-template-rows: 1fr auto auto 1fr;
+  align-items: center;
+  justify-content: center;
+  column-gap: clamp(8px, 4cqw, 14px);
+  row-gap: 0;
   box-sizing: border-box;
 }
+.level-meta {
+  grid-column: 2;
+  grid-row: 1 / -1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: clamp(2px, 1.4cqw, 5px);
+  overflow: hidden;
+}
+.level-row-inner:nth-child(2n) .level-stop:nth-child(1) { margin-left: 0; }
+.level-row-inner:nth-child(2n) .level-stop:nth-child(3) { margin-right: 0; }
+.level-row-inner:nth-child(2n + 1) .level-stop:nth-child(2) { margin-top: 0; }
+.level-row-inner:nth-child(3n) .level-stop:nth-child(1),
+.level-row-inner:nth-child(3n) .level-stop:nth-child(3) { margin-top: 0; }
 .level-stop:nth-child(2) { animation-delay: 0.3s; }
 .level-stop:nth-child(3) { animation-delay: 0.6s; }
 .level-stop:nth-child(4) { animation-delay: 0.9s; }
@@ -421,97 +487,206 @@ body {
 }
 
 .level-stop.locked {
-  border-color: #D4D7E3; background: linear-gradient(135deg, #F5F3FB 0%, #EBE9F5 100%);
-  box-shadow: 0 4px 0 #C5C9D8, 0 6px 12px rgba(0,0,0,0.06);
+  --lnum-bg: #F3F0E8;
+  --lnum-border: #D7D0C2;
+  --lnum-color: #B4B8C7;
+  border-color: #D7D0C2;
+  background: linear-gradient(180deg, #F8F5EF 0%, #E8E3D9 100%);
+  box-shadow:
+    0 5px 0 #BDB7AA,
+    0 8px 16px rgba(45,48,71,0.13);
   cursor: default;
   animation: none;
   position: relative; overflow: hidden;
 }
 .level-stop.locked::before {
   content: ''; position: absolute; inset: 0;
-  background-image: repeating-linear-gradient(135deg, transparent 0 10px, rgba(180,184,199,0.08) 10px 20px);
+  background-image: repeating-linear-gradient(135deg, transparent 0 10px, rgba(120,124,140,0.045) 10px 20px);
   pointer-events: none;
 }
 .lock-badge {
-  position: absolute; top: 10px; right: 10px;
+  position: absolute; top: clamp(6px, 3cqw, 10px); right: clamp(6px, 3cqw, 10px);
   display: flex; align-items: center; justify-content: center;
   pointer-events: none;
 }
-.lock-badge svg { width: 22px; height: 22px; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.15)); }
+.lock-badge svg { width: clamp(16px, 7cqw, 24px); height: clamp(16px, 7cqw, 24px); filter: drop-shadow(0 1px 2px rgba(0,0,0,0.15)); }
 .level-stop.completed {
+  --lnum-bg: #FFF3B8;
+  --lnum-border: #FFD93D;
+  --lnum-color: #A87900;
   border-color: #FFD93D;
-  box-shadow: 0 6px 0 #e6c200, 0 8px 20px rgba(255,217,61,0.35);
+  background: linear-gradient(180deg, #FFFDF7 0%, #FFF0C2 100%);
+  box-shadow:
+    0 6px 0 #D7B23A,
+    0 12px 24px rgba(255,217,61,0.24);
 }
 /* 1–2 stars: partway through a star level. Unsaturated orange so it reads as
    "in progress" — not done yet (yellow) but more than just unlocked. */
 .level-stop.partial {
+  --lnum-bg: #FFF0E6;
+  --lnum-border: #E8A77C;
+  --lnum-color: #B8704A;
   border-color: #E8A77C;
-  box-shadow: 0 6px 0 #C68A65, 0 8px 20px rgba(232,167,124,0.30);
+  box-shadow:
+    0 6px 0 #C68A65,
+    0 8px 20px rgba(232,167,124,0.30);
 }
 .level-stop.current-level {
+  --lnum-bg: #E9FBF8;
+  --lnum-border: var(--ck-teal);
+  --lnum-color: #067184;
+  --play-badge-size: clamp(27px, 11.5cqw, 39px);
+  --play-badge-top: clamp(5px, 2.4cqw, 9px);
+  --play-badge-right: clamp(6px, 2.8cqw, 10px);
+  z-index: 3;
+  isolation: isolate;
+  overflow: visible;
   border-color: var(--ck-teal);
-  box-shadow: 0 6px 0 var(--ck-teal-shadow), 0 8px 20px rgba(78,205,196,0.35);
-  animation: current-pulse 1.5s ease-in-out infinite;
+  background: linear-gradient(180deg, #FFFDF7 0%, #E9FBF8 100%);
+  box-shadow:
+    0 7px 0 var(--ck-teal-shadow),
+    0 12px 24px rgba(78,205,196,0.22);
+  animation: current-callout 0.95s ease-in-out infinite;
 }
-@keyframes current-pulse {
-  0%,100% { transform: translateY(0) scale(1); }
-  50%     { transform: translateY(-3px) scale(1.02); }
+.level-stop.current-level::after {
+  content: '';
+  position: absolute;
+  top: var(--play-badge-top);
+  right: var(--play-badge-right);
+  width: var(--play-badge-size);
+  height: var(--play-badge-size);
+  border-radius: 50%;
+  background: var(--ck-teal);
+  pointer-events: none;
+}
+.level-stop.current-level::before {
+  content: '';
+  position: absolute;
+  top: calc(var(--play-badge-top) + (var(--play-badge-size) / 2));
+  right: calc(var(--play-badge-right) + (var(--play-badge-size) / 2));
+  width: calc(var(--play-badge-size) * 0.50);
+  height: calc(var(--play-badge-size) * 0.48);
+  background: #FFFFFF;
+  clip-path: polygon(20% 12%, 20% 88%, 88% 50%);
+  transform: translate(50%, -50%);
+  z-index: 4;
+  pointer-events: none;
+}
+@keyframes current-callout {
+  0%,100% {
+    transform: translateY(0) scale(1);
+    box-shadow:
+      0 7px 0 var(--ck-teal-shadow),
+      0 12px 24px rgba(78,205,196,0.22);
+  }
+  50% {
+    transform: translateY(-5px) scale(1.07);
+    box-shadow:
+      0 10px 0 var(--ck-teal-shadow),
+      0 20px 34px rgba(78,205,196,0.42);
+  }
 }
 
 .lnum {
   font-family: 'Fredoka', sans-serif;
-  /* clamp() so the level number breathes with tile size. ~32 on desktop. */
-  font-size: clamp(26px, 2.4vw, 38px); font-weight: 700; color: var(--ck-teal); line-height: 1;
+  grid-row: 1 / -1;
+  width: clamp(28px, 34cqw, 58px);
+  height: clamp(28px, 34cqw, 58px);
+  border-radius: 50%;
+  background: var(--lnum-bg);
+  border: clamp(2px, 0.32vw, 3px) solid var(--lnum-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(20px, 22cqw, 36px); font-weight: 700; color: var(--lnum-color); line-height: 0.86;
+  overflow: hidden;
+  box-shadow: none;
 }
-.level-stop.locked .lnum { color: #B4B8C7; }
-.level-stop.locked .lname { color: #9094A8; }
-.level-stop.completed .lnum { color: #FFD93D; }
-.level-stop.partial .lnum { color: #B8704A; }
-.level-stop.current-level .lnum { color: var(--ck-teal); }
+.level-stop.locked .lname {
+  color: #9094A8;
+}
 .lname {
-  /* clamp() so tile labels breathe with viewport. ~14 on desktop. */
-  font-size: clamp(13px, 1.2vw, 17px); color: #555; font-weight: 700;
-  margin-top: 6px;
-  line-height: 1.2; height: 2.4em;
+  font-size: clamp(10px, 9.8cqw, 18px); color: #075F74; font-weight: 800;
+  margin-top: 0;
+  line-height: 1.12; max-height: 2.32em;
   white-space: pre-line;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
-  overflow: hidden; padding: 0 2px; width: 100%; box-sizing: border-box;
+  overflow: hidden; padding: 2px 2px 1px; width: 100%; box-sizing: border-box;
 }
-.stars { font-size: 15px; letter-spacing: 2px; margin-top: 4px; }
+.stars { font-size: clamp(11px, 12cqw, 22px); letter-spacing: clamp(0px, 1.8cqw, 4px); margin-top: 0; line-height: 1; height: auto; white-space: nowrap; overflow: hidden; width: 100%; }
+.stars.score-stars {
+  font-size: clamp(11px, 12cqw, 22px);
+  display: inline-flex;
+  align-items: center;
+  gap: clamp(2px, 1.2cqw, 5px);
+  letter-spacing: 0;
+}
+.stars.score-stars .score-value {
+  color: #7A5C0A;
+  font-family: 'Fredoka', sans-serif;
+  font-size: 0.82em;
+  font-weight: 700;
+  line-height: 1;
+  transform: translateY(0.03em);
+}
 .stars .star-on, .game-stars-earned .star-on, .complete-stars .star-on { color: #FFD93D; -webkit-text-stroke: 1px #d4a017; }
 .stars .star-off, .game-stars-earned .star-off, .complete-stars .star-off { color: #E2E5EE; -webkit-text-stroke: 1px #B4B8C7; }
 
-.home-footer { text-align: center; padding: 12px; position: relative; z-index: 1; }
+.home-footer { text-align: center; padding: 8px 12px 0; position: relative; z-index: 3; flex: 0 0 auto; }
+.home-footer {
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-top: none;
+  box-shadow: none;
+}
 .reset-btn {
-  background: none; border: none; color: #888; font-size: 14px;
-  cursor: pointer; text-decoration: underline; padding: 8px 16px; min-height: 44px;
-  font-family: 'Nunito', sans-serif;
+  background: linear-gradient(180deg, rgba(255,253,247,0.92), rgba(248,238,220,0.84));
+  border: 2px solid rgba(234,214,181,0.82);
+  border-radius: 999px;
+  color: rgba(45,48,71,0.72); font-size: 14px;
+  cursor: pointer; text-decoration: none; padding: 5px 14px; min-height: 30px;
+  font-family: 'Fredoka', 'Nunito', sans-serif;
+  font-weight: 800;
+  box-shadow:
+    0 3px 0 rgba(200,167,123,0.58),
+    0 6px 12px rgba(45,48,71,0.12);
   -webkit-tap-highlight-color: transparent;
   outline: none;
+  transition: transform 0.1s, box-shadow 0.1s;
 }
 .reset-btn:focus { outline: none; }
+.reset-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(200,167,123,0.58); }
 
 /* ══════════════════════════════════════
    GAME SCREEN
 ══════════════════════════════════════ */
 /* Old .game-header rule removed — its content lives in #topbar [data-mode="game"|"tutorial"|"tour"|"speedtest"]. */
 .back-btn {
-  background: var(--ck-pink); border: none; color: white;
-  border-radius: 20px; padding: 8px 16px; font-size: 18px; cursor: pointer;
-  min-width: 56px; min-height: 44px; font-weight: 700;
-  box-shadow: 0 4px 0 var(--ck-pink-shadow);
-  transition: transform 0.1s;
-  font-family: 'Nunito', sans-serif;
+  background: var(--ck-btn-pink-bg); border: 2px solid var(--ck-btn-pink-border); color: white;
+  border-radius: 20px;
+  padding: clamp(2px, 0.9vmin, 8px) clamp(10px, 2.6vmin, 18px);
+  font-size: clamp(14px, 2.4vmin, 20px); cursor: pointer;
+  min-width: clamp(40px, 8vmin, 60px); min-height: clamp(22px, 4.5vmin, 38px);
+  font-weight: 700;
+  box-shadow:
+    0 4px 0 var(--ck-pink-shadow),
+    0 8px 14px rgba(184,31,99,0.15);
+  transition: transform 0.1s, box-shadow 0.1s;
+  font-family: 'Fredoka', 'Nunito', sans-serif;
+  display: inline-flex; align-items: center; justify-content: center;
+  text-shadow: 0 1px 0 rgba(143,33,82,0.24);
 }
 .back-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 var(--ck-pink-shadow); }
 
 .game-level-label {
   font-family: 'Fredoka', sans-serif;
-  font-size: 22px; font-weight: 600; color: var(--ck-bg-dark);
+  font-size: clamp(16px, 3.2vmin, 22px); font-weight: 600; color: var(--ck-bg-dark);
   line-height: 1.4;
+  text-shadow: var(--ck-bg-text-shadow);
 }
 .game-stars-earned {
-  font-size: 28px; letter-spacing: 2.5px; min-width: 96px; text-align: right;
+  font-size: clamp(20px, 5vmin, 28px); letter-spacing: 2.5px; min-width: clamp(68px, 16vmin, 96px); text-align: right;
   font-weight: 700;
   line-height: 1.4;
   /* Optical centering: ★ glyphs sit slightly high in their em-box, so even with
@@ -520,28 +695,58 @@ body {
   transform: translateY(2px);
 }
 .help-btn {
-  width: 36px; height: 36px; border-radius: 50%;
-  background: var(--ck-teal); color: white; border: none;
-  font-family: 'Fredoka', sans-serif; font-weight: 700; font-size: 20px;
-  cursor: pointer; box-shadow: 0 3px 0 var(--ck-teal-shadow);
+  position: fixed;
+  left: max(clamp(12px, 2.5vw, 32px), env(safe-area-inset-left));
+  bottom: max(18px, env(safe-area-inset-bottom));
+  z-index: 130;
+  min-width: 112px;
+  height: 56px;
+  border-radius: 28px;
+  background: linear-gradient(180deg, #FFBE55 0%, #FF932F 100%);
+  color: white;
+  border: 3px solid #FFE1A8;
+  font-family: 'Fredoka', sans-serif; font-weight: 700; font-size: 24px;
+  cursor: pointer;
+  box-shadow:
+    0 5px 0 #D56A16,
+    0 10px 18px rgba(124,72,18,0.18);
   display: flex; align-items: center; justify-content: center;
   transition: transform 0.1s, box-shadow 0.1s;
+  text-shadow: 0 1px 0 rgba(123,61,10,0.28);
 }
-.help-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--ck-teal-shadow); }
+.help-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #D56A16; }
+.help-btn:not(.hint-ready) {
+  display: none;
+  pointer-events: none;
+}
+.help-btn.hint-ready {
+  display: flex;
+  animation: hint-breathe 0.95s ease-in-out infinite;
+}
+.help-btn.hint-ready:active { animation: none; }
+@keyframes hint-breathe {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-5px) scale(1.13); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .help-btn.hint-ready { animation: none; }
+}
 
 .game-body {
   flex: 1; display: flex; flex-direction: column; align-items: center;
-  justify-content: safe center;
-  /* Top:6 / Bottom:72 — biases the safe-center upward so the progress
-     dots + 1/N counter sit higher under the header on every level,
-     giving the clock more breathing room below. */
-  padding: 6px 16px 72px; gap: 22px; position: relative; z-index: 1;
+  justify-content: center;
+  padding: var(--game-pad-y) 16px; gap: 22px; position: relative; z-index: 1;
   overflow-x: auto;
   overflow-y: auto;
   min-height: 0;
   /* Allow users to pan when zoomed in on the view. touch-action: auto
      re-enables pinch-zoom and pan scrolling on this container. */
   touch-action: auto;
+}
+body.level-world-active .game-body,
+body.level-world-active .tour-body,
+body.level-world-active .tutorial-body {
+  text-shadow: 0 1px 0 rgba(255,255,255,0.72);
 }
 /* Previously centered no-clock screens, but that pushed progress-dots off
    the top. Now all levels keep progress-dots pinned to the top like L4. */
@@ -583,18 +788,29 @@ body {
 }
 
 .question-counter {
-  font-size: 15px; color: rgba(45,48,71,0.6); font-weight: 700;
+  font-size: 15px; color: rgba(45,48,71,0.76); font-weight: 700;
+  text-shadow: var(--ck-bg-text-shadow);
 }
 .digital-target {
+  position: relative;
+  overflow: hidden;
   font-family: 'Fredoka', sans-serif;
-  font-size: 88px; font-weight: 700; color: var(--ck-bg-dark); letter-spacing: 6px;
-  background: white; border-radius: 20px; padding: 18px 48px;
-  border: 6px solid #FFD93D;
-  box-shadow: 0 6px 0 #e6c200, 0 8px 20px rgba(0,0,0,0.1);
-  min-width: 280px; min-height: 140px; box-sizing: border-box;
+  font-size: 88px; font-weight: 700; color: #075F74; letter-spacing: 6px;
+  background:
+    radial-gradient(circle at 18% 16%, rgba(255,255,255,0.98), transparent 36%),
+    linear-gradient(90deg, rgba(78,205,196,0.16), transparent 28%, transparent 72%, rgba(255,107,157,0.12)),
+    linear-gradient(180deg, #FFFFFF 0%, #E9FBF8 100%);
+  border-radius: 22px; padding: 18px 48px;
+  border: 7px solid #76DCD2;
+  box-shadow:
+    0 7px 0 #57BDB4,
+    0 12px 22px rgba(45,48,71,0.18);
+  text-shadow: 0 2px 0 rgba(255,255,255,0.82);
+  width: var(--play-w); min-width: 0; min-height: 140px; box-sizing: border-box;
   display: flex; align-items: center; justify-content: center;
   text-align: center;
 }
+.digital-target::before { content: none; }
 .digital-target.hidden-target { opacity: 0; pointer-events: none; }
 /* When the digital target is hidden (read levels: L1–L3 etc.), collapse its
    wrapper so the new large (140px) digital block doesn't reserve empty space
@@ -606,7 +822,15 @@ body {
   font-size: 56px; letter-spacing: 4px;
   padding: 10px 32px;
   min-width: 200px; min-height: 96px;
-  border-width: 4px;
+  border-width: 6px;
+}
+.digital-target.digital-target--set {
+  width: min(260px, var(--play-w));
+  min-width: 0;
+  min-height: 82px;
+  padding: 8px 24px;
+  font-size: 48px;
+  letter-spacing: 3px;
 }
 
 /* Clock wrapper — pillow style.
@@ -615,6 +839,7 @@ body {
    shake animation promotes it to its own compositor layer. */
 .clock-wrap, .tut-visual {
   position: relative; display: inline-block;
+  width: var(--play-w);
   border-radius: 50%;
   transition: box-shadow 0.2s;
   background: transparent;
@@ -654,13 +879,8 @@ body {
    below) so the same vertical budget works on a 720-wide canvas. */
 .clock-wrap svg, .tut-visual svg, #tour-clock-wrap svg {
   display: block;
-  width: 360px;
+  width: 100%;
   height: auto;
-}
-body.portrait .clock-wrap svg,
-body.portrait .tut-visual svg,
-body.portrait #tour-clock-wrap svg {
-  width: 300px;
 }
 /* Correct state: turn the clock's own face border green (instead of drawing
    an external ring around the wrapper). */
@@ -681,20 +901,59 @@ body.portrait #tour-clock-wrap svg {
 }
 
 /* Choices */
-.choices { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 10px; width: 100%; max-width: 360px; }
+.choices { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 10px; width: var(--play-w); max-width: var(--play-w); }
 .choice-btn {
-  border: none; border-radius: 20px;
+  border: 3px solid #EAD6B5; border-radius: 18px;
   font-family: 'Fredoka', sans-serif;
-  font-size: 26px; font-weight: 600; color: white;
-  padding: 14px 8px; cursor: pointer; min-height: 64px;
+  font-size: clamp(18px, 13cqw, 26px); font-weight: 600; color: #075F74;
+  line-height: 1.06;
+  padding: 14px 8px; cursor: pointer; min-height: var(--choice-h);
   transition: transform 0.12s, box-shadow 0.12s;
   position: relative;
   animation: btn-breathe 2.5s ease-in-out infinite;
+  display: flex; align-items: center; justify-content: center;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  overflow: hidden;
+  min-width: 0;
 }
-.choice-btn:nth-child(1) { background: #FF6B9D; box-shadow: 0 6px 0 #d94f7e; animation-delay: 0s; }
-.choice-btn:nth-child(2) { background: #4ECDC4; box-shadow: 0 6px 0 #2ea89e; animation-delay: 0.4s; }
-.choice-btn:nth-child(3) { background: #A78BFA; box-shadow: 0 6px 0 #7c5fdb; animation-delay: 0.8s; }
-.choice-btn:nth-child(4) { background: #FFD93D; box-shadow: 0 6px 0 #e6c200; color: var(--ck-bg-dark); animation-delay: 1.2s; }
+.choice-btn:nth-child(1),
+.choice-btn:nth-child(2),
+.choice-btn:nth-child(3),
+.choice-btn:nth-child(4) {
+  box-shadow:
+    0 6px 0 #C8A77B,
+    0 11px 20px rgba(45,48,71,0.18);
+}
+.choice-btn:nth-child(1) {
+  border-color: #FF9EC6;
+  background: linear-gradient(180deg, #FFF4FA 0%, #FFD1E4 100%);
+  color: #B81F63;
+  box-shadow: 0 6px 0 #E37BA6, 0 11px 20px rgba(184,31,99,0.18);
+  animation-delay: 0s;
+}
+.choice-btn:nth-child(2) {
+  border-color: #76DCD2;
+  background: linear-gradient(180deg, #F1FFFD 0%, #BFF5EE 100%);
+  color: #006E7D;
+  box-shadow: 0 6px 0 #57BDB4, 0 11px 20px rgba(0,110,125,0.16);
+  animation-delay: 0.4s;
+}
+.choice-btn:nth-child(3) {
+  border-color: #BAA5F4;
+  background: linear-gradient(180deg, #FAF7FF 0%, #DED4FF 100%);
+  color: #6046A8;
+  box-shadow: 0 6px 0 #9D89DA, 0 11px 20px rgba(96,70,168,0.16);
+  animation-delay: 0.8s;
+}
+.choice-btn:nth-child(4) {
+  border-color: #FFD65E;
+  background: linear-gradient(180deg, #FFFBE8 0%, #FFE88B 100%);
+  color: #775300;
+  box-shadow: 0 6px 0 #D6B33E, 0 11px 20px rgba(119,83,0,0.16);
+  animation-delay: 1.2s;
+}
 .choice-btn:active { transform: translateY(4px) scale(0.97); box-shadow: 0 2px 0 rgba(0,0,0,0.3) !important; }
 .choice-btn.correct-ans { background: var(--ck-correct) !important; box-shadow: 0 6px 0 var(--ck-correct-shadow) !important; color: white !important; }
 .choice-btn.wrong-ans   { background: #FFB4A2 !important; box-shadow: 0 4px 0 #e07a65 !important; color: var(--ck-bg-dark) !important; }
@@ -703,7 +962,6 @@ body.portrait #tour-clock-wrap svg {
   0%,100% { box-shadow: 0 0 0 4px #6BE86B, 0 0 0 8px rgba(107,232,107,0.4); }
   50%      { box-shadow: 0 0 0 8px #6BE86B, 0 0 0 14px rgba(107,232,107,0.2); }
 }
-
 #set-controls { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 4px; }
 /* Empty hint row is removed from flex flow entirely (display: none) so its
    flex gap doesn't leave a phantom half-space that shifts the confirm
@@ -713,36 +971,196 @@ body.portrait #tour-clock-wrap svg {
 
 /* Confirm / feedback */
 .confirm-btn {
-  background: var(--ck-pink); color: white; border: none; border-radius: 24px;
+  background: var(--ck-btn-pink-bg);
+  color: white; border: 3px solid var(--ck-btn-pink-border); border-radius: 18px;
   font-family: 'Fredoka', sans-serif;
   font-size: 24px; font-weight: 600; padding: 14px 40px; cursor: pointer;
   min-height: 60px; min-width: 180px; margin-top: 4px;
-  box-shadow: 0 6px 0 var(--ck-pink-shadow);
+  box-shadow:
+    0 6px 0 var(--ck-pink-shadow),
+    0 11px 20px rgba(184,31,99,0.18);
   transition: transform 0.1s;
   animation: btn-breathe 2s ease-in-out infinite;
+  text-shadow: 0 1px 0 rgba(143,33,82,0.24);
 }
 .confirm-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 var(--ck-pink-shadow); }
-.feedback-msg { font-size: 20px; font-weight: 700; min-height: 28px; height: 32px; line-height: 28px; overflow: visible; color: var(--ck-pink); font-family: 'Nunito', sans-serif; }
+.feedback-msg {
+  font-size: 26px;
+  font-weight: 900;
+  min-height: 34px;
+  height: 38px;
+  line-height: 34px;
+  overflow: visible;
+  color: #C72A1A;
+  font-family: 'Fredoka', 'Nunito', sans-serif;
+  text-shadow:
+    0 2px 0 rgba(255,255,255,0.95),
+    0 5px 12px rgba(199,42,26,0.24);
+}
 /* "Try again!" for read-mode — inline, mirrors the set-mode feedback-msg
    slot on Level 4 so every level shows the wrong-answer text in the same
    visual position (right above choices / confirm). Reserve min-height so
    hiding it doesn't shift any other content. */
 #read-feedback {
-  color: var(--ck-pink);
-  font-family: 'Nunito', sans-serif; font-size: 22px; font-weight: 700;
+  color: #C72A1A;
+  font-family: 'Fredoka', 'Nunito', sans-serif; font-size: 28px; font-weight: 900;
   text-align: center;
-  min-height: 26px; height: 32px; line-height: 26px; overflow: visible;
+  min-height: 34px; height: 38px; line-height: 34px; overflow: visible;
   margin: 4px 0 0; padding: 0;
+  text-shadow:
+    0 2px 0 rgba(255,255,255,0.95),
+    0 5px 12px rgba(199,42,26,0.24);
 }
-/* Stay in the flex flow (reserving the min-height slot) when hidden — the
-   generic .hidden { display:none !important } would collapse it and shift
-   choices/confirm up and down as the "Try again!" text toggles. */
-#read-feedback.hidden { display: block !important; visibility: hidden; }
+/* Keep the wrong-answer row reserved while answer choices are visible, so
+   "Try Again" can appear without pushing the clock, prompt, or choices. */
+#read-feedback.hidden { display: flex !important; visibility: hidden; }
 /* Set mode has its own feedback-msg inside #set-controls, so read-feedback
    is never shown there — collapse the reserved slot so it doesn't add
    empty space above the confirm button. */
 .game-body:has(#choices.hidden) #read-feedback.hidden { display: none !important; }
-.hint-msg { font-size: 16px; color: #888; min-height: 22px; }
+.hint-msg { font-size: 16px; color: #5D6477; min-height: 22px; text-shadow: var(--ck-bg-text-shadow); }
+
+/* Shared modal overlay surface. */
+#overlay-hint {
+  position: fixed; inset: 0;
+  background: rgba(45,48,71,0.62);
+  z-index: 190;
+  display: grid;
+  place-items: center;
+  padding: max(18px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(18px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  box-sizing: border-box;
+}
+.hint-card {
+  width: min(650px, calc(100vw - 32px));
+  max-width: calc(100vw - 32px);
+  max-height: min(720px, calc(100vh - 36px));
+  overflow: visible;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,250,235,0.98));
+  border: 5px solid #EAD6B5;
+  border-radius: 28px;
+  box-shadow:
+    inset 0 2px 0 rgba(255,255,255,0.95),
+    0 8px 0 #C8A77B,
+    0 20px 46px rgba(16,25,42,0.32);
+  padding: 24px;
+  color: #25304A;
+  position: relative;
+  box-sizing: border-box;
+  animation: complete-slide-in 0.32s cubic-bezier(0.175,0.885,0.32,1.12);
+}
+.hint-card { text-align: left; }
+.hint-close {
+  position: absolute;
+  top: -14px;
+  right: -14px;
+  width: 44px;
+  height: 44px;
+  border: 3px solid var(--ck-btn-teal-border);
+  border-radius: 50%;
+  background: var(--ck-btn-teal-bg);
+  padding: 0;
+  box-shadow:
+    0 4px 0 #2ea89e,
+    0 8px 14px rgba(0,110,125,0.18);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.1s;
+}
+.hint-close:active { transform: translateY(2px); box-shadow: 0 2px 0 #2ea89e; }
+.hint-kicker {
+  display: none;
+  align-items: center;
+  min-height: 30px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(78,205,196,0.16);
+  font-family: 'Fredoka', sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ck-teal-shadow);
+  margin-bottom: 10px;
+}
+.hint-title {
+  font-family: 'Fredoka', sans-serif;
+  font-size: clamp(32px, 5.6vw, 44px);
+  font-weight: 700;
+  color: #8F3E34;
+  line-height: 1.05;
+  padding-right: 42px;
+  margin-bottom: 8px;
+}
+.hint-subtitle {
+  display: none;
+  font-size: clamp(18px, 3.5vw, 23px);
+  font-weight: 800;
+  line-height: 1.25;
+  color: #3B425A;
+  margin-bottom: 12px;
+}
+.hint-problem {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  margin: 4px 0 18px;
+  font-size: clamp(22px, 3.8vw, 28px);
+  font-weight: 900;
+  line-height: 1.24;
+  color: #25304A;
+}
+.hint-step-list {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.hint-answer-label {
+  font-size: clamp(22px, 3.8vw, 28px);
+  font-weight: 900;
+  line-height: 1.2;
+  color: #8F3E34;
+}
+.hint-card .hint-step {
+  display: block;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
+}
+.hint-card .hint-step-num {
+  display: none;
+}
+.hint-step-text {
+  display: block;
+  font-size: clamp(23px, 4vw, 30px);
+  font-weight: 850;
+  line-height: 1.2;
+  color: #25304A;
+}
+.hint-answer {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  font-family: 'Fredoka', sans-serif;
+  font-size: clamp(24px, 4.3vw, 32px);
+  font-weight: 700;
+  line-height: 1.18;
+  margin: 16px 0 2px;
+}
+body.portrait .hint-card {
+  width: calc(100vw - 28px);
+  max-width: calc(100vw - 28px);
+  padding: 20px 16px 18px;
+}
+body.portrait .hint-card .hint-step {
+  padding: 0;
+}
 
 /* Read prompt
    flex-shrink:0 so this never collapses below its content height — without it,
@@ -756,6 +1174,21 @@ body.portrait #tour-clock-wrap svg {
   font-family: 'Nunito', sans-serif;
   flex-shrink: 0;
   line-height: 1.25;
+  text-shadow: var(--ck-bg-text-shadow);
+}
+body.level-world-active #read-prompt,
+body.level-world-active .tour-step-text {
+  background: var(--ck-prompt-surface);
+  border: 2px solid var(--ck-prompt-border);
+  border-radius: 18px;
+  box-shadow: 0 5px 0 rgba(200,167,123,0.48), 0 10px 22px rgba(45,48,71,0.16);
+  padding: 8px 18px;
+  min-width: min(280px, var(--play-w));
+  max-width: min(560px, calc(var(--play-w) + 120px));
+  color: #25304A;
+  text-shadow: var(--ck-bg-text-shadow);
+  backdrop-filter: blur(6px) saturate(1.02);
+  -webkit-backdrop-filter: blur(6px) saturate(1.02);
 }
 #read-prompt:empty { min-height: 0; margin: 0; padding: 0; line-height: 0; }
 
@@ -772,35 +1205,57 @@ body.portrait #tour-clock-wrap svg {
    Clean 3-section design: Introduction, Examples, Remember.
    No nested boxes — just clear horizontal-rule sections. */
 .tut-card {
-  background: white; border-radius: 28px;
-  border: 5px solid var(--ck-teal);
-  box-shadow: 0 8px 0 var(--ck-teal-shadow), 0 14px 36px rgba(0,0,0,0.14);
+  background:
+    radial-gradient(circle at 18% 12%, rgba(255,255,255,0.94), transparent 34%),
+    linear-gradient(180deg, #FFFDF7 0%, #F8EEDC 100%);
+  border-radius: 28px;
+  border: 5px solid #EAD6B5;
+  box-shadow:
+    inset 0 2px 0 rgba(255,255,255,0.9),
+    inset 0 0 0 2px rgba(255,248,232,0.75),
+    0 8px 0 #C8A77B,
+    0 14px 36px rgba(45,48,71,0.16);
   padding: 26px 24px 22px;
   max-width: 600px; width: 100%;
   position: relative;
   text-align: center;
+  overflow: hidden;
+}
+.tut-card > * {
+  position: relative;
+  z-index: 1;
 }
 .tut-title {
   font-family: 'Fredoka', sans-serif;
-  font-size: 32px; font-weight: 700; color: var(--ck-bg-dark); line-height: 1.15;
+  font-size: 32px; font-weight: 700; color: #075F74; line-height: 1.15;
   margin-bottom: 14px;
   letter-spacing: 0.2px;
+  text-shadow: 0 2px 0 rgba(255,255,255,0.75);
 }
 .tut-visual {
-  position: relative; display: inline-block;
-  margin: 4px auto 6px;
+  position: relative; display: inline-flex;
+  align-items: center; justify-content: center;
+  margin: 4px auto 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
 }
 .tut-section {
   text-align: left;
   max-width: 380px; margin: 18px auto 0;
   padding-top: 18px;
-  border-top: 1.5px solid #E8EEF1;
+  border-top: 2px solid rgba(234,214,181,0.72);
 }
 .tut-section-title {
   font-family: 'Fredoka', sans-serif;
-  font-size: 16px; font-weight: 800; color: var(--ck-teal);
+  display: inline-flex;
+  align-items: center;
+  font-size: 15px; font-weight: 800; color: #067184;
   text-transform: uppercase; letter-spacing: 1.6px;
   margin-bottom: 10px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(78,205,196,0.16);
 }
 .tut-text {
   font-size: 19px; line-height: 1.65; color: var(--ck-bg-dark);
@@ -962,26 +1417,12 @@ body.portrait #tour-clock-wrap svg {
 .reset-btn { font-size: 16px; }
 
 /* ══════════════════════════════════════
-   PORTRAIT OVERRIDES (body.portrait → 720×1280 stage)
-   Topbar + home overrides removed — they used to hard-set sizes that
-   would defeat clamp() now that those elements are viewport-fixed and
-   responsive. Game-screen overrides below remain (they still live
-   inside the scaled canvas and need portrait-specific tuning).
+   PORTRAIT HUD / GUIDE OVERRIDES
+   Gameplay keeps the same fullscreen proportions via #game-stage scaling.
+   Do not override --play-w, --choice-h, .digital-target, or .choice-btn here:
+   that creates a hard visual jump when a resizable browser crosses into
+   portrait shape.
 ══════════════════════════════════════ */
-body.portrait .game-level-label { font-size: 18px; }
-body.portrait .back-btn { padding: 6px 12px; font-size: 16px; min-width: 50px; }
-body.portrait .game-stars-earned { font-size: 22px; min-width: 72px; }
-body.portrait .digital-target {
-  font-size: 64px; letter-spacing: 4px;
-  padding: 12px 28px; min-width: 220px; min-height: 110px;
-  border-width: 5px;
-}
-body.portrait .digital-target.digital-target--compact {
-  font-size: 44px; padding: 8px 24px; min-width: 160px; min-height: 80px;
-}
-body.portrait .choices { max-width: 100%; gap: 14px 10px; }
-body.portrait .choice-btn { font-size: 22px; min-height: 56px; padding: 12px 6px; }
-body.portrait .confirm-btn { font-size: 20px; padding: 12px 32px; min-height: 54px; min-width: 160px; }
 body.portrait .tut-card { max-width: 100%; padding: 22px 18px 18px; }
 body.portrait .tut-title { font-size: 26px; }
 body.portrait .tut-section { max-width: 100%; }
@@ -991,18 +1432,31 @@ body.portrait .tour-step-text { font-size: 24px; max-width: 100%; min-height: 70
 /* Speed-test play area — already uses % widths; just tighten the bottom panel grid */
 body.portrait #screen-speedtest .st-choice-grid { max-width: 100%; gap: 14px 10px; }
 body.portrait #screen-speedtest .st-bottom-panel { padding: 20px 14px 24px; }
-body.portrait #screen-speedtest .st-falling-clock,
-body.portrait #screen-speedtest .st-clock-svg-wrap { width: 165px; }
-body.portrait #screen-speedtest .st-clock-svg-wrap { height: 165px; }
+body.portrait #screen-speedtest { --st-clock-size: 165px; }
+body.portrait .ticky-container {
+  left: max(12px, env(safe-area-inset-left));
+  bottom: max(14px, env(safe-area-inset-bottom));
+}
+body.portrait .ticky-svg-wrap svg {
+  width: clamp(68px, 18vmin, 110px);
+}
+body.portrait .ticky-bubble {
+  font-size: clamp(14px, 3.3vmin, 18px);
+  max-width: clamp(180px, 48vmin, 240px);
+}
 
 .tut-start-btn {
-  background: var(--ck-pink); color: white; border: none; border-radius: 24px;
+  background: var(--ck-btn-pink-bg);
+  color: white; border: 3px solid var(--ck-btn-pink-border); border-radius: 18px;
   font-family: 'Fredoka', sans-serif;
   font-size: 22px; font-weight: 600; padding: 14px 40px; cursor: pointer;
   min-height: 60px; max-width: 280px; flex-shrink: 0;
-  box-shadow: 0 6px 0 var(--ck-pink-shadow);
+  box-shadow:
+    0 6px 0 var(--ck-pink-shadow),
+    0 11px 20px rgba(184,31,99,0.18);
   animation: btn-breathe 2s ease-in-out infinite;
   transition: transform 0.1s;
+  text-shadow: 0 1px 0 rgba(143,33,82,0.24);
 }
 .tut-start-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #d94f7e; }
 
@@ -1037,6 +1491,7 @@ body.portrait #screen-speedtest .st-clock-svg-wrap { height: 165px; }
   white-space: pre-line; text-align: center;
   letter-spacing: 0.2px;
   margin: 0 auto;
+  text-shadow: var(--ck-bg-text-shadow);
 }
 /* Two-row layout for tour steps that need a primary statement + sub-action. */
 .tour-step-text.has-sub { flex-direction: column; gap: 4px; }
@@ -1069,27 +1524,31 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
      continue button appears/disappears. */
   height: 100px;
 }
-.tour-tap-hint { font-size: 16px; color: #888; min-height: 24px; }
-/* L1 "Try again!" — must look identical to L2+ #read-feedback so wrong-answer
-   feedback is consistent across every level. Pink, Nunito, 22px/700,
-   centered, with the same reserved height as the read-feedback slot. */
+.tour-tap-hint { font-size: 16px; color: #5D6477; min-height: 24px; text-shadow: var(--ck-bg-text-shadow); }
+/* L1 "Try again!" — mirrors L2+ wrong-answer feedback. */
 .tour-tap-hint.wrong {
-  color: var(--ck-pink);
-  font-family: 'Nunito', sans-serif;
-  font-size: 22px;
-  font-weight: 700;
+  color: #C72A1A;
+  font-family: 'Fredoka', 'Nunito', sans-serif;
+  font-size: 28px;
+  font-weight: 900;
   text-align: center;
-  min-height: 32px;
-  line-height: 28px;
+  min-height: 38px;
+  line-height: 34px;
+  text-shadow:
+    0 2px 0 rgba(255,255,255,0.95),
+    0 5px 12px rgba(199,42,26,0.24);
 }
 .tour-continue-btn {
-  background: var(--ck-teal); color: white; border: none; border-radius: 24px;
+  background: var(--ck-btn-teal-bg); color: white; border: 3px solid var(--ck-btn-teal-border); border-radius: 24px;
   font-family: 'Fredoka', sans-serif;
   font-size: 22px; font-weight: 600; padding: 14px 40px; cursor: pointer;
   min-height: 60px; margin-top: 8px;
-  box-shadow: 0 6px 0 var(--ck-teal-shadow);
+  box-shadow:
+    0 6px 0 var(--ck-teal-shadow),
+    0 11px 20px rgba(0,110,125,0.16);
   animation: btn-breathe 2s ease-in-out infinite;
   transition: transform 0.1s;
+  text-shadow: 0 1px 0 rgba(0,110,125,0.24);
 }
 .tour-continue-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 var(--ck-teal-shadow); }
 
@@ -1161,6 +1620,22 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
   position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
   z-index: 150; pointer-events: none;
 }
+#overlay-wrong-flash {
+  position: fixed;
+  inset: 0;
+  z-index: 140;
+  pointer-events: none;
+  background: rgba(255, 48, 48, 0.34);
+  opacity: 0;
+}
+#overlay-wrong-flash.flash {
+  animation: wrong-screen-flash 0.26s ease-out;
+}
+@keyframes wrong-screen-flash {
+  0% { opacity: 0; }
+  12% { opacity: 1; }
+  100% { opacity: 0; }
+}
 .correct-popup {
   background: linear-gradient(135deg, var(--ck-correct), var(--ck-correct-shadow));
   color: white; border-radius: 28px;
@@ -1184,7 +1659,7 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
   display: flex; align-items: center; justify-content: center; z-index: 100;
   backdrop-filter: blur(4px);
 }
-/* Timer pill pinned top-right of the game body for Level 14 Ultimate Test */
+/* Timer pill pinned top-right of the game body for L17 Ultimate Test */
 .game-body { position: relative; }
 .ultimate-timer {
   position: absolute; top: 8px; right: 8px; z-index: 5;
@@ -1207,13 +1682,20 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
   min-width: 110px; text-align: center;
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
 }
+.ultimate-score .score-pill-value {
+  font-size: 0.9em;
+  line-height: 1;
+  transform: translateY(0.03em);
+}
 .timeout-close {
   position: absolute; top: -14px; right: -14px;
   width: 44px; height: 44px; border-radius: 50%;
-  border: 3px solid white; background: #4ECDC4;
+  border: 3px solid var(--ck-btn-teal-border); background: var(--ck-btn-teal-bg);
   cursor: pointer; padding: 0;
   display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 4px 0 #2ea89e, 0 6px 12px rgba(0,0,0,0.15);
+  box-shadow:
+    0 4px 0 #2ea89e,
+    0 8px 14px rgba(0,110,125,0.18);
   transition: transform 0.1s;
 }
 .timeout-close svg { display: block; }
@@ -1230,6 +1712,7 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
   pointer-events: none;
   padding: 10px 20px; min-width: 110px; box-sizing: border-box; text-align: center;
   animation: l15-delta-fade 0.8s linear forwards;
+  text-shadow: var(--ck-bg-text-shadow);
 }
 .l15-time-delta.plus  { color: var(--ck-correct); }
 .l15-time-delta.minus { color: #E63946; }
@@ -1263,6 +1746,42 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
   font-family: 'Fredoka', sans-serif;
   font-size: 28px; font-weight: 700; color: var(--ck-teal); margin-bottom: 8px;
 }
+.timeout-card .complete-done-label {
+  color: #FF6B9D;
+}
+.timeout-card .timeout-close {
+  top: 10px;
+  right: 10px;
+  width: 38px;
+  height: 38px;
+  border-width: 3px;
+}
+.timeout-card #timeout-msg {
+  margin: 16px 0;
+}
+.timeout-new-best {
+  color: #B81F63;
+  font-family: 'Fredoka', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.timeout-score-result {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: 'Fredoka', sans-serif;
+  font-size: 52px;
+  font-weight: 700;
+  line-height: 1;
+  color: #2D3047;
+  margin: 0;
+  min-height: 62px;
+}
+.timeout-score-result .ultimate-score-icon {
+  font-size: 0.86em;
+}
 .complete-stars { font-size: 52px; letter-spacing: 8px; margin: 16px 0; }
 .complete-stars span {
   display: inline-block; opacity: 0; transform: scale(0);
@@ -1273,69 +1792,120 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
 .complete-stars span.pop-settle { opacity: 1; transform: scale(1); }
 
 .next-btn {
-  background: var(--ck-pink); color: white; border: none; border-radius: 24px;
+  background: var(--ck-btn-pink-bg);
+  color: white; border: 3px solid var(--ck-btn-pink-border); border-radius: 18px;
   font-family: 'Fredoka', sans-serif;
   font-size: 24px; font-weight: 600; padding: 16px 44px; cursor: pointer;
   min-height: 64px; margin-top: 16px;
-  box-shadow: 0 6px 0 var(--ck-pink-shadow);
+  box-shadow:
+    0 6px 0 var(--ck-pink-shadow),
+    0 11px 20px rgba(184,31,99,0.18);
   animation: btn-breathe 1.5s ease-in-out infinite;
   transition: transform 0.1s; display: block; width: 100%;
+  text-shadow: 0 1px 0 rgba(143,33,82,0.24);
 }
 .next-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #d94f7e; }
+.next-btn.secondary-action {
+  background: var(--ck-btn-teal-bg);
+  color: white;
+  border-color: var(--ck-btn-teal-border);
+  box-shadow:
+    0 6px 0 #57BDB4,
+    0 11px 20px rgba(0,110,125,0.16);
+  text-shadow: 0 1px 0 rgba(0,110,125,0.24);
+}
 
 /* ══════════════════════════════════════
    RESET CONFIRM OVERLAY
 ══════════════════════════════════════ */
 #overlay-reset {
   position: fixed; inset: 0;
-  background: rgba(45,48,71,0.65);
+  background:
+    linear-gradient(180deg, rgba(45,48,71,0.42), rgba(45,48,71,0.58)),
+    radial-gradient(circle at 50% 38%, rgba(255,255,255,0.24), transparent 42%);
   display: flex; align-items: center; justify-content: center; z-index: 110;
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(8px) saturate(1.06);
+  -webkit-backdrop-filter: blur(8px) saturate(1.06);
+  padding: 18px;
+  box-sizing: border-box;
 }
 .reset-card {
-  background: white; border-radius: 32px; padding: 32px 26px 28px;
-  text-align: center; max-width: 360px; width: 92%;
-  border: 5px solid #E63946;
-  box-shadow: 0 12px 0 #b82c38, 0 16px 48px rgba(0,0,0,0.2);
+  background:
+    radial-gradient(circle at 18% 14%, rgba(255,255,255,0.98), transparent 36%),
+    linear-gradient(180deg, #FFFDF7 0%, #F8EEDC 100%);
+  border-radius: 22px; padding: 34px 28px 28px;
+  text-align: center; max-width: 420px; width: min(92vw, 420px);
+  border: 4px solid #EAD6B5;
+  box-shadow:
+    inset 0 2px 0 rgba(255,255,255,0.9),
+    0 10px 0 #C8A77B,
+    0 20px 42px rgba(45,48,71,0.28);
   animation: complete-slide-in 0.4s cubic-bezier(0.175,0.885,0.32,1.275);
   position: relative;
+  overflow: hidden;
+}
+.reset-card::before {
+  content: '';
+  position: absolute;
+  inset: 9px;
+  border: 2px solid rgba(200,167,123,0.42);
+  border-radius: 16px;
+  pointer-events: none;
+  z-index: 0;
 }
 .reset-title {
   font-family: 'Fredoka', sans-serif;
-  font-size: 28px; font-weight: 700; color: #E63946; margin-bottom: 14px;
+  font-size: clamp(28px, 7vw, 34px); font-weight: 800; color: #8F3E34; margin-bottom: 12px;
   line-height: 1.15;
+  position: relative;
+  z-index: 1;
 }
 .reset-warning {
   font-family: 'Fredoka', sans-serif;
-  font-size: 16px; font-weight: 600; color: var(--ck-bg-dark);
+  font-size: clamp(16px, 4.2vw, 18px); font-weight: 700; color: #3F372F;
   line-height: 1.45;
   margin: 4px 8px 22px;
+  position: relative;
+  z-index: 1;
 }
 .reset-actions {
   display: flex; flex-direction: column; gap: 12px;
+  position: relative;
+  z-index: 1;
 }
 .reset-cancel-btn, .reset-confirm-btn {
-  border: none; border-radius: 24px;
+  border: 3px solid #76DCD2; border-radius: 18px;
   font-family: 'Fredoka', sans-serif;
   font-size: 20px; font-weight: 600; padding: 14px 20px;
   cursor: pointer; min-height: 58px;
-  transition: transform 0.1s;
-  color: white;
+  transition: transform 0.1s, box-shadow 0.1s;
+  color: #006E7D;
   width: 100%;
+  -webkit-tap-highlight-color: transparent;
 }
 .reset-cancel-btn {
-  background: #4ECDC4;
-  box-shadow: 0 6px 0 #2ea89e;
+  background: var(--ck-btn-teal-bg);
+  border-color: var(--ck-btn-teal-border);
+  color: white;
+  box-shadow:
+    0 6px 0 #57BDB4,
+    0 11px 20px rgba(0,110,125,0.16);
+  text-shadow: 0 1px 0 rgba(0,110,125,0.24);
 }
 .reset-cancel-btn:active {
   transform: translateY(4px); box-shadow: 0 2px 0 #2ea89e;
 }
 .reset-confirm-btn {
-  background: #E63946;
-  box-shadow: 0 6px 0 #b82c38;
+  background: linear-gradient(180deg, #E07769 0%, #C7564A 100%);
+  border-color: #F3B4AA;
+  box-shadow:
+    0 6px 0 #8F3E34,
+    0 11px 20px rgba(143,62,52,0.18);
+  color: white;
+  text-shadow: 0 1px 0 rgba(111,46,38,0.28);
 }
 .reset-confirm-btn:active {
-  transform: translateY(4px); box-shadow: 0 2px 0 #b82c38;
+  transform: translateY(4px); box-shadow: 0 2px 0 #8F3E34;
 }
 
 /* ══════════════════════════════════════
@@ -1367,14 +1937,16 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
   position: fixed; bottom: 16px; left: 12px; z-index: 120;
   display: flex; flex-direction: column; align-items: flex-start;
   pointer-events: none;
+  display: none !important;
 }
 .ticky-bubble {
-  background: white; border-radius: 16px; padding: 9px 14px;
-  font-size: 14px; font-weight: 700; color: var(--ck-bg-dark);
+  background: white; border-radius: 16px;
+  padding: clamp(8px, 1.4vmin, 14px) clamp(12px, 2.2vmin, 20px);
+  font-size: clamp(13px, 2vmin, 18px); font-weight: 700; color: var(--ck-bg-dark);
   line-height: 1.45;
   box-shadow: 0 4px 16px rgba(0,0,0,0.15);
   border: 2px solid #FFD93D;
-  margin-bottom: 6px; max-width: 220px; text-align: left;
+  margin-bottom: 6px; max-width: clamp(200px, 28vmin, 280px); text-align: left;
   /* Allow multi-line hints (\n) to break into separate lines so kids can scan
      each idea independently. Single-line happy/sad messages still render fine. */
   white-space: pre-line;
@@ -1405,7 +1977,7 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
 }
 /* Gentle viewport-aware sizing for the home-screen ticky SVG so it doesn't
    look frozen on huge or tiny windows. Conservative range. */
-.ticky-svg-wrap svg { width: clamp(48px, 8vw, 120px); height: auto; }
+.ticky-svg-wrap svg { width: clamp(40px, 11vmin, 120px); height: auto; }
 @keyframes ticky-idle {
   0%,100% { transform: translateY(0) scale(1); }
   50%      { transform: translateY(-6px) scale(1.02); }
@@ -1481,14 +2053,29 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
   display: flex; flex-direction: column;
   background: transparent;
   min-height: 0;
+  overflow: hidden;
+}
+#screen-speedtest .st-shell::before {
+  content: none;
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(255,253,247,0.08) 0%, rgba(255,253,247,0) 44%, rgba(94,61,37,0.10) 100%);
+  pointer-events: none;
+  z-index: 0;
 }
 
-/* Lives indicator (in #topbar speedtest mode, stars slot) — matches .game-stars-earned sizing.
-   Hearts use the same 32px font + letter-spacing as ★ so they read as the same component.
-   No #screen-speedtest prefix because the element now lives inside #topbar (outside the stage). */
+/* Lives indicator in Speed Test's topbar stars slot, matching the regular
+   .game-stars-earned component weight while keeping the score in the playfield. */
 .st-lives-display {
-  display: inline-block;
-  font-size: 28px; letter-spacing: 2.5px; min-width: 96px; text-align: right;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: clamp(1px, 0.6vmin, 4px);
+  font-size: clamp(20px, 5vmin, 28px);
+  letter-spacing: 0;
+  min-width: clamp(58px, 13vmin, 96px);
+  text-align: right;
   font-weight: 700;
   line-height: 1.4;
   /* Optical centering: ♥ glyphs sit slightly high in their em-box. Hearts have
@@ -1516,11 +2103,11 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
 }
 .st-lives-shake { animation: st-lives-shake-anim 0.3s ease-out; }
 
-/* Score-pill icon (Speed Test + L15 Ultimate Test). Inline trophy SVG from Phosphor Icons
+/* Score-pill icon (Speed Test + L17 Ultimate Test). Inline trophy SVG from Phosphor Icons
    (trophy-fill, MIT license — https://github.com/phosphor-icons/core).
    Gold fill + dark-gold stroke matches the ★ star treatment. Sized via 1em so
    the icon scales with surrounding text (32px in pill, 84px in end overlay).
-   .ultimate-score-icon (L15) is namespaced separately but visually identical. */
+   .ultimate-score-icon (Ultimate) is namespaced separately but visually identical. */
 #screen-speedtest .st-score-icon,
 #st-overlay-end .st-score-icon,
 .ultimate-score-icon {
@@ -1557,13 +2144,10 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
   paint-order: stroke fill;
 }
 
-/* Hide global Ticky mascot while Speed Test screen is active.
-   Ticky is fixed-positioned outside #screen-speedtest, so we toggle a body class. */
-body.st-active .ticky-container { display: none !important; }
-
-/* Hide global Ticky mascot while the per-level guide card (tutorial screen) is open.
-   Ticky sits at bottom-left and overlaps the guide card on small viewports —
-   re-shown automatically on tutorial dismiss via hideAllScreens(). */
+/* Bottom-left Ticky stays off during learning/gameplay. Hints now live in
+   the top-right button + structured overlay, so kids look where the help is. */
+body.level-world-active .ticky-container,
+body.st-active .ticky-container,
 body.tut-active .ticky-container { display: none !important; }
 
 /* Play area */
@@ -1573,28 +2157,32 @@ body.tut-active .ticky-container { display: none !important; }
   overflow: hidden;
   background: transparent;
   min-height: 0;
+  z-index: 1;
 }
 
-/* 3-2-1 countdown overlay — sits above falling clocks (z-index 12),
-   below the start/end overlays. Faint dark tint, big white digit. */
+/* 3-2-1 countdown overlay — viewport-wide so the whole game darkens,
+   including the topbar, before the falling clocks begin. */
 #screen-speedtest #st-countdown {
-  position: absolute;
+  position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.15);
+  background: rgba(45, 48, 71, 0.58);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 50;
+  z-index: 140;
   pointer-events: none;
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
 }
 #screen-speedtest #st-countdown.hidden { display: none; }
+body.st-countdown-active #screen-speedtest { z-index: 120; }
 #screen-speedtest .st-countdown-num {
   font-family: 'Fredoka', sans-serif;
   font-weight: 700;
   font-size: 200px;
   line-height: 1;
   color: white;
-  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 5px 28px rgba(0, 0, 0, 0.55);
   animation: st-countdown-pop 1s ease-out forwards;
 }
 @keyframes st-countdown-pop {
@@ -1608,13 +2196,13 @@ body.tut-active .ticky-container { display: none !important; }
 #screen-speedtest .st-falling-clock {
   position: absolute;
   display: flex; flex-direction: column; align-items: center;
-  width: 215px;
+  width: var(--st-clock-size);
   top: 0;
   z-index: 12;
   will-change: transform;
 }
 #screen-speedtest .st-clock-svg-wrap {
-  width: 215px; height: 215px;
+  width: var(--st-clock-size); height: var(--st-clock-size);
   filter: drop-shadow(0 4px 12px rgba(31,38,48,0.12));
 }
 #screen-speedtest .st-clock-svg-wrap svg {
@@ -1658,7 +2246,7 @@ body.tut-active .ticky-container { display: none !important; }
 #screen-speedtest .st-lava-zone {
   position: absolute;
   bottom: 0; left: 0; right: 0;
-  height: 90px;
+  height: var(--st-lava-height);
   z-index: 10;
   overflow: hidden;
 }
@@ -1681,19 +2269,22 @@ body.tut-active .ticky-container { display: none !important; }
 }
 
 /* Bottom panel + choice buttons.
-   Mirror the regular curriculum .choices / .choice-btn styling so the answer UI
-   feels identical to regular levels: 2x2 grid, 4 colored buttons (pink / teal
-   / purple / yellow) with the same Fredoka font, padding, border-radius, and
-   3D shadow. The bottom panel itself loses its frosted-glass background so it
-   sits transparently against the play area like regular levels' answer area. */
+   Speed Test keeps the regular level 2x2 answer language, with a warm
+   transparent dust-gold backing so the choices still belong to this mode. */
 #screen-speedtest .st-bottom-panel {
   position: relative;
   display: flex; flex-direction: column; align-items: center;
   gap: 12px;
-  padding: 28px 18px 32px;
-  background: rgba(255,255,255,0.4);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  padding: 16px 18px 26px;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(255,255,255,0.58), transparent 32%),
+    linear-gradient(180deg, rgba(255,244,210,0.76) 0%, rgba(219,171,89,0.48) 100%);
+  backdrop-filter: blur(10px) saturate(1.06);
+  -webkit-backdrop-filter: blur(10px) saturate(1.06);
+  border-top: 3px solid rgba(234,214,181,0.76);
+  box-shadow:
+    inset 0 2px 0 rgba(255,255,255,0.55),
+    0 -8px 22px rgba(94,61,37,0.16);
   z-index: 25;
   flex-shrink: 0;
 }
@@ -1705,11 +2296,12 @@ body.tut-active .ticky-container { display: none !important; }
   max-width: 360px;
 }
 #screen-speedtest .st-choice-btn {
-  border: none;
-  border-radius: 20px;
+  border: 3px solid #EAD6B5;
+  border-radius: 18px;
   font-family: 'Fredoka', sans-serif;
-  font-size: 26px; font-weight: 600;
-  color: white;
+  font-size: clamp(18px, 13cqw, 26px); font-weight: 600;
+  line-height: 1.06;
+  color: #075F74;
   padding: 14px 8px;
   cursor: pointer;
   min-height: 64px;
@@ -1717,26 +2309,89 @@ body.tut-active .ticky-container { display: none !important; }
   position: relative;
   animation: btn-breathe 2.5s ease-in-out infinite;
   -webkit-tap-highlight-color: transparent;
+  display: flex; align-items: center; justify-content: center;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  overflow: hidden;
+  min-width: 0;
 }
-#screen-speedtest .st-choice-btn:nth-child(1) { background: #FF6B9D; box-shadow: 0 6px 0 #d94f7e; animation-delay: 0s; }
-#screen-speedtest .st-choice-btn:nth-child(2) { background: #4ECDC4; box-shadow: 0 6px 0 #2ea89e; animation-delay: 0.4s; }
-#screen-speedtest .st-choice-btn:nth-child(3) { background: #A78BFA; box-shadow: 0 6px 0 #7c5fdb; animation-delay: 0.8s; }
-#screen-speedtest .st-choice-btn:nth-child(4) { background: #FFD93D; box-shadow: 0 6px 0 #e6c200; color: var(--ck-bg-dark); animation-delay: 1.2s; }
+#screen-speedtest .st-choice-btn:nth-child(1),
+#screen-speedtest .st-choice-btn:nth-child(2),
+#screen-speedtest .st-choice-btn:nth-child(3),
+#screen-speedtest .st-choice-btn:nth-child(4) {
+  box-shadow:
+    0 6px 0 #C8A77B,
+    0 11px 20px rgba(45,48,71,0.18);
+}
+#screen-speedtest .st-choice-btn:nth-child(1) {
+  border-color: #FF9EC6;
+  background: linear-gradient(180deg, #FFF4FA 0%, #FFD1E4 100%);
+  color: #B81F63;
+  box-shadow: 0 6px 0 #E37BA6, 0 11px 20px rgba(184,31,99,0.18);
+  animation-delay: 0s;
+}
+#screen-speedtest .st-choice-btn:nth-child(2) {
+  border-color: #76DCD2;
+  background: linear-gradient(180deg, #F1FFFD 0%, #BFF5EE 100%);
+  color: #006E7D;
+  box-shadow: 0 6px 0 #57BDB4, 0 11px 20px rgba(0,110,125,0.16);
+  animation-delay: 0.4s;
+}
+#screen-speedtest .st-choice-btn:nth-child(3) {
+  border-color: #BAA5F4;
+  background: linear-gradient(180deg, #FAF7FF 0%, #DED4FF 100%);
+  color: #6046A8;
+  box-shadow: 0 6px 0 #9D89DA, 0 11px 20px rgba(96,70,168,0.16);
+  animation-delay: 0.8s;
+}
+#screen-speedtest .st-choice-btn:nth-child(4) {
+  border-color: #FFD65E;
+  background: linear-gradient(180deg, #FFFBE8 0%, #FFE88B 100%);
+  color: #775300;
+  box-shadow: 0 6px 0 #D6B33E, 0 11px 20px rgba(119,83,0,0.16);
+  animation-delay: 1.2s;
+}
 #screen-speedtest .st-choice-btn:focus { outline: none; }
 #screen-speedtest .st-choice-btn:active {
   transform: translateY(4px) scale(0.97);
-  box-shadow: 0 2px 0 rgba(0,0,0,0.3) !important;
+  box-shadow:
+    0 2px 0 #C8A77B,
+    0 6px 12px rgba(45,48,71,0.15) !important;
 }
 #screen-speedtest .st-choice-btn.st-correct-flash {
   background: var(--ck-correct) !important;
+  border-color: #6BE86B !important;
   box-shadow: 0 6px 0 var(--ck-correct-shadow) !important;
   color: white !important;
 }
 #screen-speedtest .st-choice-btn.st-wrong-shake {
   animation: st-input-shake 0.32s ease-out;
-  background: #FFB4A2 !important;
-  box-shadow: 0 4px 0 #e07a65 !important;
+  background: #FFE2D9 !important;
+  border-color: #E07A65 !important;
+  box-shadow: 0 4px 0 #C7564A !important;
   color: var(--ck-bg-dark) !important;
+}
+@media (max-height: 520px) and (orientation: landscape) {
+  #screen-speedtest {
+    --st-clock-size: 120px;
+    --st-lava-height: 58px;
+  }
+  #screen-speedtest .st-bottom-panel {
+    padding: 10px 14px 14px;
+    gap: 8px;
+  }
+  #screen-speedtest .st-choice-grid {
+    grid-template-columns: repeat(4, 1fr);
+    max-width: min(680px, 96vw);
+    gap: 10px;
+  }
+  #screen-speedtest .st-choice-btn {
+    font-size: 20px;
+    min-height: 46px;
+    padding: 8px 6px;
+    border-radius: 16px;
+  }
 }
 @keyframes st-input-shake {
   0%, 100% { transform: translateX(0); }
@@ -1744,46 +2399,92 @@ body.tut-active .ticky-container { display: none !important; }
   75%      { transform: translateX(6px); }
 }
 
-/* Overlays — scoped, fixed inside the speedtest screen */
-#screen-speedtest .st-overlay {
+/* Overlays — viewport-fixed siblings of #game-stage.
+   They must not live under the transformed stage, or fixed positioning gets
+   pinned to the scaled canvas instead of the real screen. */
+.st-overlay {
   position: fixed; inset: 0;
   display: flex; align-items: center; justify-content: center;
   z-index: 100;
-  background: rgba(31,38,48,0.45);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background:
+    linear-gradient(180deg, rgba(45,48,71,0.38), rgba(45,48,71,0.56)),
+    radial-gradient(circle at 50% 38%, rgba(255,255,255,0.22), transparent 42%);
+  backdrop-filter: blur(9px) saturate(1.06);
+  -webkit-backdrop-filter: blur(9px) saturate(1.06);
+  padding: 18px;
+  box-sizing: border-box;
 }
-#screen-speedtest .st-overlay.hidden { display: none !important; }
-#screen-speedtest .st-overlay-card {
-  background: #FFFFFF;
-  border-radius: 24px;
+.st-overlay.hidden { display: none !important; }
+.st-overlay-card {
+  background:
+    radial-gradient(circle at 18% 14%, rgba(255,255,255,0.92), transparent 36%),
+    linear-gradient(180deg, #FFFDF7 0%, #F8EEDC 100%);
+  border-radius: 22px;
   padding: 36px 32px 28px;
   text-align: center;
-  box-shadow: 0 12px 40px rgba(45,48,71,0.22), 0 4px 0 rgba(45,48,71,0.10);
-  width: 360px;
+  border: 4px solid #EAD6B5;
+  box-shadow:
+    inset 0 2px 0 rgba(255,255,255,0.9),
+    0 10px 0 #C8A77B,
+    0 20px 42px rgba(45,48,71,0.28);
+  width: min(92vw, 380px);
   animation: st-card-pop 0.28s ease-out both;
+  position: relative;
+  overflow: hidden;
+}
+.st-overlay-card::before {
+  content: '';
+  position: absolute;
+  inset: 9px;
+  border: 2px solid rgba(200,167,123,0.42);
+  border-radius: 16px;
+  pointer-events: none;
+}
+#st-overlay-end .complete-card {
+  background: white;
+  border: 5px solid #FFD93D;
+  border-radius: 32px;
+  box-shadow: 0 12px 0 #e6c200, 0 16px 48px rgba(0,0,0,0.2);
+  overflow: visible;
+}
+#st-overlay-end .complete-card::before {
+  content: none;
+}
+#st-overlay-end #st-end-msg,
+#st-overlay-end #st-end-score-row,
+#st-overlay-end .next-btn {
+  position: relative;
+  z-index: 1;
+}
+#st-overlay-end .timeout-close {
+  position: absolute;
+  top: -14px;
+  right: -14px;
+  z-index: 2;
 }
 @keyframes st-card-pop {
   from { transform: scale(0.92); opacity: 0; }
   to   { transform: scale(1); opacity: 1; }
 }
-#screen-speedtest .st-emoji-title {
+.st-emoji-title {
   font-size: 44px;
   line-height: 1;
   margin-bottom: 10px;
 }
-#screen-speedtest .st-overlay-title {
+.st-overlay-title {
   font-family: 'Fredoka', 'Noto Sans TC', sans-serif;
-  font-size: 28px; font-weight: 700;
-  color: var(--ck-bg-dark);
+  font-size: 28px; font-weight: 800;
+  color: #075F74;
   margin-bottom: 8px;
+  position: relative;
 }
-#screen-speedtest .st-overlay-subtitle {
+.st-overlay-subtitle {
   font-family: 'Nunito', 'Noto Sans TC', sans-serif;
-  font-size: 14px; font-weight: 600;
-  color: #6B7785;
+  font-size: 14px; font-weight: 700;
+  color: #5E5142;
   margin-bottom: 24px;
   line-height: 1.55;
+  position: relative;
 }
 #screen-speedtest .st-end-score-block { margin-bottom: 24px; }
 #screen-speedtest .st-end-score-value {
@@ -1799,28 +2500,31 @@ body.tut-active .ticky-container { display: none !important; }
   letter-spacing: 1.4px;
   margin-top: 6px;
 }
-#screen-speedtest .st-play-btn {
+.st-play-btn {
   font-family: 'Fredoka', 'Noto Sans TC', sans-serif;
   font-size: 18px; font-weight: 700;
   color: white;
-  background: var(--ck-pink);
-  border: none;
+  background: var(--ck-btn-pink-bg);
+  border: 3px solid var(--ck-btn-pink-border);
   border-radius: 18px;
   padding: 14px 36px;
   cursor: pointer;
   transition: transform 0.08s ease, box-shadow 0.08s ease;
   letter-spacing: 0.6px;
   width: 100%;
-  box-shadow: 0 4px 0 #d94f7e;
+  box-shadow:
+    0 6px 0 #d94f7e,
+    0 11px 20px rgba(184,31,99,0.18);
   -webkit-tap-highlight-color: transparent;
+  text-shadow: 0 1px 0 rgba(143,33,82,0.24);
 }
-#screen-speedtest .st-play-btn:focus { outline: none; }
-#screen-speedtest .st-play-btn:active {
+.st-play-btn:focus { outline: none; }
+.st-play-btn:active {
   transform: translateY(2px);
   box-shadow: 0 2px 0 #d94f7e;
 }
 
-/* Score popup — visual treatment matches L15's .l15-time-delta (positive variant):
+/* Score popup — visual treatment matches Ultimate's legacy .l15-time-delta (positive variant):
    Fredoka 28px/800, green #6BE86B, fade-only animation (no motion path). */
 #screen-speedtest .st-score-pop {
   position: absolute;
@@ -1834,7 +2538,7 @@ body.tut-active .ticky-container { display: none !important; }
   white-space: nowrap;
 }
 /* Mirrors @keyframes l15-delta-fade exactly, but keeps translate(-50%, 0) so the
-   horizontal-centering used by popClock() still works. L15's own keyframe is
+   horizontal-centering used by popClock() still works. Ultimate's own keyframe is
    left untouched. */
 @keyframes st-score-float {
   0%, 60% { transform: translate(-50%, 0); opacity: 1; }
@@ -1853,6 +2557,9 @@ body.tut-active .ticky-container { display: none !important; }
    accent is preserved. The .locked ::before stripe overlay is also nuked.
 */
 .level-stop.speedtest-tile {
+  --lnum-bg: #FFF0F6;
+  --lnum-border: #FF6B9D;
+  --lnum-color: #B81F63;
   border-color: #FF6B9D !important;
   background: linear-gradient(135deg, #FFFFFF 0%, #FFF0F6 100%) !important;
   box-shadow: 0 6px 0 #d94f7e, 0 8px 18px rgba(255,107,157,0.30) !important;
@@ -1861,7 +2568,7 @@ body.tut-active .ticky-container { display: none !important; }
   position: relative;
 }
 .level-stop.speedtest-tile::before { display: none !important; content: none !important; }
-.level-stop.speedtest-tile .lnum { color: #FF6B9D !important; font-size: 26px; }
+.level-stop.speedtest-tile .lnum { font-size: 26px; }
 .level-stop.speedtest-tile .lname { color: var(--ck-bg-dark) !important; height: auto; -webkit-line-clamp: 2; }
 @keyframes st-tile-pulse {
   0%,100% { transform: translateY(0); box-shadow: 0 6px 0 #d94f7e, 0 8px 18px rgba(255,107,157,0.30); }
@@ -1892,14 +2599,16 @@ body.tut-active .ticky-container { display: none !important; }
 <!-- Build stamp: lets us see at a glance whether the page is fresh or cached.
      Bumped on each iteration; if the number on screen doesn't match what's
      in the file, the browser is showing a stale cached copy. -->
-<div id="build-stamp" style="position:fixed;bottom:6px;right:8px;font:600 11px 'Fredoka',sans-serif;color:rgba(45,48,71,0.45);background:rgba(255,255,255,0.7);padding:2px 8px;border-radius:8px;pointer-events:none;z-index:300;">v15</div>
+<div id="build-stamp" style="position:fixed;bottom:6px;right:8px;font:600 11px 'Fredoka',sans-serif;color:rgba(45,48,71,0.45);background:rgba(255,255,255,0.7);padding:2px 8px;border-radius:8px;pointer-events:none;z-index:300;display:none;">v15</div>
+<script>if (/[?&]debug=1\b/.test(location.search)) document.getElementById('build-stamp').style.display='block';</script>
 
 <script>
-// Debug mode: ?debug=1 in URL makes tap-target hitboxes visible (pink dashed).
+// Hitbox debug mode: ?hitbox=1 makes Level 1 tour tap-target capsules visible.
+// Regular ?debug=1 stays available for build stamps without exposing hand hitboxes.
 (function () {
   try {
     var p = new URL(location.href).searchParams;
-    if (p.get('debug') === '1') {
+    if (p.get('hitbox') === '1') {
       // body might not exist yet — defer until DOM ready
       if (document.body) document.body.classList.add('debug-hitbox');
       else document.addEventListener('DOMContentLoaded', function () {
@@ -1909,6 +2618,8 @@ body.tut-active .ticky-container { display: none !important; }
   } catch(e) {}
 })();
 </script>
+
+<img class="map-bg-img" src="images/clock-kingdom-map-bg-v2.png" alt="" aria-hidden="true" draggable="false" decoding="async">
 
 <!-- ── Top-bar HUD ──
      Lives OUTSIDE #game-stage so it gets real viewport width + responsive
@@ -1965,7 +2676,6 @@ body.tut-active .ticky-container { display: none !important; }
     <span class="game-level-label" id="game-level-label"></span>
     <div style="display:flex;align-items:center;gap:8px;">
       <span class="game-stars-earned" id="game-stars-earned"></span>
-      <button class="help-btn" onclick="reviewTutorial()" aria-label="Guide">?</button>
     </div>
   </div>
 
@@ -1973,15 +2683,22 @@ body.tut-active .ticky-container { display: none !important; }
   <div class="topbar-mode" data-mode="speedtest">
     <button class="back-btn" onclick="SpeedTest.backHome()">←</button>
     <span class="game-level-label" id="st-level-label"></span>
-    <span class="st-lives-display" id="st-lives-display" aria-label="Lives">
-      <span class="st-life-heart" id="st-heart-1">♥</span><span class="st-life-heart" id="st-heart-2">♥</span><span class="st-life-heart" id="st-heart-3">♥</span>
-    </span>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span class="game-stars-earned st-lives-display" id="st-lives-display" aria-label="Lives">
+        <span class="st-life-heart" id="st-heart-1">♥</span><span class="st-life-heart" id="st-heart-2">♥</span><span class="st-life-heart" id="st-heart-3">♥</span>
+      </span>
+    </div>
   </div>
 </header>
 
-<!-- HOME SCREEN — pinned below the topbar inside #game-stage; scales with
-     the rest of the canvas. Internal overflow-y:auto handles tile rows
-     that exceed canvas height. -->
+<!-- ── Unified scaled canvas ──
+     Home / tutorial / tour / game screens live inside #game-stage so
+     they all scale together via transform:scale() (1280×900 landscape /
+     720×1280 portrait). Topbar, sky-bg, speedtest, and tutor-cursor stay
+     outside on purpose. -->
+<div id="game-stage">
+
+<!-- HOME SCREEN -->
 <div id="screen-home">
   <div class="world-map">
     <div class="level-stops" id="level-grid"></div>
@@ -1990,15 +2707,6 @@ body.tut-active .ticky-container { display: none !important; }
     <button class="reset-btn" id="reset-btn" onclick="confirmReset()"></button>
   </div>
 </div>
-
-<!-- ── Unified scaled canvas ──
-     Tutorial / tour / game / speedtest screens live inside #game-stage so
-     they all scale together via transform:scale() (1280×900 landscape /
-     720×1280 portrait). Topbar + #screen-home are intentionally OUTSIDE so
-     they breathe with the real viewport. Sky-bg + tutor-cursor stay
-     outside on purpose: sky fills the letterbox bars, tutor-cursor uses
-     position:fixed which would break inside a transformed parent. -->
-<div id="game-stage">
 
 <!-- TUTORIAL SCREEN (header moved to #topbar [data-mode="tutorial"]) -->
 <div id="screen-tutorial" class="hidden">
@@ -2025,7 +2733,7 @@ body.tut-active .ticky-container { display: none !important; }
 <!-- GAME SCREEN (header moved to #topbar [data-mode="game"]) -->
 <div id="screen-game" class="hidden">
   <div class="game-body">
-    <div class="ultimate-score hidden" id="ultimate-score-display" aria-label="Score"><span class="ultimate-score-icon"><svg class="score-icon-svg" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M232,64H208V48a8,8,0,0,0-8-8H56a8,8,0,0,0-8,8V64H24A16,16,0,0,0,8,80V96a40,40,0,0,0,40,40h3.65A80.13,80.13,0,0,0,120,191.61V216H96a8,8,0,0,0,0,16h64a8,8,0,0,0,0-16H136V191.58c31.94-3.23,58.44-25.64,68.08-55.58H208a40,40,0,0,0,40-40V80A16,16,0,0,0,232,64ZM48,120A24,24,0,0,1,24,96V80H48v32q0,4,.39,8ZM232,96a24,24,0,0,1-24,24h-.5a81.81,81.81,0,0,0,.5-8.9V80h24Z"/></svg></span> 0</div>
+    <div class="ultimate-score hidden" id="ultimate-score-display" aria-label="Score"><span class="ultimate-score-icon"><svg class="score-icon-svg" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M232,64H208V48a8,8,0,0,0-8-8H56a8,8,0,0,0-8,8V64H24A16,16,0,0,0,8,80V96a40,40,0,0,0,40,40h3.65A80.13,80.13,0,0,0,120,191.61V216H96a8,8,0,0,0,0,16h64a8,8,0,0,0,0-16H136V191.58c31.94-3.23,58.44-25.64,68.08-55.58H208a40,40,0,0,0,40-40V80A16,16,0,0,0,232,64ZM48,120A24,24,0,0,1,24,96V80H48v32q0,4,.39,8ZM232,96a24,24,0,0,1-24,24h-.5a81.81,81.81,0,0,0,.5-8.9V80h24Z"/></svg></span><span class="score-pill-value">0</span></div>
     <div class="ultimate-timer hidden" id="ultimate-timer-display"></div>
     <div class="progress-dots" id="progress-dots"></div>
     <div class="question-counter" id="q-counter"></div>
@@ -2044,25 +2752,22 @@ body.tut-active .ticky-container { display: none !important; }
   </div>
 </div>
 
-<!-- SPEED TEST SCREEN (header moved to #topbar [data-mode="speedtest"]) -->
+</div><!-- /#game-stage -->
+
+<button class="help-btn" id="game-help-btn" onclick="handleHelpButton()" aria-label="Open hint">Hint</button>
+
+<!-- SPEED TEST SCREEN — sibling of #game-stage so it uses the real viewport
+     width below the fixed topbar. Its falling-clock math depends on CSS pixels,
+     so keeping it out of the transformed stage prevents resize drift. -->
 <div id="screen-speedtest" class="hidden">
   <div class="st-shell">
     <div class="st-play-area" id="st-play-area">
-      <!-- Score pill (matches L15 .ultimate-score visual treatment). Inline
-           Phosphor trophy-fill SVG, gold treatment via .st-score-icon svg CSS. -->
-      <div class="ultimate-score" id="st-score-display" aria-label="Score"><span class="st-score-icon"><svg class="score-icon-svg" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M232,64H208V48a8,8,0,0,0-8-8H56a8,8,0,0,0-8,8V64H24A16,16,0,0,0,8,80V96a40,40,0,0,0,40,40h3.65A80.13,80.13,0,0,0,120,191.61V216H96a8,8,0,0,0,0,16h64a8,8,0,0,0,0-16H136V191.58c31.94-3.23,58.44-25.64,68.08-55.58H208a40,40,0,0,0,40-40V80A16,16,0,0,0,232,64ZM48,120A24,24,0,0,1,24,96V80H48v32q0,4,.39,8ZM232,96a24,24,0,0,1-24,24h-.5a81.81,81.81,0,0,0,.5-8.9V80h24Z"/></svg></span> 0</div>
-
+      <div class="ultimate-score" id="st-score-display" aria-label="Score"><span class="st-score-icon"><svg class="score-icon-svg" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M232,64H208V48a8,8,0,0,0-8-8H56a8,8,0,0,0-8,8V64H24A16,16,0,0,0,8,80V96a40,40,0,0,0,40,40h3.65A80.13,80.13,0,0,0,120,191.61V216H96a8,8,0,0,0,0,16h64a8,8,0,0,0,0-16H136V191.58c31.94-3.23,58.44-25.64,68.08-55.58H208a40,40,0,0,0,40-40V80A16,16,0,0,0,232,64ZM48,120A24,24,0,0,1,24,96V80H48v32q0,4,.39,8ZM232,96a24,24,0,0,1-24,24h-.5a81.81,81.81,0,0,0,.5-8.9V80h24Z"/></svg></span><span class="score-pill-value">0</span></div>
       <div class="st-lava-zone">
         <div class="st-lava-body"></div>
         <svg class="st-lava-wave" viewBox="0 0 400 30" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M0,15 Q50,0 100,15 T200,15 T300,15 T400,15 V30 H0 Z" fill="#FF4E3D"/>
         </svg>
-      </div>
-
-      <!-- 3-2-1 countdown overlay (covers play-area only). Shown by SpeedTest.start()
-           between the start-overlay being hidden and the first clock spawning. -->
-      <div id="st-countdown" class="hidden">
-        <div class="st-countdown-num"></div>
       </div>
     </div>
 
@@ -2076,46 +2781,54 @@ body.tut-active .ticky-container { display: none !important; }
     </div>
   </div>
 
-  <!-- Legacy start overlay — replaced by the unified L9 guide card (see
-       renderTutorial n===9). Kept hidden + in the DOM as a fallback only;
-       nothing in the active flow shows it. Safe to remove later. -->
-  <div class="st-overlay hidden" id="st-overlay-start">
-    <div class="st-overlay-card">
-      <div class="st-overlay-title" id="st-start-title">Speed Test</div>
-      <div class="st-overlay-subtitle" id="st-start-subtitle">Read the falling clocks and tap the correct time before they reach the bottom. You have 3 lives.</div>
-      <button class="st-play-btn" id="st-btn-start">Start</button>
-    </div>
+  <!-- 3-2-1 countdown overlay. Sibling of .st-shell so it covers both the
+       falling-clock play area and the bottom answer bar. -->
+  <div id="st-countdown" class="hidden">
+    <div class="st-countdown-num"></div>
   </div>
+</div>
 
-  <!-- End overlay — matches the regular curriculum #overlay-complete structure
-       (yellow .complete-card, .complete-done-label, .complete-title, body block,
-       .next-btn). Adds: trophy score block (matches .ultimate-score-icon),
-       Try Again + Next Level (→ L10) buttons, and an X close (top-right) like
-       L15's overlay-timeout has. Local to #screen-speedtest so it cannot
-       collide with the global #overlay-complete used by the curriculum. -->
-  <div class="st-overlay hidden" id="st-overlay-end">
-    <div class="complete-card">
-      <button class="timeout-close" id="st-end-close" aria-label="Home">
-        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="white" stroke-width="3.5" stroke-linecap="round">
-          <line x1="5" y1="5" x2="17" y2="17"/>
-          <line x1="17" y1="5" x2="5" y2="17"/>
-        </svg>
-      </button>
-      <div id="st-end-msg" style="font-size:18px;color:#2D3047;margin:10px 0 8px;font-weight:700;"></div>
-      <div id="st-end-score-row" style="display:flex;flex-direction:column;align-items:center;gap:6px;margin:8px 0 6px;">
-        <div style="font-family:'Fredoka',sans-serif;font-size:48px;font-weight:700;color:#2D3047;line-height:1;display:inline-flex;align-items:center;gap:8px;">
-          <span class="ultimate-score-icon" id="st-end-score-icon"></span>
-          <span id="st-end-score-value">0</span>
-        </div>
-        <div id="st-end-best-row" style="font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;color:#6B7785;display:inline-flex;align-items:center;gap:6px;">
-          <span id="st-end-best-label">Best:</span>
-          <span class="ultimate-score-icon" id="st-end-best-icon" style="width:20px;height:20px;"></span>
-          <span id="st-end-best-value">0</span>
-        </div>
+<!-- SPEED TEST OVERLAYS — siblings of #game-stage so their fixed backdrops
+     cover the real viewport instead of the scaled canvas. -->
+<!-- Legacy start overlay — replaced by the unified L9 guide card (see
+     renderTutorial n===9). Kept hidden + in the DOM as a fallback only;
+     nothing in the active flow shows it. Safe to remove later. -->
+<div class="st-overlay hidden" id="st-overlay-start">
+  <div class="st-overlay-card">
+    <div class="st-overlay-title" id="st-start-title">Speed Test</div>
+    <div class="st-overlay-subtitle" id="st-start-subtitle">Read the falling clocks and tap the correct time before they reach the bottom. You have 3 lives.</div>
+    <button class="st-play-btn" id="st-btn-start">Start</button>
+  </div>
+</div>
+
+<!-- End overlay — matches the regular curriculum #overlay-complete structure
+     (yellow .complete-card, .complete-done-label, .complete-title, body block,
+     .next-btn). Adds: trophy score block (matches .ultimate-score-icon),
+     Try Again + Next Level (→ L10) buttons, and an X close (top-right) like
+     L15's overlay-timeout has. Kept separate from the global #overlay-complete
+     used by the curriculum. -->
+<div class="st-overlay hidden" id="st-overlay-end">
+  <div class="complete-card">
+    <button class="timeout-close" id="st-end-close" aria-label="Home">
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="white" stroke-width="3.5" stroke-linecap="round">
+        <line x1="5" y1="5" x2="17" y2="17"/>
+        <line x1="17" y1="5" x2="5" y2="17"/>
+      </svg>
+    </button>
+    <div id="st-end-msg" style="font-size:18px;color:#2D3047;margin:10px 0 8px;font-weight:700;"></div>
+    <div id="st-end-score-row" style="display:flex;flex-direction:column;align-items:center;gap:6px;margin:8px 0 6px;">
+      <div style="font-family:'Fredoka',sans-serif;font-size:48px;font-weight:700;color:#2D3047;line-height:1;display:inline-flex;align-items:center;gap:8px;">
+        <span class="ultimate-score-icon" id="st-end-score-icon"></span>
+        <span id="st-end-score-value">0</span>
       </div>
-      <button class="next-btn" id="st-btn-restart">Try Again</button>
-      <button class="next-btn" id="st-btn-next" style="background:#4ECDC4;box-shadow:0 6px 0 #2ea89e;margin-top:10px;">Next Level →</button>
+      <div id="st-end-best-row" style="font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;color:#6B7785;display:inline-flex;align-items:center;gap:6px;">
+        <span id="st-end-best-label">Best:</span>
+        <span class="ultimate-score-icon" id="st-end-best-icon" style="width:20px;height:20px;"></span>
+        <span id="st-end-best-value">0</span>
+      </div>
     </div>
+    <button class="next-btn" id="st-btn-restart">Try Again</button>
+    <button class="next-btn secondary-action" id="st-btn-next" style="margin-top:10px;">Next Level →</button>
   </div>
 </div>
 
@@ -2123,19 +2836,21 @@ body.tut-active .ticky-container { display: none !important; }
 <div id="overlay-correct" class="hidden">
   <div class="correct-popup" id="correct-popup-text"></div>
 </div>
+<div id="overlay-wrong-flash" aria-hidden="true"></div>
 
-<!-- TIME'S UP OVERLAY (Level 14 Ultimate Test) -->
+<!-- TIME'S UP OVERLAY (L17 Ultimate Test) -->
 <div id="overlay-timeout" class="hidden">
-  <div class="complete-card" style="border-color:#FF6B9D;box-shadow:0 10px 0 #d94f7e, 0 14px 28px rgba(0,0,0,0.2);position:relative;">
+  <div class="complete-card timeout-card">
     <button class="timeout-close" id="timeout-close" aria-label="Home">
       <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="white" stroke-width="3.5" stroke-linecap="round">
         <line x1="5" y1="5" x2="17" y2="17"/>
         <line x1="17" y1="5" x2="5" y2="17"/>
       </svg>
     </button>
-    <div class="complete-title" id="timeout-title" style="font-size:44px;color:#FF6B9D;"></div>
-    <div id="timeout-msg" style="font-size:18px;color:#2D3047;margin:10px 0 18px;font-weight:700;"></div>
-    <button class="next-btn" id="retry-btn" style="background:#FF6B9D;box-shadow:0 6px 0 #d94f7e;"></button>
+    <div class="complete-done-label" id="timeout-title"></div>
+    <div class="complete-title" id="timeout-score-label"></div>
+    <div id="timeout-msg"></div>
+    <button class="next-btn" id="retry-btn"></button>
   </div>
 </div>
 
@@ -2167,7 +2882,23 @@ body.tut-active .ticky-container { display: none !important; }
   </div>
 </div>
 
-</div><!-- /#game-stage -->
+<!-- CONTEXTUAL HINT OVERLAY -->
+<div id="overlay-hint" class="hidden" aria-live="polite">
+  <div class="hint-card">
+    <button class="hint-close" onclick="hideHintCoach()" aria-label="Close">
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="white" stroke-width="3.5" stroke-linecap="round">
+        <line x1="5" y1="5" x2="17" y2="17"/>
+        <line x1="17" y1="5" x2="5" y2="17"/>
+      </svg>
+    </button>
+    <div class="hint-kicker" id="hint-kicker"></div>
+    <div class="hint-title" id="hint-title"></div>
+    <div class="hint-subtitle" id="hint-subtitle"></div>
+    <div class="hint-problem" id="hint-problem"></div>
+    <div class="hint-step-list" id="hint-step-list"></div>
+    <div class="hint-answer hidden" id="hint-answer"></div>
+  </div>
+</div>
 
 <!-- TICKY MASCOT — sibling of #game-stage so position:fixed is relative to viewport (parent's transform:scale would otherwise create a containing block and pin ticky to the scaled canvas instead of the window). -->
 <div class="ticky-container" id="ticky-container">
@@ -2230,9 +2961,11 @@ body.tut-active .ticky-container { display: none !important; }
 
 <script>
 // ── Fit the #game-stage to the window via transform:scale().
-// Two design sizes selected by orientation:
-//   landscape: 1280×900  (default)
-//   portrait:   720×1280 (when window taller than wide)
+// Design sizes blend continuously with the viewport aspect:
+//   wide:     1280×720…900, height eases with available browser height
+//   tall:      720×1280
+//   between:  design aspect follows the window so resizing never snaps at
+//             the old landscape/portrait boundary
 // Picks the smaller of width-fit / height-fit so aspect ratio is preserved;
 // remaining space becomes letterbox bars (sky-bg fills them). Centers the
 // scaled stage with integer absolute left/top to avoid sub-pixel drift that
@@ -2242,23 +2975,65 @@ body.tut-active .ticky-container { display: none !important; }
   function fitGameStage() {
     var stage = document.getElementById('game-stage');
     if (!stage) return;
-    var portrait = window.innerHeight > window.innerWidth;
-    var designW = portrait ? 720 : 1280;
-    var designH = portrait ? 1280 : 900;
-    stage.style.width  = designW + 'px';
-    stage.style.height = designH + 'px';
-    document.body.classList.toggle('portrait', portrait);
-    document.body.classList.toggle('landscape', !portrait);
     // Topbar now lives OUTSIDE #game-stage and uses var(--topbar-h) clamped
     // to viewport. Reserve its real rendered height before fitting the
     // canvas, so the scaled stage starts below the topbar (no overlap) and
     // height-fit math accounts for the bar.
     var topbarEl = document.getElementById('topbar');
     var topbarH = topbarEl ? topbarEl.getBoundingClientRect().height : 0;
-    var availH = window.innerHeight - topbarH;
+    var availH = Math.max(1, window.innerHeight - topbarH);
+    // At normal fullscreen-ish heights, keep the old 1280×900 feel. As the
+    // window gets shorter, ease toward 1280×720 instead of flipping to a
+    // separate compact layout.
+    var heightT = Math.max(0, Math.min(1, (availH - 456) / 206));
+    var landW = 1280;
+    var landH = 720 + (180 * heightT);
+    var portW = 720;
+    var portH = 1280;
+    var landA = landW / landH;
+    var portA = portW / portH;
+    var viewA = window.innerWidth / availH;
+    var designW = landW;
+    var designH = landH;
+
+    if (viewA <= portA) {
+      designW = portW;
+      designH = portH;
+    } else if (viewA < landA) {
+      var mix = (landA - viewA) / (landA - portA);
+      mix = mix * mix * (3 - 2 * mix); // smoothstep: no sharp slope change
+      designH = landH + (portH - landH) * mix;
+      designW = designH * viewA;
+    }
+
+    var portrait = viewA <= portA + 0.02;
+    document.body.classList.toggle('portrait', portrait);
+    document.body.classList.toggle('landscape', !portrait);
+    stage.style.width  = designW + 'px';
+    stage.style.height = designH + 'px';
+    var homeGap = Math.max(10, Math.min(16, designH * 0.018));
+    var homePadTop = Math.max(24, Math.min(48, designH * 0.053));
+    var homePadBottom = Math.max(18, Math.min(34, designH * 0.038));
+    var homeFooter = 72;
+    var homeRows = 6;
+    var homeRowH = (designH - homePadTop - homePadBottom - homeFooter - homeGap * (homeRows - 1)) / homeRows;
+    homeRowH = Math.max(70, Math.min(112, homeRowH));
+    stage.style.setProperty('--home-row-h', homeRowH + 'px');
+    stage.style.setProperty('--home-gap', homeGap + 'px');
+    stage.style.setProperty('--home-pad-top', homePadTop + 'px');
+    stage.style.setProperty('--home-pad-bottom', homePadBottom + 'px');
+    document.body.classList.remove('stage-compact');
     var scale = Math.min(window.innerWidth / designW, availH / designH);
-    var offsetX = Math.floor((window.innerWidth - designW * scale) / 2);
-    var offsetY = topbarH + Math.floor((availH - designH * scale) / 2);
+    var rawOffsetX = (window.innerWidth - designW * scale) / 2;
+    var offsetX = Math.round(rawOffsetX);
+    if (Math.abs(rawOffsetX) < 1) offsetX = 0;
+    var spareY = Math.max(0, availH - designH * scale);
+    var insetY = Math.round(spareY / 2);
+    // On very tall portrait windows, centered letterboxing makes the whole
+    // game feel like it has slid down the page. Keep extra room mostly below
+    // the stage so the clock starts near the topbar.
+    if (viewA <= portA) insetY = Math.min(insetY, 48);
+    var offsetY = topbarH + insetY;
     stage.style.transform = 'scale(' + scale + ')';
     stage.style.left = offsetX + 'px';
     stage.style.top  = offsetY + 'px';
@@ -2274,10 +3049,13 @@ body.tut-active .ticky-container { display: none !important; }
 // screen-switch site (showHome, showTutorial, reviewTutorial, startTour,
 // beginLevel, and the L11 speedtest hand-off).
 function setTopbarMode(mode) {
+  document.body.classList.toggle('home-active', mode === 'home');
+  document.body.classList.toggle('level-world-active', mode === 'game' || mode === 'tutorial' || mode === 'tour' || mode === 'speedtest');
   document.querySelectorAll('#topbar .topbar-mode').forEach(function (el) {
     el.classList.toggle('active', el.dataset.mode === mode);
   });
 }
+
 </script>
 
 <script>
@@ -2285,7 +3063,7 @@ function setTopbarMode(mode) {
 // STRINGS / i18n
 // ═══════════════════════════════════════════════════════
 // Inline trophy SVG (Phosphor Icons trophy-fill, MIT licensed).
-// Used for Speed Test + L15 score pills/overlays. CSS gold treatment lives
+// Used for Speed Test + L17 score pills/overlays. CSS gold treatment lives
 // under .st-score-icon svg / .ultimate-score-icon svg.
 const SCORE_ICON_SVG = '<svg class="score-icon-svg" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M232,64H208V48a8,8,0,0,0-8-8H56a8,8,0,0,0-8,8V64H24A16,16,0,0,0,8,80V96a40,40,0,0,0,40,40h3.65A80.13,80.13,0,0,0,120,191.61V216H96a8,8,0,0,0,0,16h64a8,8,0,0,0,0-16H136V191.58c31.94-3.23,58.44-25.64,68.08-55.58H208a40,40,0,0,0,40-40V80A16,16,0,0,0,232,64ZM48,120A24,24,0,0,1,24,96V80H48v32q0,4,.39,8ZM232,96a24,24,0,0,1-24,24h-.5a81.81,81.81,0,0,0,.5-8.9V80h24Z"/></svg>';
 const S = {
@@ -2950,6 +3728,199 @@ function randomOops() {
   return t(keys[Math.floor(Math.random() * keys.length)]);
 }
 
+function hintText(value) {
+  return String(value || '').replace(/[&<>"']/g, ch => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  }[ch]));
+}
+
+function hintEm(value) {
+  return hintText(value).replace(/([0-9]{1,2}(?::[0-9]{2})?|[0-9]+\s*[×+\-−=<>]\s*[0-9]+|AM|PM|上午|下午|時針|分針|hour hand|minute hand|hour|minute|SMALLER|smaller|較小)/gi, '<strong>$1</strong>');
+}
+
+function fmtHintTime(h, m) {
+  return `${h}:${String(m).padStart(2, '0')}`;
+}
+
+function currentQuestion() {
+  return questions && questions[qIndex] ? questions[qIndex] : null;
+}
+
+function refreshHelpButton() {
+  const btn = document.getElementById('game-help-btn');
+  if (!btn) return;
+  const ready = wrongCountThisQ >= 2 && !!currentQuestion();
+  btn.classList.toggle('hint-ready', ready);
+  btn.textContent = ready ? (state.lang === 'zh' ? '提示' : 'Hint') : '?';
+  btn.setAttribute('aria-label', ready ? (state.lang === 'zh' ? '開啟提示' : 'Open hint') : 'Guide');
+}
+
+function resetHelpButton() {
+  wrongCountThisQ = 0;
+  const btn = document.getElementById('game-help-btn');
+  if (!btn) return;
+  btn.classList.remove('hint-ready');
+  btn.textContent = state.lang === 'zh' ? '提示' : 'Hint';
+  btn.setAttribute('aria-label', state.lang === 'zh' ? '提示' : 'Hint');
+}
+
+function buildHintData(level, q, reveal = false) {
+  const zh = state.lang === 'zh';
+  const pad = n => String(n).padStart(2, '0');
+  const wrap12 = x => ((x - 1 + 12) % 12) + 1;
+  const minuteSpot = m => m === 0 ? '12' : m % 5 === 0 ? String(m / 5) : `${Math.floor(m / 5)} + ${m % 5}`;
+  const base = { title: zh ? '提示' : 'Hint', subtitle: '', problem: '', steps: [], answer: '' };
+  const done = (problem, steps, answer = '') => ({ ...base, problem, steps, answer });
+
+  if (!q) return base;
+
+  if (q.subtype === 'convert24to12') {
+    const h24 = q.h24;
+    const pm = h24 >= 12;
+    const h12 = h24 > 12 ? h24 - 12 : h24;
+    return done(
+      zh ? `題目：${fmtHintTime(h24, q.min)} 是上午還是下午？` : `Problem: What is ${fmtHintTime(h24, q.min)} in AM/PM?`,
+      pm
+        ? (zh ? [`${h24} 大於 12。`, `${h24} 減 12 是 ${h12}。`, `所以是下午 ${h12}:${pad(q.min)}。`]
+              : [`${h24} is bigger than 12.`, `${h24} minus 12 is ${h12}.`, `So the time is ${h12}:${pad(q.min)} PM.`])
+        : (zh ? [`${h24} 沒有大於 12。`, `小時不用減 12。`, `所以是上午 ${h12}:${pad(q.min)}。`]
+              : [`${h24} is not bigger than 12.`, `Do not subtract 12 from the hour.`, `So the time is ${h12}:${pad(q.min)} AM.`])
+    );
+  }
+
+  if (q.subtype === 'convert12to24') {
+    const h24 = q.h24;
+    const h12 = h24 > 12 ? h24 - 12 : h24;
+    const isPM = h24 >= 12;
+    return done(
+      zh ? '題目：把這個時間寫成 24 小時制。' : 'Problem: Write this time in 24-hour format.',
+      isPM
+        ? (zh ? [`這是下午 ${h12}:${pad(q.min)}。`, `${h12} 加 12 是 ${h24}。`, `寫成 ${fmtHintTime(h24, q.min)}。`]
+              : [`This is ${h12}:${pad(q.min)} PM.`, `${h12} plus 12 is ${h24}.`, `Write ${fmtHintTime(h24, q.min)}.`])
+        : (zh ? [`這是上午 ${h12}:${pad(q.min)}。`, `上午的小時不變。`, `寫成 ${fmtHintTime(h24, q.min)}。`]
+              : [`This is ${h12}:${pad(q.min)} AM.`, `The AM hour stays the same.`, `Write ${fmtHintTime(h24, q.min)}.`])
+    );
+  }
+
+  if (q.subtype === 'setFromPM') {
+    const faceHour = wrap12(q.h24);
+    return done(
+      zh ? `題目：撥出 ${fmtHintTime(q.h24, q.min)}。` : `Problem: Set the clock to ${fmtHintTime(q.h24, q.min)}.`,
+      zh
+        ? [`${q.h24} 減 12 是 ${faceHour}。`, `時針撥到 ${faceHour}。`, `分針撥到 ${minuteSpot(q.min)}。`]
+        : [`${q.h24} minus 12 is ${faceHour}.`, `Move the hour hand to ${faceHour}.`, `Move the minute hand to ${minuteSpot(q.min)}.`]
+    );
+  }
+
+  if (q.type === 'match') {
+    const idx = parseInt(q.correct, 10);
+    const h = q.hour, m = q.min;
+    const next = wrap12(h + 1);
+    return done(
+      zh ? `題目：找出顯示 ${q.display} 的鐘。` : `Problem: Find the clock showing ${q.display}.`,
+      zh
+        ? [m === 0 ? `時針指向 ${h}。` : `時針在 ${h} 和 ${next} 之間。`, m === 0 ? `分針指向 12。` : `分針顯示 ${m} 分。`, reveal ? `答案是第 ${idx + 1} 個鐘。` : `選兩支針都對的鐘。`]
+        : [m === 0 ? `The hour hand points to ${h}.` : `The hour hand is between ${h} and ${next}.`, m === 0 ? `The minute hand points to 12.` : `The minute hand shows ${m} minutes.`, reveal ? `The answer is clock ${idx + 1}.` : `Pick the clock where both hands match.`]
+    );
+  }
+
+  if (q.type === 'set') {
+    const faceHour = q.hour;
+    return done(
+      zh ? `題目：撥出 ${q.display || fmtHintTime(q.hour, q.min)}。` : `Problem: Set ${q.display || fmtHintTime(q.hour, q.min)}.`,
+      zh
+        ? [`時針撥到 ${faceHour}。`, `分針撥到 ${minuteSpot(q.min)}。`, `兩支針都對才按確認。`]
+        : [`Move the hour hand to ${faceHour}.`, `Move the minute hand to ${minuteSpot(q.min)}.`, `Press confirm when both hands match.`]
+    );
+  }
+
+  const h = q.hour, m = q.min;
+  const next = wrap12(h + 1);
+  const big = Math.floor(m / 5);
+  const rem = m % 5;
+  if (level === 2 && q.subtype === 'parseMinute') {
+    return done(
+      zh ? `題目：${q.display} 的分鐘是多少？` : `Problem: What is the minute in ${q.display}?`,
+      zh ? [`看冒號後面的數字。`, `冒號後面是 ${pad(q.min)}。`, `所以分鐘是 ${q.min}。`] : [`Read the number after the colon.`, `The number after the colon is ${pad(q.min)}.`, `So the minute is ${q.min}.`]
+    );
+  }
+  if (level === 2) {
+    return done(
+      zh ? `題目：${q.display} 的小時是多少？` : `Problem: What is the hour in ${q.display}?`,
+      zh ? [`看冒號前面的數字。`, `冒號前面是 ${q.hour}。`, `所以小時是 ${q.hour}。`] : [`Read the number before the colon.`, `The number before the colon is ${q.hour}.`, `So the hour is ${q.hour}.`]
+    );
+  }
+  if (level === 3 || level === 5) {
+    return done(
+      zh ? '題目：這是幾點？' : 'Problem: What hour is it?',
+      m === 0
+        ? (zh ? [`讀時針。`, `時針指向 ${h}。`, `所以小時是 ${h}。`] : [`Read the hour hand.`, `The hour hand points to ${h}.`, `So the hour is ${h}.`])
+        : (zh ? [`讀時針。`, `時針還沒到 ${next}。`, `所以小時是 ${h}。`] : [`Read the hour hand.`, `The hour hand has not reached ${next}.`, `So the hour is ${h}.`])
+    );
+  }
+  if (level === 6 || level === 7 || level === 8) {
+    return done(
+      zh ? '題目：分針顯示幾分？' : 'Problem: How many minutes does the minute hand show?',
+      m === 0
+        ? (zh ? [`讀分針。`, `分針指向 12。`, `所以是 0 分。`] : [`Read the minute hand.`, `The minute hand points to 12.`, `So it is 0 minutes.`])
+        : rem === 0
+          ? (zh ? [`讀分針。`, `分針指向 ${big}。`, `${big} 乘 5 是 ${m} 分。`] : [`Read the minute hand.`, `The minute hand points to ${big}.`, `${big} times 5 is ${m} minutes.`])
+          : (zh ? [`讀分針。`, `先算 ${big} 乘 5 是 ${big * 5}。`, `再加 ${rem} 格是 ${m} 分。`] : [`Read the minute hand.`, `First, ${big} times 5 is ${big * 5}.`, `Add ${rem} ticks to get ${m} minutes.`])
+    );
+  }
+
+  const hourStep = m === 0
+    ? (zh ? `時針指向 ${h}，所以小時是 ${h}。` : `The hour hand points to ${h}, so the hour is ${h}.`)
+    : (zh ? `時針在 ${h} 和 ${next} 之間，所以小時是 ${h}。` : `The hour hand is between ${h} and ${next}, so the hour is ${h}.`);
+  let minuteStep;
+  if (m === 0) minuteStep = zh ? `分針指向 12，所以是 0 分。` : `The minute hand points to 12, so it is 0 minutes.`;
+  else if (rem === 0) minuteStep = zh ? `分針指向 ${big}，${big} 乘 5 是 ${m} 分。` : `The minute hand points to ${big}, and ${big} times 5 is ${m} minutes.`;
+  else minuteStep = zh ? `分針過 ${big} 再 ${rem} 格，所以是 ${m} 分。` : `The minute hand passed ${big} by ${rem} ticks, so it is ${m} minutes.`;
+  return done(
+    zh ? '題目：現在是幾點幾分？' : 'Problem: What time is shown?',
+    [hourStep, minuteStep, zh ? `合起來是 ${q.correct || fmtHintTime(h, m)}。` : `Together, the time is ${q.correct || fmtHintTime(h, m)}.`]
+  );
+}
+
+function renderHintCoach(reveal = false) {
+  const q = currentQuestion();
+  const data = buildHintData(currentLevel, q, reveal);
+  document.getElementById('hint-title').textContent = data.title;
+  document.getElementById('hint-subtitle').textContent = data.subtitle || '';
+  const problemEl = document.getElementById('hint-problem');
+  problemEl.classList.toggle('hidden', !data.problem);
+  problemEl.textContent = data.problem || '';
+  document.getElementById('hint-step-list').innerHTML = `
+    <div class="hint-answer-label">${state.lang === 'zh' ? '答案：' : 'Answer:'}</div>
+  ` + data.steps.map((step, i) => `
+    <div class="hint-step">
+      <span class="hint-step-num">${i + 1}</span>
+      <span class="hint-step-text">${hintText(step)}</span>
+    </div>
+  `).join('');
+  const answerEl = document.getElementById('hint-answer');
+  answerEl.classList.toggle('hidden', !data.answer);
+  answerEl.textContent = data.answer || '';
+  document.getElementById('overlay-hint').classList.remove('hidden');
+}
+
+function hideHintCoach() {
+  const overlay = document.getElementById('overlay-hint');
+  if (overlay) overlay.classList.add('hidden');
+}
+
+function handleHelpButton() {
+  if (wrongCountThisQ >= 2 && currentQuestion()) {
+    beepTap();
+    renderHintCoach(wrongCountThisQ >= 3);
+  }
+  else reviewTutorial();
+}
+
 // ═══════════════════════════════════════════════════════
 // WEB AUDIO
 // ═══════════════════════════════════════════════════════
@@ -3075,12 +4046,16 @@ function renderHome() {
       tile.onclick = () => { beepTap(); startLevel(11); };
       tile.innerHTML = `
         <div class="lnum">11</div>
-        <div class="lname">${t('stTileName')}</div>
-        <div class="stars" style="font-size:13px;"><span class="ultimate-score-icon">${SCORE_ICON_SVG}</span> ${stBest}</div>
+        <div class="level-meta">
+          <div class="lname">${t('stTileName')}</div>
+          <div class="stars score-stars"><span class="ultimate-score-icon">${SCORE_ICON_SVG}</span><span class="score-value">${stBest}</span></div>
+        </div>
       `;
     } else {
       tile.innerHTML = `<div class="lnum">11</div>
-        <div class="lname">${t('stTileName')}</div>
+        <div class="level-meta">
+          <div class="lname">${t('stTileName')}</div>
+        </div>
         <div class="lock-badge">
           <svg viewBox="0 0 24 24" fill="none">
             <path d="M7 10V7a5 5 0 0 1 10 0v3" stroke="#8B8FA3" stroke-width="2.5" stroke-linecap="round"/>
@@ -3128,16 +4103,20 @@ function renderHome() {
       // L17 (Ultimate Test): show best score instead of stars
       let bottomEl;
       if (n === 17) {
-        bottomEl = `<div class="stars" style="font-size:13px;"><span class="ultimate-score-icon">${SCORE_ICON_SVG}</span> ${l17Best}</div>`;
+        bottomEl = `<div class="stars score-stars"><span class="ultimate-score-icon">${SCORE_ICON_SVG}</span><span class="score-value">${l17Best}</span></div>`;
       } else {
         bottomEl = `<div class="stars">${starsStr(n)}</div>`;
       }
       stop.innerHTML = `<div class="lnum">${n}</div>
-        <div class="lname">${t(LEVEL_NAMES[n])}</div>
-        ${bottomEl}`;
+        <div class="level-meta">
+          <div class="lname">${t(LEVEL_NAMES[n])}</div>
+          ${bottomEl}
+        </div>`;
     } else {
       stop.innerHTML = `<div class="lnum">${n}</div>
-        <div class="lname">${t(LEVEL_NAMES[n])}</div>
+        <div class="level-meta">
+          <div class="lname">${t(LEVEL_NAMES[n])}</div>
+        </div>
         <div class="lock-badge">
           <svg viewBox="0 0 24 24" fill="none">
             <path d="M7 10V7a5 5 0 0 1 10 0v3" stroke="#8B8FA3" stroke-width="2.5" stroke-linecap="round"/>
@@ -3213,8 +4192,17 @@ function doReset() {
   renderHome();
 }
 function hideAllScreens() {
-  ['screen-home','screen-game','screen-tutorial','screen-tour','screen-speedtest','overlay-complete','overlay-correct','overlay-timeout','overlay-reset']
+  ['screen-home','screen-game','screen-tutorial','screen-tour','screen-speedtest','st-overlay-start','st-overlay-end','overlay-complete','overlay-correct','overlay-timeout','overlay-reset','overlay-hint']
     .forEach(id => { const el = document.getElementById(id); if (el) el.classList.add('hidden'); });
+  if (typeof resetHelpButton === 'function') resetHelpButton();
+  const wrongFlash = document.getElementById('overlay-wrong-flash');
+  if (wrongFlash) wrongFlash.classList.remove('flash');
+  if (setWrongFeedbackTimeoutId !== null) {
+    clearTimeout(setWrongFeedbackTimeoutId);
+    setWrongFeedbackTimeoutId = null;
+  }
+  const setFeedback = document.getElementById('feedback-msg');
+  if (setFeedback) setFeedback.textContent = '';
   // The unified scaled stage stays visible always — every screen lives
   // inside it now. body.overflow is permanently 'hidden' (set in CSS), so
   // no toggling is needed here.
@@ -3222,6 +4210,7 @@ function hideAllScreens() {
   if (typeof SpeedTest !== 'undefined' && SpeedTest && typeof SpeedTest.stop === 'function') SpeedTest.stop();
   // Clear the body marker that hides Ticky during Speed Test — re-shown on next screen.
   document.body.classList.remove('st-active');
+  document.body.classList.remove('st-countdown-active');
   // Same idea for the per-level guide card (tutorial screen): the marker is
   // re-applied by showTutorial/reviewTutorial; clearing it here means Ticky
   // reappears the moment the guide card is dismissed (game/home/tour/etc.).
@@ -3377,6 +4366,7 @@ let l15Batch = [];          // queued question objects for current batch of 5
 let l15BatchIdx = 0;        // index within current batch (0-4)
 let l15PenaltyApplied = false; // true once -10s penalty taken for current question (one per question)
 let correctPopupTimeoutId = null; // tracks the setTimeout that calls hideCorrectPopup, so timeout overlay can cancel it
+let setWrongFeedbackTimeoutId = null;
 // L4 Part B state
 
 // ── Tutorial loop controller ──
@@ -3617,6 +4607,7 @@ function tourHandleWrongTap() {
   wrongCount++;
   beepWrong();
   shakeClock();
+  showWrongFlash();
   renderTourStars();
   const hintEl = document.getElementById('tour-hint');
   if (hintEl) {
@@ -4022,7 +5013,7 @@ function renderTutorial(n) {
     const labelMode = getMinLabelMode(n);
     visualHtml = `<div style="position:relative;display:inline-block;">${buildSmallClockSVG(labelMode, 230)}</div>`;
   } else {
-    // L3-L10, L12-L14, L17: animated clock SVG (L11 is Speed Test, has its own screen)
+    // L3-L10, L12-L14, L17-L18: animated clock SVG (L11 is Speed Test, has its own screen)
     const labelMode = getMinLabelMode(n);
     visualHtml = `<div style="position:relative;display:inline-block;">${buildSmallClockSVG(labelMode, 230)}</div>`;
   }
@@ -4090,7 +5081,8 @@ function renderTutorial(n) {
       10: [4, 37],
       12: [6, 15], 13: [7, 0],
       14: [3, 15],
-      17: [10, 45]
+      17: [10, 45],
+      18: [8, 35]
     };
     const [h, m] = tutHands[n] || [12, 0];
     const th = tutSvg.querySelector('[data-role="hand-hour"]');
@@ -4395,12 +5387,12 @@ function renderGameHeader() {
   }
   const scoreEl = document.getElementById('ultimate-score-display');
   if (scoreEl) {
-    if (n === 17) { scoreEl.classList.remove('hidden'); scoreEl.innerHTML = '<span class="ultimate-score-icon">'+SCORE_ICON_SVG+'</span> 0'; }
+    if (n === 17) { scoreEl.classList.remove('hidden'); scoreEl.innerHTML = '<span class="ultimate-score-icon">'+SCORE_ICON_SVG+'</span><span class="score-pill-value">0</span>'; }
     else scoreEl.classList.add('hidden');
   }
 }
 
-// ─── ULTIMATE TEST TIMER (Level 15) ───
+// ─── ULTIMATE TEST TIMER (L17) ───
 let ultimateTimerId = null;
 let ultimateDeadline = 0;
 const ULTIMATE_SECS = 90;
@@ -4439,7 +5431,8 @@ function handleUltimateTimeout() {
   }
 
   // Keep the game screen visible underneath so user sees the question they were on.
-  document.getElementById('timeout-title').textContent = t('timeOutTitle');
+  document.getElementById('timeout-title').textContent = t('timeOutTitle').replace(/^⏰\s*/, '');
+  document.getElementById('timeout-score-label').textContent = t('score');
 
   // Build dynamic result message — score only
   const resultMsg = t('l15scoreResult').replace('{score}', l15Score);
@@ -4457,16 +5450,16 @@ function handleUltimateTimeout() {
 
   const msgEl = document.getElementById('timeout-msg');
   if (newBest && l15Score > 0) {
-    msgEl.innerHTML = `<div style="color:#FF6B9D;font-size:20px;font-weight:700;margin-bottom:8px;">${t('l15newBest')}</div><div style="font-size:84px;font-family:'Fredoka',sans-serif;font-weight:700;line-height:1;color:#2D3047;">${resultMsg}</div>`;
+    msgEl.innerHTML = `<div class="timeout-new-best">${t('l15newBest')}</div><div class="timeout-score-result">${resultMsg}</div>`;
   } else {
-    msgEl.innerHTML = `<div style="font-size:84px;font-family:'Fredoka',sans-serif;font-weight:700;line-height:1;color:#2D3047;">${resultMsg}</div>`;
+    msgEl.innerHTML = `<div class="timeout-score-result">${resultMsg}</div>`;
   }
 
   document.getElementById('retry-btn').textContent = t('tryAgainBtn');
   document.getElementById('retry-btn').onclick = () => {
     beepTap();
     document.getElementById('overlay-timeout').classList.add('hidden');
-    beginLevel(15);
+    beginLevel(17);
   };
   document.getElementById('timeout-close').onclick = () => {
     beepTap();
@@ -4582,10 +5575,10 @@ function makeSetQ(h, m, use24=false) {
 }
 
 // ═══════════════════════════════════════════════════════
-// L15 SCORE-ATTACK: QUESTION BUILDERS + BATCH GENERATOR
+// L17 SCORE-ATTACK: QUESTION BUILDERS + BATCH GENERATOR
 // ═══════════════════════════════════════════════════════
 
-// Shared builders used by buildQuestions(14) and l15GenerateBatch.
+// Shared builders used by L14 clock match and L17 l15GenerateBatch.
 // These are safe to call at any time after fmtTime/shuffle/rnd are defined.
 function l14Wrap12(x) { return ((x - 1 + 12) % 12) + 1; }
 
@@ -5128,6 +6121,8 @@ function showQuestion(i) {
   }
   const q = questions[i];
   wrongCountThisQ = 0;
+  hideHintCoach();
+  refreshHelpButton();
   l15FirstTry = true; // reset per question for Ultimate Test scoring
   l15PenaltyApplied = false; // reset per-question penalty gate
   // Defensive: if any prior path left the success-transition gate hanging,
@@ -5146,6 +6141,10 @@ function showQuestion(i) {
   rfb.classList.add('hidden');
   rfb.style.cssText = '';
   rfb.onclick = null;
+  if (setWrongFeedbackTimeoutId !== null) {
+    clearTimeout(setWrongFeedbackTimeoutId);
+    setWrongFeedbackTimeoutId = null;
+  }
   document.getElementById('feedback-msg').textContent = '';
   document.getElementById('hint-msg').textContent = '';
   const cw = document.getElementById('clock-wrap');
@@ -5170,6 +6169,7 @@ function showQuestion(i) {
   const isSetFromPM = q && q.subtype === 'setFromPM';
   dt.classList.toggle('digital-target--compact',
     currentLevel === 4 || currentLevel === 12 || currentLevel === 13 || isSetFromPM);
+  dt.classList.toggle('digital-target--set', currentLevel === 12 || currentLevel === 13);
   // L2 read-digital: bump the number-clock larger on phones (handled in mobile media query)
   dt.classList.toggle('digital-target--l2', currentLevel === 2 && q && q.type === 'read');
   const gameBody = document.querySelector('#screen-game .game-body');
@@ -5186,7 +6186,7 @@ function showQuestion(i) {
     showChoices(q);
     tickySay(t('tickyThink'), 'thinking', 15000);
   // Pure 24-hour conversion questions: hide clock, show digital prompt.
-  // Keyed on subtype so it works for Level 13/14 and anywhere else (e.g. Level 15).
+  // Keyed on subtype so it works wherever 24-hour conversion questions appear.
   } else if (q.subtype === 'convert24to12' || q.subtype === 'convert12to24') {
     cw.style.display = 'none';
     if (gameBody) gameBody.classList.add('no-clock');
@@ -5261,6 +6261,7 @@ function showClockTiles(q) {
   document.getElementById('read-prompt').textContent = t('l13matchPrompt');
 
   const el = document.getElementById('choices');
+  el.className = 'choices';
   el.innerHTML = '';
   el.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;max-width:360px;';
 
@@ -5299,6 +6300,7 @@ function showChoices(q) {
   else prompt.textContent = t('whatTime');
 
   const el = document.getElementById('choices');
+  el.className = 'choices';
   el.style.cssText = '';  // reset any grid layout from odd-one-out or visual choices
   el.innerHTML = '';
   for (const opt of q.options) {
@@ -5548,7 +6550,7 @@ function checkReadAnswer(chosen, q, btn) {
       const marks = 10 + 5 * Math.floor((l15QAnswered - 1) / 4);
       l15Score += marks;
       const scoreEl = document.getElementById('ultimate-score-display');
-      if (scoreEl) scoreEl.innerHTML = '<span class="ultimate-score-icon">'+SCORE_ICON_SVG+'</span> ' + l15Score;
+      if (scoreEl) scoreEl.innerHTML = '<span class="ultimate-score-icon">'+SCORE_ICON_SVG+'</span><span class="score-pill-value">' + l15Score + '</span>';
       // +5s time bonus (first try correct, Ultimate Test only)
       ultimateDeadline += 5000;
       showL15TimeDelta(true);
@@ -5556,11 +6558,13 @@ function checkReadAnswer(chosen, q, btn) {
     correctPopupTimeoutId = setTimeout(() => { correctPopupTimeoutId = null; hideCorrectPopup(); qIndex++; showQuestion(qIndex); }, 1100);
   } else {
     wrongCount++; wrongCountThisQ++;
+    refreshHelpButton();
     updateGameStars(); // update live star indicator
     l15FirstTry = false; // missed first try — no marks for this question
     btn.classList.add('wrong-ans');
     beepWrong();
     shakeClock();
+    showWrongFlash();
     // -10s time penalty (first wrong attempt only, Ultimate Test only; clamped so timer can't go negative)
     if (currentLevel === 17 && !l15PenaltyApplied) {
       l15PenaltyApplied = true;
@@ -5578,13 +6582,9 @@ function checkReadAnswer(chosen, q, btn) {
     if (wrongCountThisQ === 1) {
       tickySay(randomOops(), 'sad', 0);
     } else if (wrongCountThisQ === 2) {
-      const hint = getLevelHint(currentLevel, q);
-      if (hint) tickySay(hint, 'thinking', 0);
-      else tickySay(randomOops(), 'sad', 0);
+      tickySetState('thinking');
     } else {
-      const big = getSpecificHint(currentLevel, q);
-      if (big) tickySay(big, 'thinking', 0);
-      else tickySay(randomOops(), 'sad', 0);
+      renderHintCoach(true);
     }
     // Show "Try again!" either over the clock (clock screens) or inline in
     // the flow (no-clock screens). The CSS for .game-body.no-clock #read-feedback
@@ -5648,6 +6648,10 @@ function checkSetAnswer() {
     glowClock(true);
     showCorrectPopup();
     tickySay(randomHappy(), 'happy', 2000);
+    if (setWrongFeedbackTimeoutId !== null) {
+      clearTimeout(setWrongFeedbackTimeoutId);
+      setWrongFeedbackTimeoutId = null;
+    }
     document.getElementById('feedback-msg').textContent = '';
     document.getElementById('hint-msg').textContent = '';
     document.getElementById('confirm-btn').disabled = true;
@@ -5656,7 +6660,7 @@ function checkSetAnswer() {
       const marks = 10 + 5 * Math.floor((l15QAnswered - 1) / 4);
       l15Score += marks;
       const scoreEl = document.getElementById('ultimate-score-display');
-      if (scoreEl) scoreEl.innerHTML = '<span class="ultimate-score-icon">'+SCORE_ICON_SVG+'</span> ' + l15Score;
+      if (scoreEl) scoreEl.innerHTML = '<span class="ultimate-score-icon">'+SCORE_ICON_SVG+'</span><span class="score-pill-value">' + l15Score + '</span>';
       // +5s time bonus (first try correct, Ultimate Test only)
       ultimateDeadline += 5000;
       showL15TimeDelta(true);
@@ -5664,10 +6668,12 @@ function checkSetAnswer() {
     correctPopupTimeoutId = setTimeout(() => { correctPopupTimeoutId = null; hideCorrectPopup(); qIndex++; showQuestion(qIndex); }, 1100);
   } else {
     wrongCount++; wrongCountThisQ++;
+    refreshHelpButton();
     updateGameStars(); // update live star indicator
     l15FirstTry = false;
     beepWrong();
     shakeClock();
+    showWrongFlash();
     // -10s time penalty (first wrong attempt only, Ultimate Test only; clamped so timer can't go negative)
     if (currentLevel === 17 && !l15PenaltyApplied) {
       l15PenaltyApplied = true;
@@ -5675,7 +6681,7 @@ function checkSetAnswer() {
       if (ultimateDeadline < Date.now()) ultimateDeadline = Date.now();
       showL15TimeDelta(false);
     }
-    document.getElementById('feedback-msg').textContent = t('wrongMsg');
+    showSetWrongFeedback();
     document.getElementById('hint-msg').textContent = '';
     // Same escalation as read-mode: 1st = oops, 2nd = general concept hint,
     // 3rd = specific direction + target via Ticky.
@@ -5683,35 +6689,9 @@ function checkSetAnswer() {
     if (wrongCountThisQ === 1) {
       tickySay(randomOops(), 'sad', 0);
     } else if (wrongCountThisQ === 2) {
-      const hint = getLevelHint(currentLevel, q);
-      tickySay(hint || randomOops(), 'thinking', 0);
+      tickySetState('thinking');
     } else {
-      const zh = state.lang === 'zh';
-      const cw = d => (d <= 180 ? t('hintCW') : t('hintCCW'));
-      const parts = [];
-      if (!hOk) {
-        const diff = ((targetHAngle - curHAngle) % 360 + 360) % 360;
-        parts.push(`${t('hintHour')} ${cw(diff)} ${zh ? '到' : 'to'} ${q.hour}`);
-      }
-      if (!mOk) {
-        const diff = ((targetMAngle - curMAngle) % 360 + 360) % 360;
-        // Target verbalised as a number on the dial. On the 5-tick → "3" (i.e.
-        // 15 min). Off the 5-tick (L13 1-min set) → "8 過 3 格" / "past 8 by
-        // 3 ticks" so the kid knows where on the dial to stop.
-        let minTarget;
-        if (q.min === 0) minTarget = '12';
-        else if (q.min % 5 === 0) minTarget = String(q.min / 5);
-        else {
-          const big = Math.floor(q.min / 5);
-          const rem = q.min - big * 5;
-          minTarget = zh
-            ? `${big} 再過 ${rem} 格`
-            : `${big} (+${rem} ticks)`;
-        }
-        parts.push(`${t('hintMin')} ${cw(diff)} ${zh ? '到' : 'to'} ${minTarget}`);
-      }
-      const big = parts.join(zh ? '；' : '; ');
-      tickySay(big || (getLevelHint(currentLevel, q) || randomOops()), 'thinking', 0);
+      renderHintCoach(true);
     }
   }
 }
@@ -5836,6 +6816,29 @@ function shakeClock() {
   void cw.offsetWidth;
   cw.classList.add('wrong');
   setTimeout(() => cw.classList.remove('wrong'), 500);
+}
+
+function showWrongFlash() {
+  const overlay = document.getElementById('overlay-wrong-flash');
+  if (!overlay) return;
+  overlay.classList.remove('flash');
+  void overlay.offsetWidth;
+  overlay.classList.add('flash');
+  setTimeout(() => overlay.classList.remove('flash'), 280);
+}
+
+function showSetWrongFeedback() {
+  const feedback = document.getElementById('feedback-msg');
+  if (!feedback) return;
+  if (setWrongFeedbackTimeoutId !== null) {
+    clearTimeout(setWrongFeedbackTimeoutId);
+    setWrongFeedbackTimeoutId = null;
+  }
+  feedback.textContent = t('wrongMsg');
+  setWrongFeedbackTimeoutId = setTimeout(() => {
+    feedback.textContent = '';
+    setWrongFeedbackTimeoutId = null;
+  }, 700);
 }
 
 function showCorrectPopup() {
@@ -6061,7 +7064,6 @@ function showSpeedTest() {
 
 const SpeedTest = (function () {
   const MAX_LIVES = 3;
-  const LAVA_ZONE_H = 90;
   const TIMING_WINDOWS = [
     // Difficulty ramp ~1.4× steeper than original — fall durations & spawn intervals
     // shrink faster window-to-window so mid/late game pressures up sooner.
@@ -6086,6 +7088,7 @@ const SpeedTest = (function () {
   let spawnTimer     = null;
   let animFrameId    = null;
   let lastSpawnTime  = 0;
+  let countdownRunId = 0;
 
   function $(id) { return document.getElementById(id); }
   function playArea() { return $('st-play-area'); }
@@ -6095,7 +7098,7 @@ const SpeedTest = (function () {
   function endOverlay() { return $('st-overlay-end'); }
   function endMsgEl() { return $('st-end-msg'); }
   function choiceButtons() { return Array.from(document.querySelectorAll('#st-choice-grid .st-choice-btn')); }
-  function setScore(v) { score = v; scoreEl().innerHTML = '<span class="st-score-icon">'+SCORE_ICON_SVG+'</span> ' + v; }
+  function setScore(v) { score = v; scoreEl().innerHTML = '<span class="st-score-icon">'+SCORE_ICON_SVG+'</span><span class="score-pill-value">' + v + '</span>'; }
 
   function randomTime() {
     const hour    = 1 + Math.floor(Math.random() * 12);
@@ -6135,7 +7138,26 @@ const SpeedTest = (function () {
     const r = playArea().getBoundingClientRect();
     return { w: r.width, h: r.height };
   }
-  function lavaHitOffset() { return LAVA_ZONE_H; }
+  function speedtestRoot() { return $('screen-speedtest'); }
+  function clockSize() {
+    const root = speedtestRoot();
+    if (!root) return 215;
+    const v = parseFloat(getComputedStyle(root).getPropertyValue('--st-clock-size'));
+    return Number.isFinite(v) && v > 0 ? v : 215;
+  }
+  function lavaHitOffset() {
+    const lava = document.querySelector('#screen-speedtest .st-lava-zone');
+    if (!lava) return 90;
+    const h = lava.getBoundingClientRect().height;
+    return Number.isFinite(h) && h > 0 ? h : 90;
+  }
+  function clampClockX(clock, areaW) {
+    if (!clock || !clock.el) return;
+    const maxX = Math.max(0, areaW - clockSize());
+    const currentX = parseFloat(clock.el.style.left || '0');
+    const nextX = Math.max(0, Math.min(Number.isFinite(currentX) ? currentX : 0, maxX));
+    if (nextX !== currentX) clock.el.style.left = `${nextX}px`;
+  }
 
   function renderLives() {
     for (let i = 1; i <= MAX_LIVES; i++) {
@@ -6204,7 +7226,7 @@ const SpeedTest = (function () {
     const { hour, minute } = randomTime();
     const id      = ++clockIdCounter;
     const timeStr = formatTime(hour, minute);
-    const clockW = 215;
+    const clockW = clockSize();
     const rangeX = Math.max(0, w - clockW);
 
     // Avoid spawning where the falling clock would overlap the score pill
@@ -6285,16 +7307,18 @@ const SpeedTest = (function () {
   }
 
   function updateClockPositions(now) {
-    const { h: areaH } = playAreaSize();
+    const { w: areaW, h: areaH } = playAreaSize();
     const lavaTop = areaH - lavaHitOffset();
-    const hitY = lavaTop - 150;
+    const clockH = clockSize();
+    const SPAWN_TOP = 10;
+    const hitY = Math.max(SPAWN_TOP + 80, lavaTop - clockH * 0.55);
     for (const clock of fallingClocks) {
       if (clock.done || clock.popping) continue;
+      clampClockX(clock, areaW);
       const dt = now - clock.lastTickTime;
       clock.lastTickTime = now;
       clock.virtualElapsed += dt * clock.speedMultiplier;
       const progress = Math.min(clock.virtualElapsed / clock.fallDuration, 1);
-      const SPAWN_TOP = 10;
       const y = SPAWN_TOP + progress * (hitY - SPAWN_TOP);
       clock.currentY = y;
       clock.el.style.transform = `translate3d(0, ${y}px, 0)`;
@@ -6312,7 +7336,7 @@ const SpeedTest = (function () {
   function spawnLavaSplash(clock) {
     const { h } = playAreaSize();
     const lavaTop = h - lavaHitOffset();
-    const x = parseFloat(clock.el.style.left) + 107;
+    const x = parseFloat(clock.el.style.left) + clockSize() / 2;
     const splash = document.createElement('div');
     splash.className = 'st-lava-splash';
     splash.style.left = `${x}px`;
@@ -6327,7 +7351,7 @@ const SpeedTest = (function () {
     const wrap = clock.el.querySelector('.st-clock-svg-wrap');
     if (wrap) wrap.classList.add('st-is-popping');
     clock.el.classList.remove('st-is-target');
-    const x = parseFloat(clock.el.style.left) + 107;
+    const x = parseFloat(clock.el.style.left) + clockSize() / 2;
     const y = clock.currentY != null ? clock.currentY : 100;
     const pts = clock.points;
     const pop = document.createElement('div');
@@ -6462,9 +7486,11 @@ const SpeedTest = (function () {
   }
 
   function runCountdown() {
+    const runId = ++countdownRunId;
     const overlay = $('st-countdown');
     if (!overlay) { actuallyStartGame(); return; }
     const numEl = overlay.querySelector('.st-countdown-num');
+    document.body.classList.add('st-countdown-active');
     overlay.classList.remove('hidden');
 
     let n = 3;
@@ -6476,10 +7502,12 @@ const SpeedTest = (function () {
       numEl.style.animation = '';
       n--;
       if (n >= 1) {
-        setTimeout(showNum, 1000);
+        setTimeout(() => { if (runId === countdownRunId) showNum(); }, 1000);
       } else {
         setTimeout(() => {
+          if (runId !== countdownRunId) return;
           overlay.classList.add('hidden');
+          document.body.classList.remove('st-countdown-active');
           actuallyStartGame();
         }, 1000);
       }
@@ -6564,12 +7592,16 @@ const SpeedTest = (function () {
   // the loop, the spawn timer, and any DOM artefacts. Safe to call when
   // already stopped.
   function stop() {
+    countdownRunId++;
     gameRunning = false;
     if (spawnTimer) { clearTimeout(spawnTimer); spawnTimer = null; }
     if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null; }
     fallingClocks.forEach(c => { try { c.el.remove(); } catch(e) {} });
     fallingClocks = [];
     const pa = playArea();
+    const countdown = $('st-countdown');
+    if (countdown) countdown.classList.add('hidden');
+    document.body.classList.remove('st-countdown-active');
     // Belt-and-suspenders: also nuke any orphan .st-falling-clock elements
     // that may exist in the DOM but aren't tracked in fallingClocks.
     if (pa) pa.querySelectorAll('.st-falling-clock, .st-score-pop, .st-lava-splash').forEach(e => e.remove());
@@ -6589,10 +7621,18 @@ const SpeedTest = (function () {
     if (typeof showHome === 'function') showHome();
   }
 
+  function reviewGuide() {
+    if (typeof beepTap === 'function') beepTap();
+    stop();
+    endOverlay().classList.add('hidden');
+    startOverlay().classList.add('hidden');
+    if (typeof showTutorial === 'function') showTutorial(11);
+  }
+
   function localize() {
     // Pull strings from the main app's i18n table (S/state.lang via t()).
     const setText = (id, v) => { const e = $(id); if (e) e.textContent = v; };
-    setText('st-level-label', t('stTitle'));
+    setText('st-level-label', t('level') + '11' + t('levelSuffix'));
     setText('st-start-title', t('stStartTitle'));
     setText('st-start-subtitle', t('stStartSubtitle'));
     setText('st-btn-start', t('stStartBtn'));
@@ -6640,7 +7680,7 @@ const SpeedTest = (function () {
     });
   }
 
-  return { start: startGame, stop, showStartOverlay, backHome, localize };
+  return { start: startGame, stop, showStartOverlay, backHome, reviewGuide, localize };
 })();
 
 // ═══════════════════════════════════════════════════════
