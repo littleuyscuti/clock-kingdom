@@ -83,6 +83,7 @@
   /* Surfaces */
   --ck-bg-dark: #2D3047;
   --stage-scale: 1;
+  --ultimate-hud-scale: 1;
   /* Topbar height — clamps to viewport so topbar + #screen-home stay in sync.
      Conservative range: ~72px on a normal desktop, shrinks to 56 on narrow,
      grows to 80 on tall windows. Used by #topbar height + #screen-home top. */
@@ -311,6 +312,16 @@ body.portrait #game-stage {
   --confirm-h: var(--game-confirm-h, 60px);
   --confirm-font: var(--game-confirm-font, 24px);
   --progress-dot-size: var(--game-progress-dot-size, 18px);
+  --game-pill-font: calc(32px * var(--level-ui-scale, 1));
+  --game-pill-pad-y: calc(10px * var(--level-ui-scale, 1));
+  --game-pill-pad-x: calc(20px * var(--level-ui-scale, 1));
+  --game-pill-radius: calc(28px * var(--level-ui-scale, 1));
+  --game-pill-min-w: calc(110px * var(--level-ui-scale, 1));
+  --game-pill-gap: calc(6px * var(--level-ui-scale, 1));
+  --game-pill-shadow-y: calc(5px * var(--level-ui-scale, 1));
+  --game-pill-blur-y: calc(6px * var(--level-ui-scale, 1));
+  --game-pill-blur: calc(14px * var(--level-ui-scale, 1));
+  --game-pill-inset: calc(8px * var(--level-ui-scale, 1));
 }
 /* Home screen — inside #game-stage so it scales from the same fullscreen
    design as gameplay. Internal scrolling still handles extra tile rows. */
@@ -326,8 +337,31 @@ body.portrait #game-stage {
   z-index: 20;
 }
 #screen-speedtest {
-  --st-clock-size: clamp(150px, 17vw, 215px);
-  --st-lava-height: 90px;
+  --st-ui-scale: 1;
+  --st-clock-size: calc(215px * var(--st-ui-scale));
+  --st-lava-height: calc(90px * var(--st-ui-scale));
+  --st-panel-gap: calc(12px * var(--st-ui-scale));
+  --st-panel-pad-y: calc(16px * var(--st-ui-scale));
+  --st-panel-pad-x: calc(18px * var(--st-ui-scale));
+  --st-panel-pad-bottom: calc(26px * var(--st-ui-scale));
+  --st-choice-grid-w: calc(360px * var(--st-ui-scale));
+  --st-choice-gap-y: calc(18px * var(--st-ui-scale));
+  --st-choice-gap-x: calc(10px * var(--st-ui-scale));
+  --st-choice-h: calc(64px * var(--st-ui-scale));
+  --st-choice-font: calc(26px * var(--st-ui-scale));
+  --st-choice-pad-y: calc(14px * var(--st-ui-scale));
+  --st-choice-pad-x: calc(8px * var(--st-ui-scale));
+  --st-choice-radius: calc(18px * var(--st-ui-scale));
+  --st-score-font: calc(32px * var(--st-ui-scale));
+  --st-score-pad-y: calc(10px * var(--st-ui-scale));
+  --st-score-pad-x: calc(20px * var(--st-ui-scale));
+  --st-score-radius: calc(28px * var(--st-ui-scale));
+  --st-score-min-w: calc(110px * var(--st-ui-scale));
+  --st-score-gap: calc(6px * var(--st-ui-scale));
+  --st-score-shadow-y: calc(5px * var(--st-ui-scale));
+  --st-score-blur-y: calc(6px * var(--st-ui-scale));
+  --st-score-blur: calc(14px * var(--st-ui-scale));
+  --st-score-inset: calc(8px * var(--st-ui-scale));
   position: fixed;
   top: var(--topbar-h);
   left: 0;
@@ -853,8 +887,12 @@ body.level-world-active .tutorial-body {
 }
 
 .question-counter {
-  font-size: 15px; color: rgba(45,48,71,0.76); font-weight: 700;
-  text-shadow: var(--ck-bg-text-shadow);
+  font-size: 15px; color: #25304A; font-weight: 800;
+  text-shadow:
+    0 2px 0 rgba(255,255,255,0.98),
+    1px 0 0 rgba(255,255,255,0.9),
+    -1px 0 0 rgba(255,255,255,0.9),
+    0 5px 12px rgba(45,48,71,0.18);
 }
 .digital-target {
   position: relative;
@@ -896,6 +934,13 @@ body.level-world-active .tutorial-body {
   padding: 8px 24px;
   font-size: var(--set-digital-font);
   letter-spacing: 3px;
+}
+.digital-target.digital-target--period {
+  white-space: nowrap;
+  font-size: calc(var(--digital-font) * 0.74);
+  letter-spacing: 2px;
+  padding-left: 28px;
+  padding-right: 28px;
 }
 
 /* Clock wrapper — pillow style.
@@ -1053,7 +1098,7 @@ body.stage-short .clock-wrap svg {
 }
 .confirm-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 var(--ck-pink-shadow); }
 .feedback-msg {
-  font-size: calc(var(--feedback-font) - 2px);
+  font-size: var(--feedback-font);
   font-weight: 900;
   min-height: calc(var(--feedback-h) - 4px);
   height: var(--feedback-h);
@@ -1061,9 +1106,7 @@ body.stage-short .clock-wrap svg {
   overflow: visible;
   color: #C72A1A;
   font-family: 'Fredoka', 'Nunito', sans-serif;
-  text-shadow:
-    0 2px 0 rgba(255,255,255,0.95),
-    0 5px 12px rgba(199,42,26,0.24);
+  text-shadow: 0 2px 6px rgba(255,255,255,0.85);
 }
 /* "Try again!" for read-mode — inline, mirrors the set-mode feedback-msg
    slot on Level 4 so every level shows the wrong-answer text in the same
@@ -1071,13 +1114,12 @@ body.stage-short .clock-wrap svg {
    hiding it doesn't shift any other content. */
 #read-feedback {
   color: #C72A1A;
-  font-family: 'Fredoka', 'Nunito', sans-serif; font-size: var(--feedback-font); font-weight: 900;
+  font-family: 'Fredoka', 'Nunito', sans-serif; font-size: calc(var(--feedback-font) * 1.18); font-weight: 900;
   text-align: center;
-  min-height: calc(var(--feedback-h) - 4px); height: var(--feedback-h); line-height: calc(var(--feedback-h) - 4px); overflow: visible;
+  min-height: calc(var(--feedback-h) - 2px); height: var(--feedback-h); line-height: calc(var(--feedback-h) - 4px); overflow: visible;
   margin: 4px 0 0; padding: 0;
-  text-shadow:
-    0 2px 0 rgba(255,255,255,0.95),
-    0 5px 12px rgba(199,42,26,0.24);
+  align-self: center;
+  text-shadow: 0 2px 6px rgba(255,255,255,0.85);
 }
 /* Keep the wrong-answer row reserved while answer choices are visible, so
    "Try Again" can appear without pushing the clock, prompt, or choices. */
@@ -1491,10 +1533,12 @@ body.portrait .tut-section { max-width: 100%; }
 body.portrait .tutorial-body { padding-left: 14px; padding-right: 14px; }
 body.portrait .tour-body { padding: 6px 14px 60px; gap: 18px; }
 body.portrait .tour-step-text { font-size: 24px; max-width: 100%; min-height: 70px; }
-/* Speed-test play area — already uses % widths; just tighten the bottom panel grid */
-body.portrait #screen-speedtest .st-choice-grid { max-width: 100%; gap: 14px 10px; }
-body.portrait #screen-speedtest .st-bottom-panel { padding: 20px 14px 24px; }
-body.portrait #screen-speedtest { --st-clock-size: 165px; }
+/* Speed-test play area uses the same JS-published --st-ui-scale as landscape,
+   so portrait does not need a separate clock-size override. */
+body.portrait #screen-speedtest .st-choice-grid { max-width: min(100%, var(--st-choice-grid-w)); }
+body.portrait #screen-speedtest .st-bottom-panel {
+  padding: var(--st-panel-pad-y) var(--st-panel-pad-x) var(--st-panel-pad-bottom);
+}
 body.portrait .ticky-container {
   left: max(12px, env(safe-area-inset-left));
   bottom: max(14px, env(safe-area-inset-bottom));
@@ -1722,28 +1766,71 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
   display: flex; align-items: center; justify-content: center; z-index: 100;
   backdrop-filter: blur(4px);
 }
-/* Timer pill pinned top-right of the game body for L17 Ultimate Test */
+/* Timer/score pills. Ultimate Test uses fixed viewport corners like Speed
+   Test; Speed Test reuses the score pill inside its own full-screen HUD. */
 .game-body { position: relative; }
 .ultimate-timer {
-  position: absolute; top: 8px; right: 8px; z-index: 5;
+  position: absolute;
+  top: var(--score-pill-inset, var(--game-pill-inset, 8px));
+  right: var(--score-pill-inset, var(--game-pill-inset, 8px));
+  z-index: 5;
   font-family: 'Fredoka', sans-serif;
-  font-size: 32px; font-weight: 700;
+  font-size: var(--score-pill-font, var(--game-pill-font, 32px)); font-weight: 700;
   color: white; background: #FF6B9D;
-  padding: 10px 20px; border-radius: 28px;
-  box-shadow: 0 5px 0 #d94f7e, 0 6px 14px rgba(0,0,0,0.12);
-  min-width: 110px; text-align: center;
-  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: var(--score-pill-pad-y, var(--game-pill-pad-y, 10px)) var(--score-pill-pad-x, var(--game-pill-pad-x, 20px));
+  border-radius: var(--score-pill-radius, var(--game-pill-radius, 28px));
+  box-shadow:
+    0 var(--score-pill-shadow-y, var(--game-pill-shadow-y, 5px)) 0 #d94f7e,
+    0 var(--score-pill-blur-y, var(--game-pill-blur-y, 6px)) var(--score-pill-blur, var(--game-pill-blur, 14px)) rgba(0,0,0,0.12);
+  min-width: var(--score-pill-min-w, var(--game-pill-min-w, 110px)); text-align: center;
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--score-pill-gap, var(--game-pill-gap, 6px));
 }
+#ultimate-score-display,
+#ultimate-timer-display {
+  --game-pill-font: calc(32px * var(--ultimate-hud-scale, 1));
+  --game-pill-pad-y: calc(10px * var(--ultimate-hud-scale, 1));
+  --game-pill-pad-x: calc(20px * var(--ultimate-hud-scale, 1));
+  --game-pill-radius: calc(28px * var(--ultimate-hud-scale, 1));
+  --game-pill-min-w: calc(110px * var(--ultimate-hud-scale, 1));
+  --game-pill-gap: calc(6px * var(--ultimate-hud-scale, 1));
+  --game-pill-shadow-y: calc(5px * var(--ultimate-hud-scale, 1));
+  --game-pill-blur-y: calc(6px * var(--ultimate-hud-scale, 1));
+  --game-pill-blur: calc(14px * var(--ultimate-hud-scale, 1));
+  --game-pill-inset: calc(8px * var(--ultimate-hud-scale, 1));
+  position: fixed;
+  top: calc(var(--topbar-h) + var(--game-pill-inset));
+  z-index: 45;
+}
+#ultimate-score-display { left: var(--game-pill-inset); }
+#ultimate-timer-display { right: var(--game-pill-inset); }
 /* Score pill — top-left of game-body, same row as the timer pill on the right */
 .ultimate-score {
-  position: absolute; top: 8px; left: 8px; z-index: 5;
+  position: absolute;
+  top: var(--score-pill-inset, var(--game-pill-inset, 8px));
+  left: var(--score-pill-inset, var(--game-pill-inset, 8px));
+  z-index: 5;
   font-family: 'Fredoka', sans-serif;
-  font-size: 32px; font-weight: 700;
+  font-size: var(--score-pill-font, var(--game-pill-font, 32px)); font-weight: 700;
   color: white; background: #4ECDC4;
-  padding: 10px 20px; border-radius: 28px;
-  box-shadow: 0 5px 0 #2ea89e, 0 6px 14px rgba(0,0,0,0.12);
-  min-width: 110px; text-align: center;
-  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: var(--score-pill-pad-y, var(--game-pill-pad-y, 10px)) var(--score-pill-pad-x, var(--game-pill-pad-x, 20px));
+  border-radius: var(--score-pill-radius, var(--game-pill-radius, 28px));
+  box-shadow:
+    0 var(--score-pill-shadow-y, var(--game-pill-shadow-y, 5px)) 0 #2ea89e,
+    0 var(--score-pill-blur-y, var(--game-pill-blur-y, 6px)) var(--score-pill-blur, var(--game-pill-blur, 14px)) rgba(0,0,0,0.12);
+  min-width: var(--score-pill-min-w, var(--game-pill-min-w, 110px)); text-align: center;
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--score-pill-gap, var(--game-pill-gap, 6px));
+}
+#screen-speedtest .ultimate-score {
+  --score-pill-font: var(--st-score-font);
+  --score-pill-pad-y: var(--st-score-pad-y);
+  --score-pill-pad-x: var(--st-score-pad-x);
+  --score-pill-radius: var(--st-score-radius);
+  --score-pill-min-w: var(--st-score-min-w);
+  --score-pill-gap: var(--st-score-gap);
+  --score-pill-shadow-y: var(--st-score-shadow-y);
+  --score-pill-blur-y: var(--st-score-blur-y);
+  --score-pill-blur: var(--st-score-blur);
+  --score-pill-inset: var(--st-score-inset);
 }
 .ultimate-score .score-pill-value {
   font-size: 0.9em;
@@ -2337,8 +2424,8 @@ body.st-countdown-active #screen-speedtest { z-index: 120; }
 #screen-speedtest .st-bottom-panel {
   position: relative;
   display: flex; flex-direction: column; align-items: center;
-  gap: 12px;
-  padding: 16px 18px 26px;
+  gap: var(--st-panel-gap);
+  padding: var(--st-panel-pad-y) var(--st-panel-pad-x) var(--st-panel-pad-bottom);
   background:
     radial-gradient(circle at 18% 0%, rgba(255,255,255,0.58), transparent 32%),
     linear-gradient(180deg, rgba(255,244,210,0.76) 0%, rgba(219,171,89,0.48) 100%);
@@ -2354,20 +2441,20 @@ body.st-countdown-active #screen-speedtest { z-index: 120; }
 #screen-speedtest .st-choice-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 18px 10px;
+  gap: var(--st-choice-gap-y) var(--st-choice-gap-x);
   width: 100%;
-  max-width: 360px;
+  max-width: var(--st-choice-grid-w);
 }
 #screen-speedtest .st-choice-btn {
   border: 3px solid #EAD6B5;
-  border-radius: 18px;
+  border-radius: var(--st-choice-radius);
   font-family: 'Fredoka', sans-serif;
-  font-size: clamp(18px, 13cqw, 26px); font-weight: 600;
+  font-size: var(--st-choice-font); font-weight: 600;
   line-height: 1.06;
   color: #075F74;
-  padding: 14px 8px;
+  padding: var(--st-choice-pad-y) var(--st-choice-pad-x);
   cursor: pointer;
-  min-height: 64px;
+  min-height: var(--st-choice-h);
   transition: transform 0.12s, box-shadow 0.12s;
   position: relative;
   animation: btn-breathe 2.5s ease-in-out infinite;
@@ -2436,24 +2523,11 @@ body.st-countdown-active #screen-speedtest { z-index: 120; }
   color: var(--ck-bg-dark) !important;
 }
 @media (max-height: 520px) and (orientation: landscape) {
-  #screen-speedtest {
-    --st-clock-size: 120px;
-    --st-lava-height: 58px;
-  }
   #screen-speedtest .st-bottom-panel {
-    padding: 10px 14px 14px;
-    gap: 8px;
+    border-top-width: 2px;
   }
   #screen-speedtest .st-choice-grid {
-    grid-template-columns: repeat(4, 1fr);
-    max-width: min(680px, 96vw);
-    gap: 10px;
-  }
-  #screen-speedtest .st-choice-btn {
-    font-size: 20px;
-    min-height: 46px;
-    padding: 8px 6px;
-    border-radius: 16px;
+    grid-template-columns: 1fr 1fr;
   }
 }
 @keyframes st-input-shake {
@@ -2796,8 +2870,6 @@ body.st-countdown-active #screen-speedtest { z-index: 120; }
 <!-- GAME SCREEN (header moved to #topbar [data-mode="game"]) -->
 <div id="screen-game" class="hidden">
   <div class="game-body">
-    <div class="ultimate-score hidden" id="ultimate-score-display" aria-label="Score"><span class="ultimate-score-icon"><svg class="score-icon-svg" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M232,64H208V48a8,8,0,0,0-8-8H56a8,8,0,0,0-8,8V64H24A16,16,0,0,0,8,80V96a40,40,0,0,0,40,40h3.65A80.13,80.13,0,0,0,120,191.61V216H96a8,8,0,0,0,0,16h64a8,8,0,0,0,0-16H136V191.58c31.94-3.23,58.44-25.64,68.08-55.58H208a40,40,0,0,0,40-40V80A16,16,0,0,0,232,64ZM48,120A24,24,0,0,1,24,96V80H48v32q0,4,.39,8ZM232,96a24,24,0,0,1-24,24h-.5a81.81,81.81,0,0,0,.5-8.9V80h24Z"/></svg></span><span class="score-pill-value">0</span></div>
-    <div class="ultimate-timer hidden" id="ultimate-timer-display"></div>
     <div class="progress-dots" id="progress-dots"></div>
     <div class="question-counter" id="q-counter"></div>
     <div>
@@ -2816,6 +2888,9 @@ body.st-countdown-active #screen-speedtest { z-index: 120; }
 </div>
 
 </div><!-- /#game-stage -->
+
+<div class="ultimate-score hidden" id="ultimate-score-display" aria-label="Score"><span class="ultimate-score-icon"><svg class="score-icon-svg" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M232,64H208V48a8,8,0,0,0-8-8H56a8,8,0,0,0-8,8V64H24A16,16,0,0,0,8,80V96a40,40,0,0,0,40,40h3.65A80.13,80.13,0,0,0,120,191.61V216H96a8,8,0,0,0,0,16h64a8,8,0,0,0,0-16H136V191.58c31.94-3.23,58.44-25.64,68.08-55.58H208a40,40,0,0,0,40-40V80A16,16,0,0,0,232,64ZM48,120A24,24,0,0,1,24,96V80H48v32q0,4,.39,8ZM232,96a24,24,0,0,1-24,24h-.5a81.81,81.81,0,0,0,.5-8.9V80h24Z"/></svg></span><span class="score-pill-value">0</span></div>
+<div class="ultimate-timer hidden" id="ultimate-timer-display"></div>
 
 <button class="help-btn" id="game-help-btn" onclick="handleHelpButton()" aria-label="Open hint">Hint</button>
 
@@ -3086,6 +3161,12 @@ body.st-countdown-active #screen-speedtest { z-index: 120; }
     stage.style.setProperty('--home-gap', homeGap + 'px');
     stage.style.setProperty('--home-pad-top', homePadTop + 'px');
     stage.style.setProperty('--home-pad-bottom', homePadBottom + 'px');
+    var speedtestScreen = document.getElementById('screen-speedtest');
+    // Speed Test is outside #game-stage, so it needs its own viewport scale.
+    // Keep this single ratio driving the falling clocks, lava, bottom panel,
+    // and answer buttons so short windows do not mix chunky and tiny pieces.
+    var stScale = 0.66 + 0.34 * Math.max(0, Math.min(1, (availH - 346) / 316));
+    if (speedtestScreen) speedtestScreen.style.setProperty('--st-ui-scale', stScale);
     var compactT = Math.max(0, Math.min(1, (designH - 720) / 180));
     // One shared content scale keeps the level UI visually balanced while the
     // stage itself shrinks. Avoid separate per-control curves that make one
@@ -3135,6 +3216,7 @@ body.st-countdown-active #screen-speedtest { z-index: 120; }
     var guideStartFont = 22 * levelUiScale;
     var guideStartH = 60 * levelUiScale;
     var guideStartPadY = 14 * levelUiScale;
+    document.documentElement.style.setProperty('--ultimate-hud-scale', levelUiScale);
     stage.style.setProperty('--level-ui-scale', levelUiScale);
     stage.style.setProperty('--game-play-w', gamePlayW + 'px');
     stage.style.setProperty('--game-choice-h', gameChoiceH + 'px');
@@ -4356,7 +4438,7 @@ function doReset() {
   renderHome();
 }
 function hideAllScreens() {
-  ['screen-home','screen-game','screen-tutorial','screen-tour','screen-speedtest','st-overlay-start','st-overlay-end','overlay-complete','overlay-correct','overlay-timeout','overlay-reset','overlay-hint']
+  ['screen-home','screen-game','screen-tutorial','screen-tour','screen-speedtest','ultimate-score-display','ultimate-timer-display','st-overlay-start','st-overlay-end','overlay-complete','overlay-correct','overlay-timeout','overlay-reset','overlay-hint']
     .forEach(id => { const el = document.getElementById(id); if (el) el.classList.add('hidden'); });
   if (typeof resetHelpButton === 'function') resetHelpButton();
   const wrongFlash = document.getElementById('overlay-wrong-flash');
@@ -5636,15 +5718,12 @@ function handleUltimateTimeout() {
 function updateProgressDots() {
   const dotsEl = document.getElementById('progress-dots');
   if (!dotsEl) return;
-  // L17 Ultimate Test is endless — hide the dots strip entirely to avoid unbounded growth
-  if (currentLevel === 17) {
-    dotsEl.innerHTML = '';
-    return;
-  }
   dotsEl.innerHTML = '';
-  for (let i = 0; i < questions.length; i++) {
+  const totalDots = currentLevel === 17 ? 5 : questions.length;
+  const currentDot = currentLevel === 17 ? (qIndex % 5) : qIndex;
+  for (let i = 0; i < totalDots; i++) {
     const dot = document.createElement('div');
-    dot.className = 'progress-dot' + (i === qIndex ? ' current' : '') + (i < qIndex ? ' done' : '');
+    dot.className = 'progress-dot' + (i === currentDot ? ' current' : '') + (i < currentDot ? ' done' : '');
     dotsEl.appendChild(dot);
   }
 }
@@ -5925,10 +6004,23 @@ function buildQuestions(n) {
     // 5 questions, 2 hour-parse + 3 minute-parse, INTERLEAVED so kids
     // can't autopilot ("just pick the first digit"). Q1 is always hour
     // so they start with the easier subtype, then types are shuffled.
-    // Minute values restricted to 0, 15, 30, 45 (kid hasn't learned the rest yet).
+    // Q1-Q2 keep easy 5-mark minutes. In Q3-Q5, exactly 2 random questions
+    // use off-5 digital minutes so kids must read the actual right-side number.
     const easyMins = [0, 15, 30, 45];
+    const offFiveMins = [];
+    for (let m = 1; m < 60; m++) {
+      if (m % 5 !== 0) offFiveMins.push(m);
+    }
     const hours = shuffle([...allHours]).slice(0, 5);
-    const mins  = shuffle([0, 15, 30, 45, 0]); // 5 values; mixed but only easy minutes
+    const offFiveSlots = new Set(shuffle([2, 3, 4]).slice(0, 2));
+    const usedMins = new Set();
+    const pickMinute = (pool, avoidValue=null) => {
+      const candidates = shuffle(pool.filter(m => !usedMins.has(m) && m !== avoidValue));
+      const picked = candidates[0] !== undefined ? candidates[0] : shuffle(pool.filter(m => m !== avoidValue))[0];
+      usedMins.add(picked);
+      return picked;
+    };
+    const mins = hours.map((h, i) => pickMinute(offFiveSlots.has(i) ? offFiveMins : easyMins, i >= 3 ? h : null));
     // 2 hour-parse + 3 minute-parse — minute is the harder skill, so it gets more reps.
     // Force Q1 = hour (gentler intro), then shuffle the remaining 4 (1 hour + 3 minute).
     const tail = shuffle(['H', 'M', 'M', 'M']);
@@ -5939,25 +6031,32 @@ function buildQuestions(n) {
       const displayStr = fmtTime(h, m, false);
       if (kind === 'H') {
         const correct = String(h);
-        const distHours = shuffle(allHours.filter(x => x !== h)).slice(0, 3).map(String);
+        const required = i >= 3 && m !== h ? [String(m)] : [];
+        const distHours = shuffle(allHours.filter(x => x !== h && !required.includes(String(x))))
+          .slice(0, 3 - required.length)
+          .map(String);
         return {
           type: 'read',
           subtype: 'parseHour',
           display: displayStr,
           hour: h, min: m,
           correct,
-          options: shuffle([correct, ...distHours])
+          options: shuffle([correct, ...required, ...distHours])
         };
       } else {
         const correct = String(m);
-        const distMins = shuffle(easyMins.filter(x => x !== m)).slice(0, 3).map(String);
+        const required = i >= 3 && h !== m ? [String(h)] : [];
+        const minuteChoicePool = [...easyMins, ...offFiveMins];
+        const distMins = shuffle(minuteChoicePool.filter(x => x !== m && !required.includes(String(x))))
+          .slice(0, 3 - required.length)
+          .map(String);
         return {
           type: 'read',
           subtype: 'parseMinute',
           display: displayStr,
           hour: h, min: m,
           correct,
-          options: shuffle([correct, ...distMins])
+          options: shuffle([correct, ...required, ...distMins])
         };
       }
     });
@@ -6294,12 +6393,11 @@ function showQuestion(i) {
   correctPopupTimeoutId = null;
   const qc = document.getElementById('q-counter');
   if (currentLevel === 17) {
-    // Score-attack mode: show "Q12" instead of "X / Total"
-    qc.textContent = `Q${i + 1}`;
-    qc.style.fontSize = '20px';
+    qc.textContent = `${(i % 5) + 1} ${t('qOfTotal')} 5`;
+    qc.style.fontSize = `${18 + (currentLevel - 1) * 0.58}px`;
   } else {
     qc.textContent = `${i+1} ${t('qOfTotal')} ${questions.length}`;
-    qc.style.fontSize = `${15 + (currentLevel - 1) * 0.5}px`;
+    qc.style.fontSize = `${18 + (currentLevel - 1) * 0.58}px`;
   }
   const rfb = document.getElementById('read-feedback');
   rfb.classList.add('hidden');
@@ -6334,6 +6432,7 @@ function showQuestion(i) {
   dt.classList.toggle('digital-target--compact',
     currentLevel === 4 || currentLevel === 12 || currentLevel === 13 || isSetFromPM);
   dt.classList.toggle('digital-target--set', currentLevel === 12 || currentLevel === 13);
+  dt.classList.toggle('digital-target--period', q && q.subtype === 'convert12to24');
   // L2 read-digital: bump the number-clock larger on phones (handled in mobile media query)
   dt.classList.toggle('digital-target--l2', currentLevel === 2 && q && q.type === 'read');
   const gameBody = document.querySelector('#screen-game .game-body');
@@ -6355,7 +6454,7 @@ function showQuestion(i) {
     cw.style.display = 'none';
     if (gameBody) gameBody.classList.add('no-clock');
     // Show the digital prompt in the digital-target box
-    dt.style.whiteSpace = 'pre-line';
+    dt.style.whiteSpace = q.subtype === 'convert12to24' ? 'nowrap' : 'pre-line';
     dt.textContent = q.displayDigital || '';
     dt.classList.remove('hidden-target');
     showChoices(q);
@@ -6766,7 +6865,7 @@ function checkReadAnswer(chosen, q, btn) {
           if (b.dataset.val === q.correct) b.classList.add('hint-highlight');
         });
       }
-    }, 700);
+    }, 1050);
   }
 }
 
