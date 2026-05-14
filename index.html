@@ -915,6 +915,12 @@ body.level-world-active .tutorial-body {
   transform: translateX(-50%);
   z-index: 3;
 }
+#screen-game.is-ultimate-test .progress-dots {
+  display: none;
+}
+#screen-game.is-ultimate-test .question-counter {
+  top: var(--progress-top);
+}
 .digital-target {
   position: relative;
   overflow: hidden;
@@ -4474,7 +4480,7 @@ function renderHome() {
     }
     const perfect = (n === 17) ? (l17Best > 0) : (stars === 3);  // yellow
     const partial = (n !== 17) && (stars === 1 || stars === 2);  // orange (1–2 stars)
-    const isCurrent = n === currentLvl;                          // teal pulse — next to play
+    const isCurrent = n === currentLvl && !perfect;              // teal pulse — next to play
 
     const stop = document.createElement('div');
     // Locked is mutually exclusive with completed/partial/current-level. Orphan progress
@@ -5743,7 +5749,9 @@ function beginLevel(n) {
   }
   qIndex = 0; wrongCount = 0; wrongCountThisQ = 0;
   hideAllScreens();
-  document.getElementById('screen-game').classList.remove('hidden');
+  const gameScreen = document.getElementById('screen-game');
+  gameScreen.classList.toggle('is-ultimate-test', n === 17);
+  gameScreen.classList.remove('hidden');
   setTopbarMode('game');
   const labelMode = getMinLabelMode(n);
   const cw = document.getElementById('clock-wrap');
@@ -5871,8 +5879,9 @@ function updateProgressDots() {
   const dotsEl = document.getElementById('progress-dots');
   if (!dotsEl) return;
   dotsEl.innerHTML = '';
-  const totalDots = currentLevel === 17 ? 5 : questions.length;
-  const currentDot = currentLevel === 17 ? (qIndex % 5) : qIndex;
+  if (currentLevel === 17) return;
+  const totalDots = questions.length;
+  const currentDot = qIndex;
   for (let i = 0; i < totalDots; i++) {
     const dot = document.createElement('div');
     dot.className = 'progress-dot' + (i === currentDot ? ' current' : '') + (i < currentDot ? ' done' : '');
@@ -6525,7 +6534,7 @@ function showQuestion(i) {
   correctPopupTimeoutId = null;
   const qc = document.getElementById('q-counter');
   if (currentLevel === 17) {
-    qc.textContent = `${(i % 5) + 1} ${t('qOfTotal')} 5`;
+    qc.textContent = `Q${i + 1}`;
   } else {
     qc.textContent = `${i+1} ${t('qOfTotal')} ${questions.length}`;
   }
