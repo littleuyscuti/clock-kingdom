@@ -28,19 +28,32 @@
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <script>
-// Track browser pinch zoom. During active zoom, layout fitting is paused so
-// Safari can scale/pan the already-laid-out game instead of the game also
+// Track browser visual zoom. During active zoom, layout fitting is paused so
+// the browser can scale/pan the already-laid-out game instead of the game also
 // recalculating positions from the changing visual viewport.
 (function () {
   var vv = window.visualViewport;
   if (!vv) return;
+  var isTouchDevice = function () {
+    return (navigator.maxTouchPoints || 0) > 0 || 'ontouchstart' in window;
+  };
+  var markVisualZoom = function () {
+    window.__ckVisualZoomHoldUntil = Date.now() + 700;
+  };
   var isNormalScale = function () {
     return !vv.scale || Math.abs(vv.scale - 1) <= 0.01;
   };
   var sync = function () {
     var on = !isNormalScale();
+    if (on) markVisualZoom();
     document.body && document.body.classList.toggle('is-zoomed', on);
   };
+  document.addEventListener('gesturestart', markVisualZoom, { passive: true });
+  document.addEventListener('gesturechange', markVisualZoom, { passive: true });
+  document.addEventListener('gestureend', markVisualZoom, { passive: true });
+  document.addEventListener('touchmove', function (e) {
+    if (e.touches && e.touches.length > 1) markVisualZoom();
+  }, { passive: true });
   vv.addEventListener('resize', sync);
   vv.addEventListener('scroll', sync);
   if (document.readyState === 'loading') {
@@ -57,6 +70,7 @@
 <meta http-equiv="Expires" content="0">
 <title>時鐘王國 / Clock Kingdom</title>
 <link rel="preload" as="image" href="images/clock-kingdom-map-bg-v2.webp" type="image/webp" fetchpriority="high">
+<link rel="preload" as="image" href="images/clock-kingdom-map-bg-v2.png" type="image/png">
 <script src="https://sdk.crazygames.com/crazygames-sdk-v3.js" defer></script>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Nunito:wght@600;700;800&family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
 <style>
@@ -202,16 +216,19 @@ body.portrait #game-stage {
    stays put when inner content scrolls; overscroll bounce past it
    shows html's solid blue (no orange edge). ── */
 .sky-bg {
-  position: fixed; inset: 0; z-index: 0;
-  background: linear-gradient(180deg, #B8E1FF 0%, #D4EEFF 40%, #FFE5B4 100%);
+  position: fixed; inset: -2px; z-index: 0;
+  background-image: url("images/clock-kingdom-map-bg-v2.png"), linear-gradient(180deg, #B8E1FF 0%, #D4EEFF 40%, #FFE5B4 100%);
+  background-position: center center, center center;
+  background-size: cover, cover;
+  background-repeat: no-repeat, no-repeat;
   overflow: hidden;
   pointer-events: none;
 }
-body.home-active .sky-bg,
-body.level-world-active .sky-bg {
-  background:
-    url("images/clock-kingdom-map-bg-v2.png") center center / cover no-repeat,
-    linear-gradient(180deg, #B8E1FF 0%, #D4EEFF 40%, #FFE5B4 100%);
+body.map-webp-ready .sky-bg {
+  background-image: url("images/clock-kingdom-map-bg-v2.webp"), url("images/clock-kingdom-map-bg-v2.png"), linear-gradient(180deg, #B8E1FF 0%, #D4EEFF 40%, #FFE5B4 100%);
+  background-position: center center, center center, center center;
+  background-size: cover, cover, cover;
+  background-repeat: no-repeat, no-repeat, no-repeat;
 }
 .cloud {
   position: absolute;
@@ -509,23 +526,6 @@ body {
 .world-map::before {
   content: none;
 }
-.map-bg-img {
-  position: fixed;
-  inset: 0;
-  z-index: 1;
-  width: 100vw;
-  height: 100vh;
-  object-fit: cover;
-  object-position: center center;
-  background: url("images/clock-kingdom-map-bg-v2.png") center center / cover no-repeat;
-  pointer-events: none;
-  user-select: none;
-  transform: translateZ(0);
-  will-change: transform;
-  display: none;
-}
-body.home-active .map-bg-img,
-body.level-world-active .map-bg-img { display: block; }
 /* Level grid — auto-fit responsive columns. minmax(160px, 1fr) lets the
    grid grow from 2 cols on a phone-width window all the way to 6+ cols
    on a wide monitor, so home no longer feels "tiny" inside a desktop
@@ -746,6 +746,28 @@ body.level-world-active .map-bg-img { display: block; }
 }
 .stars .star-on, .game-stars-earned .star-on, .complete-stars .star-on { color: #FFD93D; -webkit-text-stroke: 1px #d4a017; }
 .stars .star-off, .game-stars-earned .star-off, .complete-stars .star-off { color: #E2E5EE; -webkit-text-stroke: 1px #B4B8C7; }
+
+body.home-active.is-zoomed .cloud,
+body.home-active.layout-settling .cloud,
+body.home-active.is-zoomed .brand-ticky-mini,
+body.home-active.layout-settling .brand-ticky-mini,
+body.home-active.is-zoomed .lang-btn,
+body.home-active.layout-settling .lang-btn,
+body.home-active.is-zoomed .level-stop.current-level,
+body.home-active.layout-settling .level-stop.current-level,
+body.home-active.is-zoomed .level-stop.speedtest-tile,
+body.home-active.layout-settling .level-stop.speedtest-tile {
+  animation: none !important;
+}
+body.home-active.is-zoomed .level-stop,
+body.home-active.layout-settling .level-stop {
+  transition: none !important;
+  box-shadow: 0 4px 0 rgba(200,167,123,0.72), 0 7px 12px rgba(45,48,71,0.12) !important;
+}
+body.home-active.is-zoomed .level-stop.locked,
+body.home-active.layout-settling .level-stop.locked {
+  box-shadow: 0 4px 0 #BDB7AA, 0 6px 10px rgba(45,48,71,0.10) !important;
+}
 
 .home-footer { text-align: center; padding: 8px 12px 0; position: relative; z-index: 3; flex: 0 0 auto; }
 .home-footer {
@@ -2797,6 +2819,22 @@ body.st-countdown-active #screen-speedtest { z-index: 120; }
 <script>if (/[?&]debug=1\b/.test(location.search)) document.getElementById('build-stamp').style.display='block';</script>
 
 <script>
+// Use PNG as the always-visible map background. Promote to WebP only after
+// the browser has fully loaded/decoded it; if WebP stalls or fails, the PNG
+// remains in place instead of leaving the map visually blank.
+(function () {
+  var img = new Image();
+  img.onload = function () {
+    document.body && document.body.classList.add('map-webp-ready');
+  };
+  img.onerror = function () {
+    document.body && document.body.classList.remove('map-webp-ready');
+  };
+  img.src = 'images/clock-kingdom-map-bg-v2.webp';
+})();
+</script>
+
+<script>
 // Hitbox debug mode: ?hitbox=1 makes Level 1 tour tap-target capsules visible.
 // Regular ?debug=1 stays available for build stamps without exposing hand hitboxes.
 (function () {
@@ -2812,8 +2850,6 @@ body.st-countdown-active #screen-speedtest { z-index: 120; }
   } catch(e) {}
 })();
 </script>
-
-<img class="map-bg-img" src="images/clock-kingdom-map-bg-v2.webp" alt="" aria-hidden="true" draggable="false" loading="eager" decoding="async" fetchpriority="high" onerror="this.onerror=null;this.src='images/clock-kingdom-map-bg-v2.png';">
 
 <!-- ── Top-bar HUD ──
      Lives OUTSIDE #game-stage so it gets real viewport width + responsive
@@ -3167,18 +3203,15 @@ body.st-countdown-active #screen-speedtest { z-index: 120; }
 // caused the top bar to jitter at certain viewport heights. Body has
 // margin:0 / padding:0 so no ancestor offsets stack on top.
 (function () {
-  // iPad Safari can fire resize/orientation events before window.innerWidth
-  // has caught up, so use the visible viewport only at normal 1x scale. While
-  // pinched in or out, Safari's visual viewport is the zoom window, not the
-  // game layout box, so fitting from it makes elements drift.
+  // Fit from the layout viewport, not the visual viewport. Pinch/trackpad zoom
+  // changes visualViewport dimensions and offsets while the layout viewport
+  // remains the stable game box; using visualViewport here makes elements jump.
   function getFitViewport() {
-    var vv = window.visualViewport;
-    var useVisualViewport = vv && (!vv.scale || Math.abs(vv.scale - 1) <= 0.01);
     return {
-      width: Math.max(1, useVisualViewport ? vv.width : window.innerWidth),
-      height: Math.max(1, useVisualViewport ? vv.height : window.innerHeight),
-      offsetLeft: useVisualViewport ? vv.offsetLeft : 0,
-      offsetTop: useVisualViewport ? vv.offsetTop : 0
+      width: Math.max(1, window.innerWidth),
+      height: Math.max(1, window.innerHeight),
+      offsetLeft: 0,
+      offsetTop: 0
     };
   }
 
@@ -3372,12 +3405,23 @@ body.st-countdown-active #screen-speedtest { z-index: 120; }
 
   var fitRaf = 0;
   var settleTimers = [];
+  var layoutSettlingTimer = 0;
+  function markLayoutSettling() {
+    document.body && document.body.classList.add('layout-settling');
+    if (layoutSettlingTimer) clearTimeout(layoutSettlingTimer);
+    layoutSettlingTimer = setTimeout(function () {
+      document.body && document.body.classList.remove('layout-settling');
+      layoutSettlingTimer = 0;
+    }, 220);
+  }
   function isViewportScaled() {
+    if (window.__ckVisualZoomHoldUntil && Date.now() < window.__ckVisualZoomHoldUntil) return true;
     return window.visualViewport &&
       window.visualViewport.scale &&
       Math.abs(window.visualViewport.scale - 1) > 0.01;
   }
   function scheduleFitGameStage() {
+    markLayoutSettling();
     if (isViewportScaled()) return;
     fitGameStage();
     if (fitRaf) cancelAnimationFrame(fitRaf);
@@ -3479,7 +3523,7 @@ const S = {
     level17name:'終極\n測試',
     l2tutTitle:'🔢 讀數字時鐘',
     l2tutText:'數字時鐘的寫法是 <b>時:分</b>\n• <b>:</b> 前面 → 看「<b>時</b>」（幾點）\n• <b>:</b> 後面 → 看「<b>分</b>」（幾分）',
-    l2tutRule:'「:」前 = 時\n「:」後 = 分',
+    l2tutRule:': 前 = 點\n: 後 = 分',
     l3tutTitle:'🕐 時針指向那個數字，就是幾點',
     l3tutText:'• 看<b>時針</b>指到的數字\n• 它就是<b>現在幾點</b>',
     l3tutRule:'時針指那個數字 → 就是幾點',
@@ -3573,21 +3617,21 @@ const S = {
     l95tutTitle:'🔍 找不同的那個',
     l95tutText:'• 3個鐘顯示同一時間\n• 1個鐘顯示不同的時間\n• 找出那個不同的鐘！',
     l95tutRule:'找出那個不同的鐘',
-    l1hint:'紅色短針 = 時針 (看幾點)\n藍色長針 = 分針 (看幾分)',
-    l2hint:'「:」前 = 時\n「:」後 = 分',
-    l3hint:'時針指到的數字\n就是現在幾點',
-    l4hint:'把時針拖到\n題目要的那個數字',
-    l5hint:'時針在兩數之間\n→ 讀較小的那個',
-    l7hint:'分針指的數字 × 5\n= 幾分',
+    l1hint:'紅色短針看幾點\n藍色長針看幾分',
+    l2hint:': 前 = 點\n: 後 = 分',
+    l3hint:'紅色短針指到幾\n就是幾點',
+    l4hint:'把紅色短針拖到\n題目的數字',
+    l5hint:'紅色短針在兩數之間\n→ 選前一個數字',
+    l7hint:'藍色長針指的數字 × 5\n= 幾分',
     l8hint:'大數字 × 5\n再加上多走的小格',
-    l9hint:'時針 → 點\n分針 → 分',
-    l10hint:'時針 → 點\n分針：大數字 × 5 + 小格',
-    l12hint:'先撥時針到「點」\n再撥分針 (×5)',
-    l13hint:'先撥時針到「點」\n再撥分針 (含小格)',
-    l14hint:'時針位置要對\n分針位置也要對',
+    l9hint:'紅色短針看幾點\n藍色長針看幾分',
+    l10hint:'紅色短針看幾點\n藍色長針算幾分',
+    l12hint:'先撥紅色短針到幾點\n再撥藍色長針到幾分',
+    l13hint:'先撥紅色短針到幾點\n再撥藍色長針到幾分',
+    l14hint:'紅色短針要對\n藍色長針也要對',
     l15hint:'> 12 → 減 12 = 下午\n≤ 12 → 上午',
     l16hint:'下午 + 12\n= 24 小時制',
-    l17hint:'時針：兩數之間 → 較小\n分針：大數字×5 + 小格',
+    l17hint:'紅色短針看幾點\n藍色長針算幾分',
     oddOneOutPrompt:'找出不同的那個鐘！',
     whatTickMinutes:'分針指向這裡，過了多少分鐘？',
     whatHourPart:'這個時間是幾點？',
@@ -3778,21 +3822,21 @@ const S = {
     l95tutTitle:'🔍 Find the Different One',
     l95tutText:'• 3 clocks show the same time\n• 1 clock shows a different time\n• Find the different clock!',
     l95tutRule:'Find the clock that is different',
-    l1hint:'Short red hand = hour\nLong blue hand = minutes',
-    l2hint:'Before ":" = hour\nAfter ":" = minutes',
-    l3hint:'The number the hour hand\npoints to = the hour',
-    l4hint:'Drag the hour hand\nto the target number',
-    l5hint:'Hour hand between 2 numbers\n→ read the SMALLER one',
-    l7hint:'Minute hand\'s number × 5\n= minutes',
+    l1hint:'Red short hand shows the hour\nBlue long hand shows the minutes',
+    l2hint:'Before : = hour\nAfter : = minutes',
+    l3hint:'Red short hand points to a number\nthat number is the hour',
+    l4hint:'Drag the red short hand\nto the target number',
+    l5hint:'Red short hand between 2 numbers\n→ choose the earlier number',
+    l7hint:'Blue long hand\'s number × 5\n= minutes',
     l8hint:'Big number × 5\nthen add extra ticks',
-    l9hint:'Hour hand → hour\nMinute hand → minutes',
-    l10hint:'Hour hand → hour\nMinute: big number × 5 + ticks',
-    l12hint:'Hour hand first\nThen minute hand (×5)',
-    l13hint:'Hour hand first\nThen minute hand (incl. ticks)',
-    l14hint:'Hour hand must match\nMinute hand must match too',
+    l9hint:'Red short hand shows the hour\nBlue long hand shows the minutes',
+    l10hint:'Red short hand shows the hour\nBlue long hand shows the minutes',
+    l12hint:'Move the red short hand first\nThen move the blue long hand',
+    l13hint:'Move the red short hand first\nThen move the blue long hand',
+    l14hint:'Red short hand must match\nBlue long hand must match too',
     l15hint:'> 12 → subtract 12 = PM\n≤ 12 → AM',
     l16hint:'PM + 12\n= 24-hour time',
-    l17hint:'Hour: between 2 → smaller\nMinute: big×5 + extra ticks',
+    l17hint:'Red short hand shows the hour\nBlue long hand shows the minutes',
     oddOneOutPrompt:'Find the different clock!',
     whatTickMinutes:'Minute hand here — how many minutes passed?',
     whatHourPart:'How many hours does this time show?',
@@ -4175,8 +4219,8 @@ function buildHintData(level, q, reveal = false) {
       pm
         ? (zh ? [`${h24} 大於 12。`, `${h24} 減 12 是 ${h12}。`, `所以是下午 ${h12}:${pad(q.min)}。`]
               : [`${h24} is bigger than 12.`, `${h24} minus 12 is ${h12}.`, `So the time is ${h12}:${pad(q.min)} PM.`])
-        : (zh ? [`${h24} 沒有大於 12。`, `小時不用減 12。`, `所以是上午 ${h12}:${pad(q.min)}。`]
-              : [`${h24} is not bigger than 12.`, `Do not subtract 12 from the hour.`, `So the time is ${h12}:${pad(q.min)} AM.`])
+        : (zh ? [`${h24} 沒有大於 12。`, `數字不用減 12。`, `所以是上午 ${h12}:${pad(q.min)}。`]
+              : [`${h24} is not bigger than 12.`, `Do not subtract 12.`, `So the time is ${h12}:${pad(q.min)} AM.`])
     );
   }
 
@@ -4189,8 +4233,8 @@ function buildHintData(level, q, reveal = false) {
       isPM
         ? (zh ? [`這是下午 ${h12}:${pad(q.min)}。`, `${h12} 加 12 是 ${h24}。`, `寫成 ${fmtHintTime(h24, q.min)}。`]
               : [`This is ${h12}:${pad(q.min)} PM.`, `${h12} plus 12 is ${h24}.`, `Write ${fmtHintTime(h24, q.min)}.`])
-        : (zh ? [`這是上午 ${h12}:${pad(q.min)}。`, `上午的小時不變。`, `寫成 ${fmtHintTime(h24, q.min)}。`]
-              : [`This is ${h12}:${pad(q.min)} AM.`, `The AM hour stays the same.`, `Write ${fmtHintTime(h24, q.min)}.`])
+        : (zh ? [`這是上午 ${h12}:${pad(q.min)}。`, `上午數字不變。`, `寫成 ${fmtHintTime(h24, q.min)}。`]
+              : [`This is ${h12}:${pad(q.min)} AM.`, `The AM number stays the same.`, `Write ${fmtHintTime(h24, q.min)}.`])
     );
   }
 
@@ -4199,8 +4243,8 @@ function buildHintData(level, q, reveal = false) {
     return done(
       hintProblem(),
       zh
-        ? [`${q.h24} 減 12 是 ${faceHour}。`, `時針撥到 ${faceHour}。`, `分針撥到 ${minuteSpot(q.min)}。`]
-        : [`${q.h24} minus 12 is ${faceHour}.`, `Move the hour hand to ${faceHour}.`, `Move the minute hand to ${minuteSpot(q.min)}.`]
+        ? [`${q.h24} 減 12 是 ${faceHour}。`, `紅色短針撥到 ${faceHour}。`, `藍色長針撥到 ${minuteSpot(q.min)}。`]
+        : [`${q.h24} minus 12 is ${faceHour}.`, `Move the red short hand to ${faceHour}.`, `Move the blue long hand to ${minuteSpot(q.min)}.`]
     );
   }
 
@@ -4211,8 +4255,8 @@ function buildHintData(level, q, reveal = false) {
     return done(
       hintProblem(),
       zh
-        ? [m === 0 ? `時針指向 ${h}。` : `時針在 ${h} 和 ${next} 之間。`, m === 0 ? `分針指向 12。` : `分針顯示 ${m} 分。`, reveal ? `答案是第 ${idx + 1} 個鐘。` : `選兩支針都對的鐘。`]
-        : [m === 0 ? `The hour hand points to ${h}.` : `The hour hand is between ${h} and ${next}.`, m === 0 ? `The minute hand points to 12.` : `The minute hand shows ${m} minutes.`, reveal ? `The answer is clock ${idx + 1}.` : `Pick the clock where both hands match.`]
+        ? [m === 0 ? `紅色短針指向 ${h}。` : `紅色短針在 ${h} 和 ${next} 之間。`, m === 0 ? `藍色長針指向 12。` : `藍色長針是 ${m} 分。`, reveal ? `答案是第 ${idx + 1} 個鐘。` : `選兩支針都對的鐘。`]
+        : [m === 0 ? `The red short hand points to ${h}.` : `The red short hand is between ${h} and ${next}.`, m === 0 ? `The blue long hand points to 12.` : `The blue long hand shows ${m} minutes.`, reveal ? `The answer is clock ${idx + 1}.` : `Pick the clock where both hands match.`]
     );
   }
 
@@ -4221,8 +4265,8 @@ function buildHintData(level, q, reveal = false) {
     return done(
       hintProblem(),
       zh
-        ? [`時針撥到 ${faceHour}。`, `分針撥到 ${minuteSpot(q.min)}。`, `兩支針都對才按確認。`]
-        : [`Move the hour hand to ${faceHour}.`, `Move the minute hand to ${minuteSpot(q.min)}.`, `Press confirm when both hands match.`]
+        ? [`紅色短針撥到 ${faceHour}。`, `藍色長針撥到 ${minuteSpot(q.min)}。`, `兩支針都對才按確認。`]
+        : [`Move the red short hand to ${faceHour}.`, `Move the blue long hand to ${minuteSpot(q.min)}.`, `Press confirm when both hands match.`]
     );
   }
 
@@ -4233,41 +4277,41 @@ function buildHintData(level, q, reveal = false) {
   if (level === 2 && q.subtype === 'parseMinute') {
     return done(
       hintProblem(),
-      zh ? [`看冒號後面的數字。`, `冒號後面是 ${pad(q.min)}。`, `答案是 ${q.min} 分。`] : [`Read the number after the colon.`, `The number after the colon is ${pad(q.min)}.`, `The answer is ${q.min} minutes.`]
+      zh ? [`看 : 後面的數字。`, `: 後面是 ${pad(q.min)}。`, `答案是 ${q.min} 分。`] : [`Read the number after :.`, `The number after : is ${pad(q.min)}.`, `The answer is ${q.min} minutes.`]
     );
   }
   if (level === 2) {
     return done(
       hintProblem(),
-      zh ? [`看冒號前面的數字。`, `冒號前面是 ${q.hour}。`, `答案是 ${q.hour} 點。`] : [`Read the number before the colon.`, `The number before the colon is ${q.hour}.`, `The answer is ${q.hour} o'clock.`]
+      zh ? [`看 : 前面的數字。`, `: 前面是 ${q.hour}。`, `答案是 ${q.hour} 點。`] : [`Read the number before :.`, `The number before : is ${q.hour}.`, `The answer is ${q.hour} o'clock.`]
     );
   }
   if (level === 3 || level === 5) {
     return done(
       hintProblem(),
       m === 0
-        ? (zh ? [`看時針。`, `時針指向 ${h}。`, `答案是 ${h} 點。`] : [`Look at the hour hand.`, `The hour hand points to ${h}.`, `It is ${h} o'clock.`])
-        : (zh ? [`看時針。`, `時針還沒到 ${next}。`, `答案是 ${h} 點。`] : [`Look at the hour hand.`, `The hour hand has not reached ${next}.`, `It is ${h} o'clock.`])
+        ? (zh ? [`看紅色短針。`, `紅色短針指向 ${h}。`, `答案是 ${h} 點。`] : [`Look at the red short hand.`, `It points to ${h}.`, `It is ${h} o'clock.`])
+        : (zh ? [`看紅色短針。`, `紅色短針還沒到 ${next}。`, `答案是 ${h} 點。`] : [`Look at the red short hand.`, `It has not reached ${next}.`, `It is ${h} o'clock.`])
     );
   }
   if (level === 6 || level === 7 || level === 8) {
     return done(
       hintProblem(),
       m === 0
-        ? (zh ? [`看分針。`, `分針指向 12。`, `答案是 0 分。`] : [`Look at the minute hand.`, `The minute hand points to 12.`, `The answer is 0 minutes.`])
+        ? (zh ? [`看藍色長針。`, `藍色長針指向 12。`, `答案是 0 分。`] : [`Look at the blue long hand.`, `It points to 12.`, `The answer is 0 minutes.`])
         : rem === 0
-          ? (zh ? [`看分針。`, `分針指向 ${big}。`, `${big} 乘 5 是 ${m}，答案是 ${m} 分。`] : [`Look at the minute hand.`, `The minute hand points to ${big}.`, `${big} times 5 is ${m}, so the answer is ${m} minutes.`])
-          : (zh ? [`看分針。`, `先算 ${big} 乘 5 是 ${big * 5}。`, `再加 ${rem} 格，答案是 ${m} 分。`] : [`Look at the minute hand.`, `First, ${big} times 5 is ${big * 5}.`, `Add ${rem} ticks, so the answer is ${m} minutes.`])
+          ? (zh ? [`看藍色長針。`, `藍色長針指向 ${big}。`, `${big} 乘 5 是 ${m}，答案是 ${m} 分。`] : [`Look at the blue long hand.`, `It points to ${big}.`, `${big} times 5 is ${m}, so the answer is ${m} minutes.`])
+          : (zh ? [`看藍色長針。`, `先算 ${big} 乘 5 是 ${big * 5}。`, `再加 ${rem} 格，答案是 ${m} 分。`] : [`Look at the blue long hand.`, `First, ${big} times 5 is ${big * 5}.`, `Add ${rem} ticks, so the answer is ${m} minutes.`])
     );
   }
 
   const hourStep = m === 0
-    ? (zh ? `時針指向 ${h}，讀成 ${h} 點。` : `The hour hand points to ${h}, so read ${h} o'clock.`)
-    : (zh ? `時針在 ${h} 和 ${next} 之間，讀成 ${h} 點。` : `The hour hand is between ${h} and ${next}, so read ${h} o'clock.`);
+    ? (zh ? `紅色短針指向 ${h}，是 ${h} 點。` : `The red short hand points to ${h}, so it is ${h} o'clock.`)
+    : (zh ? `紅色短針在 ${h} 和 ${next} 之間，是 ${h} 點。` : `The red short hand is between ${h} and ${next}, so it is ${h} o'clock.`);
   let minuteStep;
-  if (m === 0) minuteStep = zh ? `分針指向 12，讀成 0 分。` : `The minute hand points to 12, so read 0 minutes.`;
-  else if (rem === 0) minuteStep = zh ? `分針指向 ${big}，${big} 乘 5 是 ${m} 分。` : `The minute hand points to ${big}, and ${big} times 5 is ${m} minutes.`;
-  else minuteStep = zh ? `分針過 ${big} 再 ${rem} 格，讀成 ${m} 分。` : `The minute hand passed ${big} by ${rem} ticks, so read ${m} minutes.`;
+  if (m === 0) minuteStep = zh ? `藍色長針指向 12，是 0 分。` : `The blue long hand points to 12, so it is 0 minutes.`;
+  else if (rem === 0) minuteStep = zh ? `藍色長針指向 ${big}，${big} 乘 5 是 ${m} 分。` : `The blue long hand points to ${big}, and ${big} times 5 is ${m} minutes.`;
+  else minuteStep = zh ? `藍色長針過 ${big} 再 ${rem} 格，是 ${m} 分。` : `The blue long hand passed ${big} by ${rem} ticks, so it is ${m} minutes.`;
   return done(
     hintProblem(),
     [hourStep, minuteStep, zh ? `合起來答案是 ${q.correct || fmtHintTime(h, m)}。` : `Together, the answer is ${q.correct || fmtHintTime(h, m)}.`]
@@ -6693,8 +6737,8 @@ function getLevelHint(level, q) {
   // Level 14 (clock match): teach how to read each hand, not just "pick the clock".
   if (level === 14 || (q && q.type === 'match')) {
     return zh
-      ? '看時針讀「點」，看分針讀「分」，兩個都要對。'
-      : 'Read both: hour hand for the hour, minute hand for the minutes — both must match.';
+      ? '紅色短針看幾點，藍色長針看幾分，兩個都要對。'
+      : 'Red short hand shows the hour, blue long hand shows the minutes. Both must match.';
   }
   // Level 15 (24-Hour: Part 1, decode-only): rule-only nudge at the 2nd-wrong
   // tier — matches the convention used by every other level (L1–L14, L16, L17),
@@ -6707,8 +6751,8 @@ function getLevelHint(level, q) {
   }
   if (level === 15 && q && q.subtype === 'setFromPM') {
     return zh
-      ? '數字 > 12 → 減 12 = 鐘面的小時。'
-      : 'Number > 12 → subtract 12 = clock-face hour.';
+      ? '數字 > 12 → 減 12 = 鐘面上的點。'
+      : 'Number > 12 → subtract 12 = the clock number.';
   }
   // Level 16/17 (24-hour): direction-specific hint (unchanged generic rule).
   if ((level === 16 || level === 17) && q && q.subtype === 'convert24to12') {
@@ -6723,8 +6767,8 @@ function getLevelHint(level, q) {
   }
   if ((level === 16 || level === 17) && q && q.subtype === 'setFromPM') {
     return zh
-      ? '數字 > 12 → 減 12 = 鐘面的小時。'
-      : 'Number > 12 → subtract 12 = clock-face hour.';
+      ? '數字 > 12 → 減 12 = 鐘面上的點。'
+      : 'Number > 12 → subtract 12 = the clock number.';
   }
   const hintKey = 'l' + level + 'hint';
   const s = S[state.lang];
@@ -6763,19 +6807,19 @@ function getSpecificHint(level, q) {
     const h = q.hour, m = q.min;
     const nextH = (h % 12) + 1;
     const hourPart = m === 0
-      ? (zh ? `時針指 ${h}` : `hour on ${h}`)
-      : (zh ? `時針在 ${h} 和 ${nextH} 之間` : `hour between ${h} and ${nextH}`);
+      ? (zh ? `紅色短針指 ${h}` : `red short hand on ${h}`)
+      : (zh ? `紅色短針在 ${h} 和 ${nextH} 之間` : `red short hand between ${h} and ${nextH}`);
     const mDiv5 = Math.floor(m / 5);
     const mRem = m - mDiv5 * 5;
     let minPart;
     if (m === 0) {
-      minPart = zh ? `分針指 12（0 分）` : `minute on 12 (0 min)`;
+      minPart = zh ? `藍色長針指 12（0 分）` : `blue long hand on 12 (0 min)`;
     } else if (mRem === 0) {
-      minPart = zh ? `分針指 ${mDiv5}（${m} 分）` : `minute on ${mDiv5} (${m} min)`;
+      minPart = zh ? `藍色長針指 ${mDiv5}（${m} 分）` : `blue long hand on ${mDiv5} (${m} min)`;
     } else {
       minPart = zh
-        ? `分針過 ${mDiv5} 再 ${mRem} 格（${m} 分）`
-        : `minute past ${mDiv5} by ${mRem} ticks (${m} min)`;
+        ? `藍色長針過 ${mDiv5} 再 ${mRem} 格（${m} 分）`
+        : `blue long hand past ${mDiv5} by ${mRem} ticks (${m} min)`;
     }
     return zh
       ? `${q.display} → ${hourPart}；${minPart}。`
@@ -6793,40 +6837,40 @@ function getSpecificHint(level, q) {
     const padded = String(q.min).padStart(2, '0');
     if (q.subtype === 'parseMinute') {
       return zh
-        ? `「:」後面是 ${padded} → 答案 ${q.min} 分`
+        ? `: 後面是 ${padded} → 答案 ${q.min} 分`
         : `after ":" is ${padded} → answer is ${q.min} minutes`;
     }
     // default = parseHour
     return zh
-      ? `「:」前面是 ${q.hour} → 答案 ${q.hour} 點`
+      ? `: 前面是 ${q.hour} → 答案 ${q.hour} 點`
       : `before ":" is ${q.hour} → answer is ${q.hour} o'clock`;
   }
   if (level === 3) {
     // L3 (Hour Read) — hour hand always sits exactly on a number.
     // L5 is handled below (between-case aware).
     return zh
-      ? `時針指 ${h} → 答案 ${h} 點。`
-      : `Hour hand points to ${h} → answer is ${h} o'clock.`;
+      ? `紅色短針指 ${h} → 答案 ${h} 點。`
+      : `Red short hand points to ${h} → answer is ${h} o'clock.`;
   }
   if (level === 6) {
     // minute hand at one of 12/3/6/9 → 0/15/30/45
     const pos = minNum === 0 ? 12 : minNum;
     return zh
-      ? `分針指向 ${pos} → ${m} 分。`
-      : `Minute hand at ${pos} → ${m} min.`;
+      ? `藍色長針指向 ${pos} → ${m} 分。`
+      : `Blue long hand at ${pos} → ${m} min.`;
   }
   if (level === 7) {
     const pos = minNum === 0 ? 12 : minNum;
     return zh
-      ? `分針指 ${pos}：${pos === 12 ? '12' : pos} × 5 = ${m} 分。`
-      : `Minute hand at ${pos}: ${pos === 12 ? 12 : pos} × 5 = ${m} min.`;
+      ? `藍色長針指 ${pos}：${pos === 12 ? '12' : pos} × 5 = ${m} 分。`
+      : `Blue long hand at ${pos}: ${pos === 12 ? 12 : pos} × 5 = ${m} min.`;
   }
   if (level === 8) {
     // m is small (1–9). Decompose: pastNum × 5 + extra.
     if (minNum === 0) {
       return zh
-        ? `分針從 12 走了 ${m} 格 → ${m} 分。`
-        : `${m} ticks past 12 → ${m} min.`;
+        ? `藍色長針從 12 走了 ${m} 格 → ${m} 分。`
+        : `Blue long hand moved ${m} ticks past 12 → ${m} min.`;
     }
     return zh
       ? `過了 ${minNum} 再 ${extra} 格 → ${minNum} × 5 + ${extra} = ${m} 分。`
@@ -6835,12 +6879,12 @@ function getSpecificHint(level, q) {
   if (level === 5) {
     // L5: Hour Between — hint for specific question
     if (m === 0 || q.subtype === 'l6_at') {
-      return zh ? `時針正指 ${h} → 答案 ${h} 點。` : `Hour hand on ${h} → answer is ${h} o'clock.`;
+      return zh ? `紅色短針正指 ${h} → 答案 ${h} 點。` : `Red short hand on ${h} → answer is ${h} o'clock.`;
     }
     const next = wrap12(h + 1);
     return zh
-      ? `時針在 ${h} 和 ${next} 之間，讀較小 → 答案 ${h} 點。`
-      : `Hour between ${h} and ${next}, read smaller → answer is ${h} o'clock.`;
+      ? `紅色短針在 ${h} 和 ${next} 之間，選前一個 → 答案 ${h} 點。`
+      : `Red short hand between ${h} and ${next}, choose the earlier number → answer is ${h} o'clock.`;
   }
   if (level === 9) {
     // L9 Read the Clock · 5 min: walk through both hands together. Minutes are always
@@ -6849,12 +6893,12 @@ function getSpecificHint(level, q) {
     // BETWEEN h and h+1 — name both numbers and read the smaller as the hour.
     const next = (h % 12) + 1;
     const hourPart = m === 0
-      ? (zh ? `時針指 ${h}` : `Hour on ${h}`)
-      : (zh ? `時針在 ${h} 和 ${next} 之間，讀較小 → ${h}` : `Hour between ${h} and ${next}, read smaller → ${h}`);
+      ? (zh ? `紅色短針指 ${h}` : `Red short hand on ${h}`)
+      : (zh ? `紅色短針在 ${h} 和 ${next} 之間，選前一個 → ${h}` : `Red short hand between ${h} and ${next}, choose the earlier number → ${h}`);
     const mDiv5 = Math.floor(m / 5);
     const minPart = m === 0
-      ? (zh ? `分針指 12（0 分）` : `minute on 12 (0 min)`)
-      : (zh ? `分針指 ${mDiv5}（${m} 分）` : `minute on ${mDiv5} (${m} min)`);
+      ? (zh ? `藍色長針指 12（0 分）` : `blue long hand on 12 (0 min)`)
+      : (zh ? `藍色長針指 ${mDiv5}（${m} 分）` : `blue long hand on ${mDiv5} (${m} min)`);
     return zh
       ? `${hourPart}；${minPart} → ${q.correct}。`
       : `${hourPart}; ${minPart} → ${q.correct}.`;
@@ -6865,13 +6909,13 @@ function getSpecificHint(level, q) {
     // sits between h and h+1 — read the smaller.
     const next = (h % 12) + 1;
     const hourPart = zh
-      ? `時針在 ${h} 和 ${next} 之間，讀較小 → ${h}`
-      : `Hour between ${h} and ${next}, read smaller → ${h}`;
+      ? `紅色短針在 ${h} 和 ${next} 之間，選前一個 → ${h}`
+      : `Red short hand between ${h} and ${next}, choose the earlier number → ${h}`;
     const mDiv5 = Math.floor(m / 5);
     const mRem = m - mDiv5 * 5;
     const minPart = zh
-      ? `分針過 ${mDiv5} 再 ${mRem} 格（${mDiv5} × 5 + ${mRem} = ${m} 分）`
-      : `minute past ${mDiv5} by ${mRem} ticks (${mDiv5} × 5 + ${mRem} = ${m} min)`;
+      ? `藍色長針過 ${mDiv5} 再 ${mRem} 格（${mDiv5} × 5 + ${mRem} = ${m} 分）`
+      : `Blue long hand past ${mDiv5} by ${mRem} ticks (${mDiv5} × 5 + ${mRem} = ${m} min)`;
     return zh
       ? `${hourPart}；${minPart} → ${q.correct}。`
       : `${hourPart}; ${minPart} → ${q.correct}.`;
@@ -6884,19 +6928,19 @@ function getSpecificHint(level, q) {
     if (q.type === 'read') {
       const next = (h % 12) + 1;
       const hourPart = m === 0
-        ? (zh ? `時針指 ${h}` : `Hour on ${h}`)
-        : (zh ? `時針在 ${h} 和 ${next} 之間` : `Hour between ${h} and ${next}`);
+        ? (zh ? `紅色短針指 ${h}` : `Red short hand on ${h}`)
+        : (zh ? `紅色短針在 ${h} 和 ${next} 之間` : `Red short hand between ${h} and ${next}`);
       const mDiv5 = Math.floor(m / 5);
       const mRem  = m - mDiv5 * 5;
       let minPart;
       if (m === 0) {
-        minPart = zh ? `分針指 12（0 分）` : `minute on 12 (0 min)`;
+        minPart = zh ? `藍色長針指 12（0 分）` : `blue long hand on 12 (0 min)`;
       } else if (mRem === 0) {
-        minPart = zh ? `分針指 ${mDiv5}（${m} 分）` : `minute on ${mDiv5} (${m} min)`;
+        minPart = zh ? `藍色長針指 ${mDiv5}（${m} 分）` : `blue long hand on ${mDiv5} (${m} min)`;
       } else {
         minPart = zh
-          ? `分針過 ${mDiv5} 再 ${mRem} 格（${m} 分）`
-          : `minute past ${mDiv5} by ${mRem} ticks (${m} min)`;
+          ? `藍色長針過 ${mDiv5} 再 ${mRem} 格（${m} 分）`
+          : `blue long hand past ${mDiv5} by ${mRem} ticks (${m} min)`;
       }
       return zh
         ? `${hourPart}；${minPart} → ${q.correct}。`
