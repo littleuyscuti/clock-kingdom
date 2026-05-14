@@ -212,7 +212,7 @@ body.portrait #game-stage {
 #topbar .topbar-mode[data-mode="tour"] > :last-child,
 #topbar .topbar-mode[data-mode="speedtest"] > :last-child { justify-self: end; }
 
-/* ── Sky background — fixed-viewport gradient + clouds. Fixed so it
+/* ── Sky background — fixed-viewport map image. Fixed so it
    stays put when inner content scrolls; overscroll bounce past it
    shows html's solid blue (no orange edge). ── */
 .sky-bg {
@@ -230,40 +230,6 @@ body.map-webp-ready .sky-bg {
   background-size: cover, cover, cover;
   background-repeat: no-repeat, no-repeat, no-repeat;
 }
-.cloud {
-  position: absolute;
-  background: white;
-  border-radius: 50px;
-  opacity: 0.85;
-  filter: blur(1px);
-}
-.cloud::before, .cloud::after {
-  content: '';
-  position: absolute;
-  background: white;
-  border-radius: 50%;
-}
-.cloud-1 { width: 120px; height: 40px; top: 8%; animation: cloud-drift 55s linear infinite; left: -140px; }
-.cloud-1::before { width: 60px; height: 60px; top: -30px; left: 15px; }
-.cloud-1::after  { width: 40px; height: 40px; top: -20px; left: 55px; }
-
-.cloud-2 { width: 90px; height: 30px; top: 20%; animation: cloud-drift 70s linear infinite; left: -110px; opacity: 0.7; }
-.cloud-2::before { width: 45px; height: 45px; top: -22px; left: 10px; }
-.cloud-2::after  { width: 30px; height: 30px; top: -14px; left: 40px; }
-
-.cloud-3 { width: 150px; height: 45px; top: 35%; animation: cloud-drift 45s linear infinite; left: -170px; opacity: 0.6; }
-.cloud-3::before { width: 70px; height: 70px; top: -35px; left: 20px; }
-.cloud-3::after  { width: 50px; height: 50px; top: -25px; left: 75px; }
-
-.cloud-4 { width: 80px; height: 25px; top: 60%; animation: cloud-drift 65s linear infinite 20s; left: -100px; opacity: 0.5; }
-.cloud-4::before { width: 40px; height: 40px; top: -18px; left: 10px; }
-.cloud-4::after  { width: 28px; height: 28px; top: -12px; left: 35px; }
-
-.cloud-5 { width: 110px; height: 35px; top: 75%; animation: cloud-drift 80s linear infinite 10s; left: -130px; opacity: 0.55; }
-.cloud-5::before { width: 55px; height: 55px; top: -28px; left: 15px; }
-.cloud-5::after  { width: 38px; height: 38px; top: -18px; left: 55px; }
-
-@keyframes cloud-drift { from { transform: translateX(0); } to { transform: translateX(calc(100vw + 200px)); } }
 
 /* ── Layout ──
    Main stage screens fill 100% of #game-stage so they work in both
@@ -747,8 +713,6 @@ body {
 .stars .star-on, .game-stars-earned .star-on, .complete-stars .star-on { color: #FFD93D; -webkit-text-stroke: 1px #d4a017; }
 .stars .star-off, .game-stars-earned .star-off, .complete-stars .star-off { color: #E2E5EE; -webkit-text-stroke: 1px #B4B8C7; }
 
-body.home-active.is-zoomed .cloud,
-body.home-active.layout-settling .cloud,
 body.home-active.is-zoomed .brand-ticky-mini,
 body.home-active.layout-settling .brand-ticky-mini,
 body.home-active.is-zoomed .lang-btn,
@@ -2797,14 +2761,8 @@ body.st-countdown-active #screen-speedtest { z-index: 120; }
 </head>
 <body>
 
-<!-- Sky background with clouds -->
-<div class="sky-bg">
-  <div class="cloud cloud-1"></div>
-  <div class="cloud cloud-2"></div>
-  <div class="cloud cloud-3"></div>
-  <div class="cloud cloud-4"></div>
-  <div class="cloud cloud-5"></div>
-</div>
+<!-- Static sky background -->
+<div class="sky-bg"></div>
 
 <!-- Tutor cursor — pink dot at the hand tip that fades in and out.
      Hidden by default; shown by tutorCursorPointAt(...). -->

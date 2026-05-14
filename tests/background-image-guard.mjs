@@ -21,6 +21,19 @@ if (/body\.(?:home-active|level-world-active)\s+\.sky-bg/.test(html)) {
   failures.push('Map background must not depend on home-active/level-world-active body classes.');
 }
 
+const skyCss = html.slice(
+  html.indexOf('/* ── Sky background'),
+  html.indexOf('/* ── Layout ──')
+);
+const skyMarkup = html.slice(
+  html.indexOf('<!-- Static sky background -->'),
+  html.indexOf('<!-- Tutor cursor')
+);
+
+if (/\bcloud-drift\b|\.cloud(?:[\s:{.#,-]|$)/.test(skyCss) || /class="cloud\b/.test(skyMarkup)) {
+  failures.push('Sky background should stay static; remove animated cloud overlay CSS and markup.');
+}
+
 if (failures.length) {
   console.error(failures.join('\n'));
   process.exit(1);
