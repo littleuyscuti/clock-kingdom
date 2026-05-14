@@ -26,13 +26,20 @@
   }
 })();
 </script>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <script>
-// Toggle body.is-zoomed when the visual viewport is pinched/Cmd+ zoomed
-// past 1.0. CSS uses this to disable inner overflow:auto so trackpad/touch
-// scroll pans the entire page instead of capturing into the level grid
-// or game body.
+// Keep the browser viewport app-like on touch devices. If iPad Safari allows a
+// pinch gesture through, the game stage and visual viewport both rescale and
+// positions appear to drift, so prevent multi-touch zoom at the document edge.
 (function () {
+  var stopGesture = function (e) { e.preventDefault(); };
+  document.addEventListener('gesturestart', stopGesture, { passive: false });
+  document.addEventListener('gesturechange', stopGesture, { passive: false });
+  document.addEventListener('gestureend', stopGesture, { passive: false });
+  document.addEventListener('touchmove', function (e) {
+    if (e.touches && e.touches.length > 1) e.preventDefault();
+  }, { passive: false });
+
   var vv = window.visualViewport;
   if (!vv) return;
   var sync = function () {
@@ -856,9 +863,7 @@ body.level-world-active .map-bg-img { display: block; }
   padding: calc(var(--game-pad-y) + var(--content-top-nudge)) 16px var(--game-pad-y); gap: var(--game-gap); position: relative; z-index: 1;
   overflow: hidden;
   min-height: 0;
-  /* Allow users to pan when zoomed in on the view. touch-action: auto
-     re-enables pinch-zoom and pan scrolling on this container. */
-  touch-action: auto;
+  touch-action: manipulation;
 }
 body.level-world-active .game-body,
 body.level-world-active .tour-body,
