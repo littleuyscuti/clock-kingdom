@@ -1105,7 +1105,7 @@ body.stage-short .clock-wrap svg {
   height: var(--feedback-h);
   line-height: calc(var(--feedback-h) - 4px);
   overflow: visible;
-  color: #C72A1A;
+  color: #E33624;
   font-family: 'Fredoka', 'Nunito', sans-serif;
   text-shadow: 0 2px 6px rgba(255,255,255,0.85);
 }
@@ -1114,7 +1114,7 @@ body.stage-short .clock-wrap svg {
    visual position (right above choices / confirm). Reserve min-height so
    hiding it doesn't shift any other content. */
 #read-feedback {
-  color: #C72A1A;
+  color: #E33624;
   font-family: 'Fredoka', 'Nunito', sans-serif; font-size: calc(var(--feedback-font) * 1.18); font-weight: 900;
   text-align: center;
   min-height: calc(var(--feedback-h) - 2px); height: var(--feedback-h); line-height: calc(var(--feedback-h) - 4px); overflow: visible;
@@ -4018,6 +4018,33 @@ function resetHelpButton() {
   btn.setAttribute('aria-label', state.lang === 'zh' ? '提示' : 'Hint');
 }
 
+function getQuestionPromptText(level, q) {
+  if (!q) return '';
+  if (q.type === 'read') {
+    if (q.subtype === 'convert24to12') return t('l15what12');
+    if (q.subtype === 'convert12to24') return t('l15what24');
+    if (level === 2) return q.subtype === 'parseMinute' ? t('whatMinutePart') : t('whatHourPart');
+    if (level === 3) return t('whatOclock');
+    if (level === 1) return '';
+    if (level === 6 || level === 7) return t('whatMinutes');
+    if (level === 8) return t('whatTickMinutes');
+    if (level === 5) {
+      if (q.plain) return t('whatOclock');
+      if (q.subtype === 'l6_smaller' || q.subtype === 'l6_at') return l6Prompt(q);
+      return t('whatOclock');
+    }
+    return t('whatTime');
+  }
+  if (q.type === 'set') {
+    if (level === 4) return t('setHour');
+    if ((level === 15 || level === 16 || level === 17) && q.subtype === 'setFromPM') return t('l15subtitle3');
+    if (level === 16) return t('set24') + ' ' + q.display;
+    return t('setBoth');
+  }
+  if (q.type === 'match') return t('l13matchPrompt');
+  return '';
+}
+
 function buildHintData(level, q, reveal = false) {
   const zh = state.lang === 'zh';
   const pad = n => String(n).padStart(2, '0');
@@ -4027,13 +4054,14 @@ function buildHintData(level, q, reveal = false) {
   const done = (problem, steps, answer = '') => ({ ...base, problem, steps, answer });
 
   if (!q) return base;
+  const hintProblem = () => (zh ? `題目：${getQuestionPromptText(level, q)}` : `Problem: ${getQuestionPromptText(level, q)}`);
 
   if (q.subtype === 'convert24to12') {
     const h24 = q.h24;
     const pm = h24 >= 12;
     const h12 = h24 > 12 ? h24 - 12 : h24;
     return done(
-      zh ? `題目：${fmtHintTime(h24, q.min)} 是上午還是下午？` : `Problem: What is ${fmtHintTime(h24, q.min)} in AM/PM?`,
+      hintProblem(),
       pm
         ? (zh ? [`${h24} 大於 12。`, `${h24} 減 12 是 ${h12}。`, `所以是下午 ${h12}:${pad(q.min)}。`]
               : [`${h24} is bigger than 12.`, `${h24} minus 12 is ${h12}.`, `So the time is ${h12}:${pad(q.min)} PM.`])
@@ -4047,7 +4075,7 @@ function buildHintData(level, q, reveal = false) {
     const h12 = h24 > 12 ? h24 - 12 : h24;
     const isPM = h24 >= 12;
     return done(
-      zh ? '題目：把這個時間寫成 24 小時制。' : 'Problem: Write this time in 24-hour format.',
+      hintProblem(),
       isPM
         ? (zh ? [`這是下午 ${h12}:${pad(q.min)}。`, `${h12} 加 12 是 ${h24}。`, `寫成 ${fmtHintTime(h24, q.min)}。`]
               : [`This is ${h12}:${pad(q.min)} PM.`, `${h12} plus 12 is ${h24}.`, `Write ${fmtHintTime(h24, q.min)}.`])
@@ -4059,7 +4087,7 @@ function buildHintData(level, q, reveal = false) {
   if (q.subtype === 'setFromPM') {
     const faceHour = wrap12(q.h24);
     return done(
-      zh ? `題目：撥出 ${fmtHintTime(q.h24, q.min)}。` : `Problem: Set the clock to ${fmtHintTime(q.h24, q.min)}.`,
+      hintProblem(),
       zh
         ? [`${q.h24} 減 12 是 ${faceHour}。`, `時針撥到 ${faceHour}。`, `分針撥到 ${minuteSpot(q.min)}。`]
         : [`${q.h24} minus 12 is ${faceHour}.`, `Move the hour hand to ${faceHour}.`, `Move the minute hand to ${minuteSpot(q.min)}.`]
@@ -4071,7 +4099,7 @@ function buildHintData(level, q, reveal = false) {
     const h = q.hour, m = q.min;
     const next = wrap12(h + 1);
     return done(
-      zh ? `題目：找出顯示 ${q.display} 的鐘。` : `Problem: Find the clock showing ${q.display}.`,
+      hintProblem(),
       zh
         ? [m === 0 ? `時針指向 ${h}。` : `時針在 ${h} 和 ${next} 之間。`, m === 0 ? `分針指向 12。` : `分針顯示 ${m} 分。`, reveal ? `答案是第 ${idx + 1} 個鐘。` : `選兩支針都對的鐘。`]
         : [m === 0 ? `The hour hand points to ${h}.` : `The hour hand is between ${h} and ${next}.`, m === 0 ? `The minute hand points to 12.` : `The minute hand shows ${m} minutes.`, reveal ? `The answer is clock ${idx + 1}.` : `Pick the clock where both hands match.`]
@@ -4081,7 +4109,7 @@ function buildHintData(level, q, reveal = false) {
   if (q.type === 'set') {
     const faceHour = q.hour;
     return done(
-      zh ? `題目：撥出 ${q.display || fmtHintTime(q.hour, q.min)}。` : `Problem: Set ${q.display || fmtHintTime(q.hour, q.min)}.`,
+      hintProblem(),
       zh
         ? [`時針撥到 ${faceHour}。`, `分針撥到 ${minuteSpot(q.min)}。`, `兩支針都對才按確認。`]
         : [`Move the hour hand to ${faceHour}.`, `Move the minute hand to ${minuteSpot(q.min)}.`, `Press confirm when both hands match.`]
@@ -4094,45 +4122,45 @@ function buildHintData(level, q, reveal = false) {
   const rem = m % 5;
   if (level === 2 && q.subtype === 'parseMinute') {
     return done(
-      zh ? `題目：${q.display} 的分鐘是多少？` : `Problem: What is the minute in ${q.display}?`,
-      zh ? [`看冒號後面的數字。`, `冒號後面是 ${pad(q.min)}。`, `所以分鐘是 ${q.min}。`] : [`Read the number after the colon.`, `The number after the colon is ${pad(q.min)}.`, `So the minute is ${q.min}.`]
+      hintProblem(),
+      zh ? [`看冒號後面的數字。`, `冒號後面是 ${pad(q.min)}。`, `答案是 ${q.min} 分。`] : [`Read the number after the colon.`, `The number after the colon is ${pad(q.min)}.`, `The answer is ${q.min} minutes.`]
     );
   }
   if (level === 2) {
     return done(
-      zh ? `題目：${q.display} 的小時是多少？` : `Problem: What is the hour in ${q.display}?`,
-      zh ? [`看冒號前面的數字。`, `冒號前面是 ${q.hour}。`, `所以小時是 ${q.hour}。`] : [`Read the number before the colon.`, `The number before the colon is ${q.hour}.`, `So the hour is ${q.hour}.`]
+      hintProblem(),
+      zh ? [`看冒號前面的數字。`, `冒號前面是 ${q.hour}。`, `答案是 ${q.hour} 點。`] : [`Read the number before the colon.`, `The number before the colon is ${q.hour}.`, `The answer is ${q.hour} o'clock.`]
     );
   }
   if (level === 3 || level === 5) {
     return done(
-      zh ? '題目：這是幾點？' : 'Problem: What hour is it?',
+      hintProblem(),
       m === 0
-        ? (zh ? [`讀時針。`, `時針指向 ${h}。`, `所以小時是 ${h}。`] : [`Read the hour hand.`, `The hour hand points to ${h}.`, `So the hour is ${h}.`])
-        : (zh ? [`讀時針。`, `時針還沒到 ${next}。`, `所以小時是 ${h}。`] : [`Read the hour hand.`, `The hour hand has not reached ${next}.`, `So the hour is ${h}.`])
+        ? (zh ? [`看時針。`, `時針指向 ${h}。`, `答案是 ${h} 點。`] : [`Look at the hour hand.`, `The hour hand points to ${h}.`, `It is ${h} o'clock.`])
+        : (zh ? [`看時針。`, `時針還沒到 ${next}。`, `答案是 ${h} 點。`] : [`Look at the hour hand.`, `The hour hand has not reached ${next}.`, `It is ${h} o'clock.`])
     );
   }
   if (level === 6 || level === 7 || level === 8) {
     return done(
-      zh ? '題目：分針顯示幾分？' : 'Problem: How many minutes does the minute hand show?',
+      hintProblem(),
       m === 0
-        ? (zh ? [`讀分針。`, `分針指向 12。`, `所以是 0 分。`] : [`Read the minute hand.`, `The minute hand points to 12.`, `So it is 0 minutes.`])
+        ? (zh ? [`看分針。`, `分針指向 12。`, `答案是 0 分。`] : [`Look at the minute hand.`, `The minute hand points to 12.`, `The answer is 0 minutes.`])
         : rem === 0
-          ? (zh ? [`讀分針。`, `分針指向 ${big}。`, `${big} 乘 5 是 ${m} 分。`] : [`Read the minute hand.`, `The minute hand points to ${big}.`, `${big} times 5 is ${m} minutes.`])
-          : (zh ? [`讀分針。`, `先算 ${big} 乘 5 是 ${big * 5}。`, `再加 ${rem} 格是 ${m} 分。`] : [`Read the minute hand.`, `First, ${big} times 5 is ${big * 5}.`, `Add ${rem} ticks to get ${m} minutes.`])
+          ? (zh ? [`看分針。`, `分針指向 ${big}。`, `${big} 乘 5 是 ${m}，答案是 ${m} 分。`] : [`Look at the minute hand.`, `The minute hand points to ${big}.`, `${big} times 5 is ${m}, so the answer is ${m} minutes.`])
+          : (zh ? [`看分針。`, `先算 ${big} 乘 5 是 ${big * 5}。`, `再加 ${rem} 格，答案是 ${m} 分。`] : [`Look at the minute hand.`, `First, ${big} times 5 is ${big * 5}.`, `Add ${rem} ticks, so the answer is ${m} minutes.`])
     );
   }
 
   const hourStep = m === 0
-    ? (zh ? `時針指向 ${h}，所以小時是 ${h}。` : `The hour hand points to ${h}, so the hour is ${h}.`)
-    : (zh ? `時針在 ${h} 和 ${next} 之間，所以小時是 ${h}。` : `The hour hand is between ${h} and ${next}, so the hour is ${h}.`);
+    ? (zh ? `時針指向 ${h}，讀成 ${h} 點。` : `The hour hand points to ${h}, so read ${h} o'clock.`)
+    : (zh ? `時針在 ${h} 和 ${next} 之間，讀成 ${h} 點。` : `The hour hand is between ${h} and ${next}, so read ${h} o'clock.`);
   let minuteStep;
-  if (m === 0) minuteStep = zh ? `分針指向 12，所以是 0 分。` : `The minute hand points to 12, so it is 0 minutes.`;
+  if (m === 0) minuteStep = zh ? `分針指向 12，讀成 0 分。` : `The minute hand points to 12, so read 0 minutes.`;
   else if (rem === 0) minuteStep = zh ? `分針指向 ${big}，${big} 乘 5 是 ${m} 分。` : `The minute hand points to ${big}, and ${big} times 5 is ${m} minutes.`;
-  else minuteStep = zh ? `分針過 ${big} 再 ${rem} 格，所以是 ${m} 分。` : `The minute hand passed ${big} by ${rem} ticks, so it is ${m} minutes.`;
+  else minuteStep = zh ? `分針過 ${big} 再 ${rem} 格，讀成 ${m} 分。` : `The minute hand passed ${big} by ${rem} ticks, so read ${m} minutes.`;
   return done(
-    zh ? '題目：現在是幾點幾分？' : 'Problem: What time is shown?',
-    [hourStep, minuteStep, zh ? `合起來是 ${q.correct || fmtHintTime(h, m)}。` : `Together, the time is ${q.correct || fmtHintTime(h, m)}.`]
+    hintProblem(),
+    [hourStep, minuteStep, zh ? `合起來答案是 ${q.correct || fmtHintTime(h, m)}。` : `Together, the answer is ${q.correct || fmtHintTime(h, m)}.`]
   );
 }
 
@@ -5757,35 +5785,12 @@ function rerenderChoiceText() {
   const q = questions[qIndex];
   if (!q) return;
   const prompt = document.getElementById('read-prompt');
-  if (q.type === 'read') {
-    if (q.subtype === 'convert24to12') prompt.textContent = t('l15what12');
-    else if (q.subtype === 'convert12to24') prompt.textContent = t('l15what24');
-    else if (currentLevel === 2) prompt.textContent = q.subtype === 'parseMinute' ? t('whatMinutePart') : t('whatHourPart');
-    else if (currentLevel === 3) prompt.textContent = t('whatOclock');
-    else if (currentLevel === 1) prompt.textContent = '';
-    else if (currentLevel === 6 || currentLevel === 7) prompt.textContent = t('whatMinutes');
-    else if (currentLevel === 8) prompt.textContent = t('whatTickMinutes');
-    else if (currentLevel === 5) {
-      if (q.plain) {
-        prompt.textContent = t('whatOclock');
-      } else if (q.subtype === 'l6_smaller' || q.subtype === 'l6_at') {
-        prompt.textContent = l6Prompt(q);
-      } else {
-        prompt.textContent = t('whatOclock');
-      }
-    }
-    else prompt.textContent = t('whatTime');
-  }
+  if (q.type === 'read') prompt.textContent = getQuestionPromptText(currentLevel, q);
   if (q.type === 'set') {
-    if (currentLevel === 4) prompt.textContent = t('setHour');
-    else if ((currentLevel === 15 || currentLevel === 16 || currentLevel === 17) && q.subtype === 'setFromPM') prompt.textContent = t('l15subtitle3');
-    else if (currentLevel === 16) prompt.textContent = t('set24') + ' ' + q.display;
-    else prompt.textContent = t('setBoth');
+    prompt.textContent = getQuestionPromptText(currentLevel, q);
     document.getElementById('confirm-btn').textContent = t('confirm');
   }
-  if (q.type === 'match') {
-    prompt.textContent = t('l13matchPrompt');
-  }
+  if (q.type === 'match') prompt.textContent = getQuestionPromptText(currentLevel, q);
 }
 
 // ═══════════════════════════════════════════════════════
@@ -6548,23 +6553,7 @@ function showChoices(q) {
   document.getElementById('choices').classList.remove('hidden');
   document.getElementById('set-controls').classList.add('hidden');
   const prompt = document.getElementById('read-prompt');
-  if (q.subtype === 'convert24to12') prompt.textContent = t('l15what12');
-  else if (q.subtype === 'convert12to24') prompt.textContent = t('l15what24');
-  else if (currentLevel === 2) prompt.textContent = q.subtype === 'parseMinute' ? t('whatMinutePart') : t('whatHourPart');
-  else if (currentLevel === 3) prompt.textContent = t('whatOclock');
-  else if (currentLevel === 1) prompt.textContent = '';
-  else if (currentLevel === 6 || currentLevel === 7) prompt.textContent = t('whatMinutes');
-  else if (currentLevel === 8) prompt.textContent = t('whatTickMinutes');
-  else if (currentLevel === 5) {
-    if (q.plain) {
-      prompt.textContent = t('whatOclock');
-    } else if (q.subtype === 'l6_smaller' || q.subtype === 'l6_at') {
-      prompt.textContent = l6Prompt(q);
-    } else {
-      prompt.textContent = t('whatOclock');
-    }
-  }
-  else prompt.textContent = t('whatTime');
+  prompt.textContent = getQuestionPromptText(currentLevel, q);
 
   const el = document.getElementById('choices');
   el.className = 'choices';
@@ -6685,20 +6674,20 @@ function getSpecificHint(level, q) {
     const padded = String(q.min).padStart(2, '0');
     if (q.subtype === 'parseMinute') {
       return zh
-        ? `「:」後面是 ${padded} → 分鐘是 ${q.min}`
-        : `after ":" is ${padded} → minute is ${q.min}`;
+        ? `「:」後面是 ${padded} → 答案 ${q.min} 分`
+        : `after ":" is ${padded} → answer is ${q.min} minutes`;
     }
     // default = parseHour
     return zh
-      ? `「:」前面是 ${q.hour} → 小時是 ${q.hour}`
-      : `before ":" is ${q.hour} → hour is ${q.hour}`;
+      ? `「:」前面是 ${q.hour} → 答案 ${q.hour} 點`
+      : `before ":" is ${q.hour} → answer is ${q.hour} o'clock`;
   }
   if (level === 3) {
     // L3 (Hour Read) — hour hand always sits exactly on a number.
     // L5 is handled below (between-case aware).
     return zh
       ? `時針指 ${h} → 答案 ${h} 點。`
-      : `Hour hand points to ${h} → answer is ${h}.`;
+      : `Hour hand points to ${h} → answer is ${h} o'clock.`;
   }
   if (level === 6) {
     // minute hand at one of 12/3/6/9 → 0/15/30/45
@@ -6727,12 +6716,12 @@ function getSpecificHint(level, q) {
   if (level === 5) {
     // L5: Hour Between — hint for specific question
     if (m === 0 || q.subtype === 'l6_at') {
-      return zh ? `時針正指 ${h} → ${h} 點。` : `Hour hand on ${h} → ${h}.`;
+      return zh ? `時針正指 ${h} → 答案 ${h} 點。` : `Hour hand on ${h} → answer is ${h} o'clock.`;
     }
     const next = wrap12(h + 1);
     return zh
-      ? `時針在 ${h} 和 ${next} 之間，讀較小 → ${h}。`
-      : `Hour between ${h} and ${next}, read smaller → ${h}.`;
+      ? `時針在 ${h} 和 ${next} 之間，讀較小 → 答案 ${h} 點。`
+      : `Hour between ${h} and ${next}, read smaller → answer is ${h} o'clock.`;
   }
   if (level === 9) {
     // L9 Read the Clock · 5 min: walk through both hands together. Minutes are always
@@ -6881,10 +6870,7 @@ function showSetControls(q) {
   confirmBtn.textContent = t('confirm');
   confirmBtn.disabled = false;
   const prompt = document.getElementById('read-prompt');
-  if (currentLevel === 4) prompt.textContent = t('setHour');
-  else if ((currentLevel === 15 || currentLevel === 16 || currentLevel === 17) && q.subtype === 'setFromPM') prompt.textContent = t('l15subtitle3');
-  else if (currentLevel === 16) prompt.textContent = t('set24') + ' ' + q.display;
-  else prompt.textContent = t('setBoth');
+  prompt.textContent = getQuestionPromptText(currentLevel, q);
   setupDragHandlers();
 }
 
