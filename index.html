@@ -360,7 +360,7 @@ body.level-world-active .sky-bg {
   --st-panel-gap: calc(12px * var(--st-ui-scale));
   --st-panel-pad-y: calc(16px * var(--st-ui-scale));
   --st-panel-pad-x: calc(18px * var(--st-ui-scale));
-  --st-panel-pad-bottom: calc(26px * var(--st-ui-scale));
+  --st-panel-pad-bottom: calc(38px * var(--st-ui-scale));
   --st-choice-grid-w: calc(360px * var(--st-ui-scale));
   --st-choice-gap-y: calc(18px * var(--st-ui-scale));
   --st-choice-gap-x: calc(10px * var(--st-ui-scale));
@@ -2108,9 +2108,17 @@ body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
   border-radius: 3px;
   animation: shape-fall var(--dur,1.2s) forwards;
 }
+.confetti-piece.confetti-fadeout,
+.confetti-shape.confetti-fadeout {
+  animation: confetti-quick-fade 0.28s ease-out forwards !important;
+}
 @keyframes shape-fall {
   0%   { transform: translate(0,0) rotate(0deg); opacity: 1; }
   100% { transform: translate(var(--tx), var(--ty)) rotate(var(--rot,270deg)); opacity: 0; }
+}
+@keyframes confetti-quick-fade {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
 }
 
 /* ══════════════════════════════════════
@@ -2542,6 +2550,11 @@ body.st-countdown-active #screen-speedtest { z-index: 120; }
     0 2px 0 #C8A77B,
     0 6px 12px rgba(45,48,71,0.15) !important;
 }
+#screen-speedtest .st-choice-grid.st-waiting .st-choice-btn {
+  opacity: 0;
+  pointer-events: none;
+  animation: none;
+}
 #screen-speedtest .st-choice-btn.st-correct-flash {
   background: var(--ck-correct) !important;
   border-color: #6BE86B !important;
@@ -2694,25 +2707,36 @@ body.st-countdown-active #screen-speedtest { z-index: 120; }
   box-shadow: 0 2px 0 #d94f7e;
 }
 
-/* Score popup — visual treatment matches Ultimate's legacy .l15-time-delta (positive variant):
-   Fredoka 28px/800, green #6BE86B, fade-only animation (no motion path). */
+/* Score popup — plain floating text like Try Again / question counter, not a badge. */
 #screen-speedtest .st-score-pop {
   position: absolute;
-  font-family: 'Fredoka', sans-serif;
-  font-size: 28px; font-weight: 800;
-  color: var(--ck-correct);
+  font-family: 'Fredoka', 'Nunito', sans-serif;
+  font-size: 36px; font-weight: 900;
+  color: #25D85A;
+  text-shadow:
+    0 2px 0 rgba(255,255,255,0.98),
+    2px 0 0 rgba(255,255,255,0.94),
+    -2px 0 0 rgba(255,255,255,0.94),
+    0 -2px 0 rgba(255,255,255,0.94),
+    0 3px 0 rgba(255,255,255,0.88),
+    2px 2px 0 rgba(255,255,255,0.86),
+    -2px 2px 0 rgba(255,255,255,0.86),
+    0 5px 12px rgba(45,48,71,0.22),
+    0 0 10px rgba(107,232,107,0.5);
   pointer-events: none;
   z-index: 50;
-  padding: 10px 20px; min-width: 110px; box-sizing: border-box; text-align: center;
-  animation: st-score-float 0.8s linear forwards;
+  padding: 0 8px; min-width: 76px; box-sizing: border-box; text-align: center;
+  animation: st-score-float 0.95s ease-out forwards;
   white-space: nowrap;
 }
 /* Mirrors @keyframes l15-delta-fade exactly, but keeps translate(-50%, 0) so the
    horizontal-centering used by popClock() still works. Ultimate's own keyframe is
    left untouched. */
 @keyframes st-score-float {
-  0%, 60% { transform: translate(-50%, 0); opacity: 1; }
-  100%    { transform: translate(-50%, 0); opacity: 0; }
+  0%      { transform: translate(-50%, 8px) scale(0.82); opacity: 0; }
+  16%     { transform: translate(-50%, 0) scale(1); opacity: 1; }
+  70%     { transform: translate(-50%, -18px) scale(1); opacity: 1; }
+  100%    { transform: translate(-50%, -34px) scale(0.96); opacity: 0; }
 }
 
 /* Speed Test home tile — shares .level-stop layout but uses pink/red accent
@@ -2944,10 +2968,10 @@ body.st-countdown-active #screen-speedtest { z-index: 120; }
 
     <div class="st-bottom-panel">
       <div class="st-choice-grid" id="st-choice-grid">
-        <button class="st-choice-btn" data-idx="0">--:--</button>
-        <button class="st-choice-btn" data-idx="1">--:--</button>
-        <button class="st-choice-btn" data-idx="2">--:--</button>
-        <button class="st-choice-btn" data-idx="3">--:--</button>
+        <button class="st-choice-btn" data-idx="0" disabled></button>
+        <button class="st-choice-btn" data-idx="1" disabled></button>
+        <button class="st-choice-btn" data-idx="2" disabled></button>
+        <button class="st-choice-btn" data-idx="3" disabled></button>
       </div>
     </div>
   </div>
@@ -3028,7 +3052,7 @@ body.st-countdown-active #screen-speedtest { z-index: 120; }
 <!-- LEVEL COMPLETE OVERLAY -->
 <div id="overlay-complete" class="hidden">
   <div class="complete-card">
-    <button class="timeout-close" id="complete-close" aria-label="Home" onclick="(function(){if(typeof beepTap==='function')beepTap();document.getElementById('overlay-complete').classList.add('hidden');showHome();})()">
+    <button class="timeout-close" id="complete-close" aria-label="Home" onclick="closeCompleteToHome()">
       <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="white" stroke-width="3.5" stroke-linecap="round">
         <line x1="5" y1="5" x2="17" y2="17"/>
         <line x1="17" y1="5" x2="5" y2="17"/>
@@ -5811,15 +5835,23 @@ function handleUltimateTimeout() {
   document.getElementById('retry-btn').textContent = t('tryAgainBtn');
   document.getElementById('retry-btn').onclick = () => {
     beepTap();
+    fadeActiveConfetti();
     document.getElementById('overlay-timeout').classList.add('hidden');
     beginLevel(17);
   };
   document.getElementById('timeout-close').onclick = () => {
     beepTap();
+    fadeActiveConfetti();
     document.getElementById('overlay-timeout').classList.add('hidden');
     showHome();
   };
   document.getElementById('overlay-timeout').classList.remove('hidden');
+  if (l15Score > 0) {
+    setTimeout(() => {
+      spawnConfettiRain(2200);
+      beepFanfare();
+    }, 260);
+  }
 }
 
 function updateProgressDots() {
@@ -7253,31 +7285,35 @@ function spawnConfettiFromElement(el, count) {
   }
 }
 
+let confettiRainRunId = 0;
+
+function fadeActiveConfetti() {
+  confettiRainRunId++;
+  document.querySelectorAll('.confetti-piece, .confetti-shape').forEach(piece => {
+    piece.classList.add('confetti-fadeout');
+    setTimeout(() => piece.remove(), 320);
+  });
+}
+
 // Confetti rain from top (level complete)
 function spawnConfettiRain(duration = 2000) {
+  const runId = ++confettiRainRunId;
   const endTime = Date.now() + duration;
   function batch() {
-    if (Date.now() > endTime) return;
-    const count = 5;
-    const emojis = ['🎉','⭐','🌟','✨','🎊','🎈','💫'];
-    const colors = ['#FF6B9D','#4ECDC4','#FFD93D','#6BE86B','#A78BFA'];
+    if (runId !== confettiRainRunId || Date.now() > endTime) return;
+    const count = 7;
+    const colors = ['#FF6B9D','#4ECDC4','#FFD93D','#6BE86B','#A78BFA','#FF9F40'];
     for (let i = 0; i < count; i++) {
-      const isEmoji = Math.random() > 0.4;
       const piece = document.createElement('div');
       const x = Math.random() * window.innerWidth;
-      const tx = (Math.random() - 0.5) * 100;
+      const tx = (Math.random() - 0.5) * 130;
       const ty = window.innerHeight + 60;
-      const dur = 1.5 + Math.random();
+      const dur = 1.7 + Math.random() * 0.9;
       const rot = Math.random() * 720;
-      if (isEmoji) {
-        piece.className = 'confetti-piece';
-        piece.textContent = emojis[Math.floor(Math.random()*emojis.length)];
-        piece.style.cssText = `left:${x}px;top:-30px;--tx:${tx}px;--ty:${ty}px;--dur:${dur}s;--rot:${rot}deg;font-size:22px;`;
-      } else {
-        piece.className = 'confetti-shape';
-        const size = 8 + Math.random() * 8;
-        piece.style.cssText = `left:${x}px;top:-20px;--tx:${tx}px;--ty:${ty}px;--dur:${dur}s;--rot:${rot}deg;width:${size}px;height:${size}px;background:${colors[Math.floor(Math.random()*colors.length)]};border-radius:${Math.random()>0.5?'50%':'2px'};`;
-      }
+      piece.className = 'confetti-shape';
+      const w = 7 + Math.random() * 9;
+      const h = 10 + Math.random() * 18;
+      piece.style.cssText = `left:${x}px;top:-24px;--tx:${tx}px;--ty:${ty}px;--dur:${dur}s;--rot:${rot}deg;width:${w}px;height:${h}px;background:${colors[Math.floor(Math.random()*colors.length)]};border-radius:${Math.random()>0.72?'50%':'2px'};`;
       document.body.appendChild(piece);
       setTimeout(() => piece.remove(), dur * 1000 + 200);
     }
@@ -7362,12 +7398,20 @@ function showCompleteOverlay(stars, n, bestStars) {
 }
 
 function goNextLevel() {
+  fadeActiveConfetti();
   document.getElementById('overlay-complete').classList.add('hidden');
   if (currentLevel < TOTAL_LEVELS) {
     startLevel(currentLevel + 1);
   } else {
     showHome();
   }
+}
+
+function closeCompleteToHome() {
+  if (typeof beepTap === 'function') beepTap();
+  fadeActiveConfetti();
+  document.getElementById('overlay-complete').classList.add('hidden');
+  showHome();
 }
 
 // ═══════════════════════════════════════════════════════
@@ -7394,20 +7438,20 @@ function showSpeedTest() {
 const SpeedTest = (function () {
   const MAX_LIVES = 3;
   const TIMING_WINDOWS = [
-    // Difficulty ramp ~1.4× steeper than original — fall durations & spawn intervals
-    // shrink faster window-to-window so mid/late game pressures up sooner.
-    { start: 0,   end: 30,  fallDuration: 11000, intervalStart: 10000, intervalEnd: 7500, maxOnScreen: 1, emptyCatchup: 3000, points: 10 },
-    { start: 30,  end: 60,  fallDuration: 8500,  intervalStart: 7500,  intervalEnd: 5800, maxOnScreen: 2, emptyCatchup: 2500, points: 15 },
-    { start: 60,  end: 90,  fallDuration: 6800,  intervalStart: 6200,  intervalEnd: 4700, maxOnScreen: 2, emptyCatchup: 2000, points: 20 },
-    { start: 90,  end: 120, fallDuration: 5700,  intervalStart: 5200,  intervalEnd: 4100, maxOnScreen: 3, emptyCatchup: 1500, points: 25 },
-    { start: 120, end: 180, fallDuration: 4400,  intervalStart: 4100,  intervalEnd: 3200, maxOnScreen: 3, emptyCatchup: 1000, points: 30 },
+    // Difficulty ramps by clocks answered, not elapsed time. Strong players
+    // advance quickly; kids who need more time do not get punished by time alone.
+    { start: 0,  end: 4,  fallDuration: 14000, intervalStart: 12000, intervalEnd: 10500, maxOnScreen: 1, emptyCatchup: 3600, points: 10 },
+    { start: 4,  end: 10, fallDuration: 9800,  intervalStart: 9000,  intervalEnd: 6800,  maxOnScreen: 2, emptyCatchup: 3000, points: 15 },
+    { start: 10, end: 15, fallDuration: 7600,  intervalStart: 7000,  intervalEnd: 5400,  maxOnScreen: 2, emptyCatchup: 2400, points: 20 },
+    { start: 15, end: 20, fallDuration: 6200,  intervalStart: 5700,  intervalEnd: 4500,  maxOnScreen: 3, emptyCatchup: 1800, points: 25 },
+    { start: 20, end: 30, fallDuration: 5000,  intervalStart: 4600,  intervalEnd: 3600,  maxOnScreen: 3, emptyCatchup: 1200, points: 30 },
   ];
   const MIN_SPAWN_GAP  = 3500;
   const ST_CX = 120, ST_CY = 120, ST_R = 108;
 
   let gameRunning    = false;
-  let gameStartTime  = 0;
   let score          = 0;
+  let clocksCleared  = 0;
   let livesLeft      = MAX_LIVES;
   let fallingClocks  = [];
   let clockIdCounter = 0;
@@ -7431,12 +7475,10 @@ const SpeedTest = (function () {
 
   function randomTime() {
     const hour    = 1 + Math.floor(Math.random() * 12);
-    const elapsed = (performance.now() - gameStartTime) / 1000;
     let minute;
-    // Phases 1-2 (0-60s): easy 5-mark minutes only.
-    // Phases 3-5 (60s+): any minute 0-59 — includes between-mark times like
-    // L8's "between number minute" curriculum.
-    if (elapsed < 60) {
+    // First 10 cleared clocks: easy 5-mark minutes only. After that, any
+    // minute 0-59 can appear, matching the higher-pressure late game.
+    if (clocksCleared < 10) {
       minute = Math.floor(Math.random() * 12) * 5;
     } else {
       minute = Math.floor(Math.random() * 60);
@@ -7447,18 +7489,18 @@ const SpeedTest = (function () {
     return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
   }
   function getCurrentTiming() {
-    const elapsed = (performance.now() - gameStartTime) / 1000;
+    const progress = clocksCleared;
     let win = TIMING_WINDOWS[TIMING_WINDOWS.length - 1];
     let pastEnd = false;
     for (const w of TIMING_WINDOWS) {
-      if (elapsed < w.end) { win = w; break; }
+      if (progress < w.end) { win = w; break; }
       if (w === TIMING_WINDOWS[TIMING_WINDOWS.length - 1]) pastEnd = true;
     }
     let tt;
     if (pastEnd) tt = 1;
     else {
       const span = win.end - win.start;
-      tt = span > 0 ? Math.max(0, Math.min(1, (elapsed - win.start) / span)) : 0;
+      tt = span > 0 ? Math.max(0, Math.min(1, (progress - win.start) / span)) : 0;
     }
     const spawnInterval = win.intervalStart + (win.intervalEnd - win.intervalStart) * tt;
     return { spawnInterval, fallDuration: win.fallDuration, maxOnScreen: win.maxOnScreen, emptyCatchup: win.emptyCatchup, points: win.points };
@@ -7680,8 +7722,10 @@ const SpeedTest = (function () {
     const wrap = clock.el.querySelector('.st-clock-svg-wrap');
     if (wrap) wrap.classList.add('st-is-popping');
     clock.el.classList.remove('st-is-target');
-    const x = parseFloat(clock.el.style.left) + clockSize() / 2;
-    const y = clock.currentY != null ? clock.currentY : 100;
+    const paRect = playArea().getBoundingClientRect();
+    const wrapRect = wrap ? wrap.getBoundingClientRect() : clock.el.getBoundingClientRect();
+    const x = wrapRect.left - paRect.left + wrapRect.width / 2;
+    const y = wrapRect.top - paRect.top + wrapRect.height / 2;
     const pts = clock.points;
     const pop = document.createElement('div');
     pop.className = 'st-score-pop';
@@ -7693,6 +7737,7 @@ const SpeedTest = (function () {
     playArea().appendChild(pop);
     setTimeout(() => pop.remove(), 850);
     setTimeout(() => { clock.el.remove(); }, 350);
+    clocksCleared++;
     setScore(score + pts);
   }
 
@@ -7735,16 +7780,24 @@ const SpeedTest = (function () {
     const target = getTargetClock();
     clearTargetGlow();
     const btns = choiceButtons();
+    const grid = $('st-choice-grid');
     if (!target) {
       currentChoices = []; correctChoiceIdx = -1; currentTargetId = null;
-      for (const btn of btns) { btn.textContent = '--:--'; btn.classList.remove('st-correct-flash', 'st-wrong-shake'); }
+      if (grid) grid.classList.add('st-waiting');
+      for (const btn of btns) {
+        btn.textContent = '';
+        btn.disabled = true;
+        btn.classList.remove('st-correct-flash', 'st-wrong-shake');
+      }
       return;
     }
+    if (grid) grid.classList.remove('st-waiting');
     target.el.classList.add('st-is-target');
     const { choices, correctIdx } = generateChoices(target);
     currentChoices = choices; correctChoiceIdx = correctIdx; currentTargetId = target.id;
     for (let i = 0; i < btns.length; i++) {
       btns[i].textContent = formatTime(choices[i].hour, choices[i].minute);
+      btns[i].disabled = false;
       btns[i].classList.remove('st-correct-flash', 'st-wrong-shake');
     }
   }
@@ -7803,6 +7856,7 @@ const SpeedTest = (function () {
   // actuallyStartGame() once "1" finishes. Called for both first-play (Start)
   // and Play Again (restart) buttons.
   function startGame() {
+    fadeActiveConfetti();
     // Cancel any prior in-flight game state before the countdown so a quick
     // restart can't leave timers/clocks running underneath the countdown.
     stop();
@@ -7848,7 +7902,7 @@ const SpeedTest = (function () {
     setScore(0);
     livesLeft = MAX_LIVES;
     gameRunning = true;
-    gameStartTime = performance.now();
+    clocksCleared = 0;
     // Backdate lastSpawnTime so scheduleSpawn() spawns the first clock
     // immediately on its very first call (sinceLastSpawn >= MIN_SPAWN_GAP).
     // This still respects the empty-screen catchup logic and MIN_SPAWN_GAP
@@ -7915,6 +7969,12 @@ const SpeedTest = (function () {
     const nextBtn = $('st-btn-next');
     if (nextBtn) nextBtn.style.display = bestScore > 0 ? '' : 'none';
     endOverlay().classList.remove('hidden');
+    if (score > 0) {
+      setTimeout(() => {
+        spawnConfettiRain(2200);
+        beepFanfare();
+      }, 260);
+    }
   }
 
   // Hard stop — invoked by hideAllScreens / language toggle / back. Cleans up
@@ -7984,6 +8044,7 @@ const SpeedTest = (function () {
       nextBtn._stWired = true;
       nextBtn.addEventListener('click', () => {
         if (typeof beepTap === 'function') beepTap();
+        fadeActiveConfetti();
         endOverlay().classList.add('hidden');
         stop();
         // Speed Test IS L11 — "Next Level" dispatches to L12 (Set Time · 5 min,
@@ -7995,6 +8056,7 @@ const SpeedTest = (function () {
       endCloseBtn._stWired = true;
       endCloseBtn.addEventListener('click', () => {
         if (typeof beepTap === 'function') beepTap();
+        fadeActiveConfetti();
         endOverlay().classList.add('hidden');
         backHome();
       });
