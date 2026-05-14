@@ -34,8 +34,11 @@
 (function () {
   var vv = window.visualViewport;
   if (!vv) return;
+  var isNormalScale = function () {
+    return !vv.scale || Math.abs(vv.scale - 1) <= 0.01;
+  };
   var sync = function () {
-    var on = vv.scale > 1.01;
+    var on = !isNormalScale();
     document.body && document.body.classList.toggle('is-zoomed', on);
   };
   vv.addEventListener('resize', sync);
@@ -3165,10 +3168,12 @@ body.st-countdown-active #screen-speedtest { z-index: 120; }
 // margin:0 / padding:0 so no ancestor offsets stack on top.
 (function () {
   // iPad Safari can fire resize/orientation events before window.innerWidth
-  // has caught up, so use the visible viewport when it is not pinch-zoomed.
+  // has caught up, so use the visible viewport only at normal 1x scale. While
+  // pinched in or out, Safari's visual viewport is the zoom window, not the
+  // game layout box, so fitting from it makes elements drift.
   function getFitViewport() {
     var vv = window.visualViewport;
-    var useVisualViewport = vv && (!vv.scale || vv.scale <= 1.01);
+    var useVisualViewport = vv && (!vv.scale || Math.abs(vv.scale - 1) <= 0.01);
     return {
       width: Math.max(1, useVisualViewport ? vv.width : window.innerWidth),
       height: Math.max(1, useVisualViewport ? vv.height : window.innerHeight),
@@ -3367,22 +3372,24 @@ body.st-countdown-active #screen-speedtest { z-index: 120; }
 
   var fitRaf = 0;
   var settleTimers = [];
-  function isPinchZoomed() {
-    return window.visualViewport && window.visualViewport.scale && window.visualViewport.scale > 1.01;
+  function isViewportScaled() {
+    return window.visualViewport &&
+      window.visualViewport.scale &&
+      Math.abs(window.visualViewport.scale - 1) > 0.01;
   }
   function scheduleFitGameStage() {
-    if (isPinchZoomed()) return;
+    if (isViewportScaled()) return;
     fitGameStage();
     if (fitRaf) cancelAnimationFrame(fitRaf);
     fitRaf = requestAnimationFrame(function () {
       fitRaf = 0;
-      if (isPinchZoomed()) return;
+      if (isViewportScaled()) return;
       fitGameStage();
     });
     settleTimers.forEach(function (timer) { clearTimeout(timer); });
     settleTimers = [80, 180, 360, 720].map(function (delay) {
       return setTimeout(function () {
-        if (!isPinchZoomed()) fitGameStage();
+        if (!isViewportScaled()) fitGameStage();
       }, delay);
     });
   }
