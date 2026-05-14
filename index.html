@@ -266,6 +266,12 @@ body.portrait #game-stage {
   --confirm-h: 60px;
   --confirm-font: 24px;
   --progress-dot-size: 18px;
+  --progress-dot-gap: 10px;
+  --progress-counter-gap: 7px;
+  --progress-top: 36px;
+  --question-counter-font: 20px;
+  --content-top-nudge: 18px;
+  --tour-content-top: 155px;
   --guide-body-pad-top: 20px;
   --guide-body-pad-bottom: 28px;
   --guide-gap: 36px;
@@ -313,6 +319,12 @@ body.portrait #game-stage {
   --confirm-h: var(--game-confirm-h, 60px);
   --confirm-font: var(--game-confirm-font, 24px);
   --progress-dot-size: var(--game-progress-dot-size, 18px);
+  --progress-dot-gap: var(--game-progress-dot-gap, 10px);
+  --progress-counter-gap: var(--game-progress-counter-gap, 7px);
+  --progress-top: var(--game-progress-top, 36px);
+  --question-counter-font: var(--game-question-counter-font, 20px);
+  --content-top-nudge: var(--game-content-top-nudge, 18px);
+  --tour-content-top: var(--game-tour-content-top, 155px);
   --game-pill-font: calc(32px * var(--level-ui-scale, 1));
   --game-pill-pad-y: calc(10px * var(--level-ui-scale, 1));
   --game-pill-pad-x: calc(20px * var(--level-ui-scale, 1));
@@ -836,7 +848,7 @@ body.level-world-active .map-bg-img { display: block; }
 .game-body {
   flex: 1; display: flex; flex-direction: column; align-items: center;
   justify-content: center;
-  padding: var(--game-pad-y) 16px; gap: var(--game-gap); position: relative; z-index: 1;
+  padding: calc(var(--game-pad-y) + var(--content-top-nudge)) 16px var(--game-pad-y); gap: var(--game-gap); position: relative; z-index: 1;
   overflow: hidden;
   min-height: 0;
   /* Allow users to pan when zoomed in on the view. touch-action: auto
@@ -868,7 +880,16 @@ body.level-world-active .tutorial-body {
 
 /* Progress dots */
 .progress-dots {
-  display: flex; gap: 8px; align-items: center; margin-bottom: 0;
+  display: flex; gap: var(--progress-dot-gap); align-items: center; margin-bottom: var(--progress-counter-gap);
+}
+#screen-game .progress-dots,
+#screen-tour .progress-dots {
+  position: absolute;
+  top: var(--progress-top);
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 0;
+  z-index: 3;
 }
 .progress-dot {
   width: var(--progress-dot-size); height: var(--progress-dot-size); border-radius: 50%;
@@ -888,12 +909,20 @@ body.level-world-active .tutorial-body {
 }
 
 .question-counter {
-  font-size: 15px; color: #25304A; font-weight: 800;
+  font-size: var(--question-counter-font); line-height: 1; color: #25304A; font-weight: 800;
   text-shadow:
     0 2px 0 rgba(255,255,255,0.98),
     1px 0 0 rgba(255,255,255,0.9),
     -1px 0 0 rgba(255,255,255,0.9),
     0 5px 12px rgba(45,48,71,0.18);
+}
+#screen-game .question-counter,
+#screen-tour .question-counter {
+  position: absolute;
+  top: calc(var(--progress-top) + var(--progress-dot-size) + var(--progress-counter-gap) + 3px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
 }
 .digital-target {
   position: relative;
@@ -1532,7 +1561,7 @@ body.level-world-active .tour-step-text {
 body.portrait .tut-card { max-width: 100%; }
 body.portrait .tut-section { max-width: 100%; }
 body.portrait .tutorial-body { padding-left: 14px; padding-right: 14px; }
-body.portrait .tour-body { padding: 6px 14px 60px; gap: 18px; }
+body.portrait .tour-body { padding: var(--tour-content-top) 14px 60px; gap: 18px; }
 body.portrait .tour-step-text { font-size: 24px; max-width: 100%; min-height: 70px; }
 /* Speed-test play area uses the same JS-published --st-ui-scale as landscape,
    so portrait does not need a separate clock-size override. */
@@ -1575,10 +1604,10 @@ body.portrait .ticky-bubble {
    sit at the exact same Y positions as on every other level. */
 .tour-body {
   flex: 1; display: flex; flex-direction: column; align-items: center;
-  justify-content: safe center;
-  /* Same top-biased padding as .game-body so the tour and game screens
-     position their dots/counter/clock identically. */
-  padding: 6px 16px 72px; gap: 22px;
+  justify-content: flex-start;
+  /* Level 1 has variable intro/question text. Anchor the clock from a fixed
+     top slot so the clock does not jump between tour steps. */
+  padding: var(--tour-content-top) 16px 72px; gap: 22px;
   text-align: center; position: relative; z-index: 1;
   overflow-y: auto; min-height: 0;
 }
@@ -3214,6 +3243,12 @@ body.st-countdown-active #screen-speedtest { z-index: 120; }
     var gameConfirmH = 60 * levelUiScale;
     var gameConfirmFont = 24 * levelUiScale;
     var gameProgressDotSize = 18 * levelUiScale;
+    var gameProgressDotGap = 12 * levelUiScale;
+    var gameProgressCounterGap = 8 * levelUiScale;
+    var gameProgressTop = 36 * levelUiScale;
+    var gameQuestionCounterFont = 20 * levelUiScale;
+    var gameContentTopNudge = 18 * levelUiScale;
+    var gameTourContentTop = 155 * levelUiScale;
     var gameExtraGap = 14 * levelUiScale;
     var guideBodyPadTop = 20 * levelUiScale;
     var guideBodyPadBottom = 28 * levelUiScale;
@@ -3260,6 +3295,12 @@ body.st-countdown-active #screen-speedtest { z-index: 120; }
     stage.style.setProperty('--game-confirm-h', gameConfirmH + 'px');
     stage.style.setProperty('--game-confirm-font', gameConfirmFont + 'px');
     stage.style.setProperty('--game-progress-dot-size', gameProgressDotSize + 'px');
+    stage.style.setProperty('--game-progress-dot-gap', gameProgressDotGap + 'px');
+    stage.style.setProperty('--game-progress-counter-gap', gameProgressCounterGap + 'px');
+    stage.style.setProperty('--game-progress-top', gameProgressTop + 'px');
+    stage.style.setProperty('--game-question-counter-font', gameQuestionCounterFont + 'px');
+    stage.style.setProperty('--game-content-top-nudge', gameContentTopNudge + 'px');
+    stage.style.setProperty('--game-tour-content-top', gameTourContentTop + 'px');
     stage.style.setProperty('--game-extra-gap', gameExtraGap + 'px');
     var tutorialScreen = document.getElementById('screen-tutorial');
     function setGuideVar(name, value) {
@@ -6439,10 +6480,8 @@ function showQuestion(i) {
   const qc = document.getElementById('q-counter');
   if (currentLevel === 17) {
     qc.textContent = `${(i % 5) + 1} ${t('qOfTotal')} 5`;
-    qc.style.fontSize = `${18 + (currentLevel - 1) * 0.58}px`;
   } else {
     qc.textContent = `${i+1} ${t('qOfTotal')} ${questions.length}`;
-    qc.style.fontSize = `${18 + (currentLevel - 1) * 0.58}px`;
   }
   const rfb = document.getElementById('read-feedback');
   rfb.classList.add('hidden');
