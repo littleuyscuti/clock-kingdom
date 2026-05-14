@@ -3114,6 +3114,19 @@ body.st-countdown-active #screen-speedtest { z-index: 120; }
 // caused the top bar to jitter at certain viewport heights. Body has
 // margin:0 / padding:0 so no ancestor offsets stack on top.
 (function () {
+  // iPad Safari can fire resize/orientation events before window.innerWidth
+  // has caught up, so use the visible viewport when it is not pinch-zoomed.
+  function getFitViewport() {
+    var vv = window.visualViewport;
+    var useVisualViewport = vv && (!vv.scale || vv.scale <= 1.01);
+    return {
+      width: Math.max(1, useVisualViewport ? vv.width : window.innerWidth),
+      height: Math.max(1, useVisualViewport ? vv.height : window.innerHeight),
+      offsetLeft: useVisualViewport ? vv.offsetLeft : 0,
+      offsetTop: useVisualViewport ? vv.offsetTop : 0
+    };
+  }
+
   function fitGameStage() {
     var stage = document.getElementById('game-stage');
     if (!stage) return;
@@ -3123,7 +3136,10 @@ body.st-countdown-active #screen-speedtest { z-index: 120; }
     // height-fit math accounts for the bar.
     var topbarEl = document.getElementById('topbar');
     var topbarH = topbarEl ? topbarEl.getBoundingClientRect().height : 0;
-    var availH = Math.max(1, window.innerHeight - topbarH);
+    var fitViewport = getFitViewport();
+    var viewportW = fitViewport.width;
+    var viewportH = fitViewport.height;
+    var availH = Math.max(1, viewportH - topbarH);
     // At normal fullscreen-ish heights, keep the old 1280×900 feel. As the
     // window gets shorter, ease toward 1280×720 instead of flipping to a
     // separate compact layout.
@@ -3134,7 +3150,7 @@ body.st-countdown-active #screen-speedtest { z-index: 120; }
     var portH = 1280;
     var landA = landW / landH;
     var portA = portW / portH;
-    var viewA = window.innerWidth / availH;
+    var viewA = viewportW / availH;
     var designW = landW;
     var designH = landH;
 
@@ -3272,8 +3288,8 @@ body.st-countdown-active #screen-speedtest { z-index: 120; }
     setGuideVar('--guide-start-h', guideStartH + 'px');
     setGuideVar('--guide-start-pad-y', guideStartPadY + 'px');
     document.body.classList.remove('stage-compact');
-    var scale = Math.min(window.innerWidth / designW, availH / designH);
-    var rawOffsetX = (window.innerWidth - designW * scale) / 2;
+    var scale = Math.min(viewportW / designW, availH / designH);
+    var rawOffsetX = (viewportW - designW * scale) / 2;
     var offsetX = Math.round(rawOffsetX);
     if (Math.abs(rawOffsetX) < 1) offsetX = 0;
     var spareY = Math.max(0, availH - designH * scale);
@@ -3284,14 +3300,34 @@ body.st-countdown-active #screen-speedtest { z-index: 120; }
     if (viewA <= portA) insetY = Math.min(insetY, 48);
     var offsetY = topbarH + insetY;
     stage.style.transform = 'scale(' + scale + ')';
-    stage.style.left = offsetX + 'px';
-    stage.style.top  = offsetY + 'px';
+    stage.style.left = Math.round(fitViewport.offsetLeft + offsetX) + 'px';
+    stage.style.top  = Math.round(fitViewport.offsetTop + offsetY) + 'px';
     document.documentElement.style.setProperty('--stage-scale', scale);
   }
-  window.addEventListener('resize', fitGameStage);
-  window.addEventListener('orientationchange', fitGameStage);
-  window.addEventListener('load', fitGameStage);
-  fitGameStage();
+
+  var fitRaf = 0;
+  var settleTimers = [];
+  function scheduleFitGameStage() {
+    fitGameStage();
+    if (fitRaf) cancelAnimationFrame(fitRaf);
+    fitRaf = requestAnimationFrame(function () {
+      fitRaf = 0;
+      fitGameStage();
+    });
+    settleTimers.forEach(function (timer) { clearTimeout(timer); });
+    settleTimers = [80, 180, 360, 720].map(function (delay) {
+      return setTimeout(fitGameStage, delay);
+    });
+  }
+
+  window.addEventListener('resize', scheduleFitGameStage);
+  window.addEventListener('orientationchange', scheduleFitGameStage);
+  window.addEventListener('load', scheduleFitGameStage);
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', scheduleFitGameStage);
+    window.visualViewport.addEventListener('scroll', scheduleFitGameStage);
+  }
+  scheduleFitGameStage();
 })();
 
 // ── Topbar mode switcher ──
