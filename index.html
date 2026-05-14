@@ -6704,8 +6704,8 @@ function showClockTiles(q) {
     const btn = document.createElement('button');
     btn.className = 'choice-btn';
     btn.dataset.val = String(idx);
-    btn.style.cssText = 'background:white;padding:4px;display:flex;align-items:center;justify-content:center;min-height:calc(var(--play-w) * 0.36);animation:none;box-shadow:0 4px 0 #ccd;color:#2D3047;';
-    btn.innerHTML = buildClockTileSVG(ch, cm, 102);
+    btn.style.cssText = 'background:white;padding:4px;display:flex;align-items:center;justify-content:center;min-height:calc(var(--play-w) * 0.42);animation:none;box-shadow:0 4px 0 #ccd;color:#2D3047;';
+    btn.innerHTML = buildClockTileSVG(ch, cm, 140);
     btn.onclick = () => { beepTap(); checkReadAnswer(String(idx), q, btn); };
     el.appendChild(btn);
   });
