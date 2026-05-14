@@ -271,7 +271,6 @@ body.portrait #game-stage {
   --progress-top: 36px;
   --question-counter-font: 20px;
   --content-top-nudge: 18px;
-  --tour-content-top: 155px;
   --guide-body-pad-top: 20px;
   --guide-body-pad-bottom: 28px;
   --guide-gap: 36px;
@@ -324,7 +323,6 @@ body.portrait #game-stage {
   --progress-top: var(--game-progress-top, 36px);
   --question-counter-font: var(--game-question-counter-font, 20px);
   --content-top-nudge: var(--game-content-top-nudge, 18px);
-  --tour-content-top: var(--game-tour-content-top, 155px);
   --game-pill-font: calc(32px * var(--level-ui-scale, 1));
   --game-pill-pad-y: calc(10px * var(--level-ui-scale, 1));
   --game-pill-pad-x: calc(20px * var(--level-ui-scale, 1));
@@ -1561,7 +1559,7 @@ body.level-world-active .tour-step-text {
 body.portrait .tut-card { max-width: 100%; }
 body.portrait .tut-section { max-width: 100%; }
 body.portrait .tutorial-body { padding-left: 14px; padding-right: 14px; }
-body.portrait .tour-body { padding: var(--tour-content-top) 14px 60px; gap: 18px; }
+body.portrait .tour-body { padding-left: 14px; padding-right: 14px; }
 body.portrait .tour-step-text { font-size: 24px; max-width: 100%; min-height: 70px; }
 /* Speed-test play area uses the same JS-published --st-ui-scale as landscape,
    so portrait does not need a separate clock-size override. */
@@ -1600,14 +1598,10 @@ body.portrait .ticky-bubble {
 /* ══════════════════════════════════════
    GUIDED TOUR SCREEN
 ══════════════════════════════════════ */
-/* Identical to .game-body so the progress dots, counter, and clock all
-   sit at the exact same Y positions as on every other level. */
 .tour-body {
   flex: 1; display: flex; flex-direction: column; align-items: center;
-  justify-content: flex-start;
-  /* Level 1 has variable intro/question text. Anchor the clock from a fixed
-     top slot so the clock does not jump between tour steps. */
-  padding: var(--tour-content-top) 16px 72px; gap: 22px;
+  justify-content: center;
+  padding: calc(var(--game-pad-y) + var(--content-top-nudge)) 16px var(--game-pad-y); gap: var(--game-gap);
   text-align: center; position: relative; z-index: 1;
   overflow-y: auto; min-height: 0;
 }
@@ -1656,10 +1650,14 @@ body.portrait .ticky-bubble {
 /* ?debug=1 exposes hitboxes everywhere for future tuning. */
 body.debug-hitbox .tap-target { stroke: rgba(255,107,157,0.32); }
 .tour-bottom-slot {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--game-pad-y) + 18px);
+  transform: translateX(-50%);
   display: flex; flex-direction: column; align-items: center; gap: 6px;
-  /* Fixed height so the clock doesn't shift between steps where the
-     continue button appears/disappears. */
   height: 100px;
+  width: min(420px, calc(100% - 32px));
+  z-index: 3;
 }
 .tour-tap-hint { font-size: 16px; color: #5D6477; min-height: 24px; text-shadow: var(--ck-bg-text-shadow); }
 /* L1 "Try again!" — mirrors L2+ wrong-answer feedback. */
@@ -3248,7 +3246,6 @@ body.st-countdown-active #screen-speedtest { z-index: 120; }
     var gameProgressTop = 36 * levelUiScale;
     var gameQuestionCounterFont = 20 * levelUiScale;
     var gameContentTopNudge = 18 * levelUiScale;
-    var gameTourContentTop = 155 * levelUiScale;
     var gameExtraGap = 14 * levelUiScale;
     var guideBodyPadTop = 20 * levelUiScale;
     var guideBodyPadBottom = 28 * levelUiScale;
@@ -3300,7 +3297,6 @@ body.st-countdown-active #screen-speedtest { z-index: 120; }
     stage.style.setProperty('--game-progress-top', gameProgressTop + 'px');
     stage.style.setProperty('--game-question-counter-font', gameQuestionCounterFont + 'px');
     stage.style.setProperty('--game-content-top-nudge', gameContentTopNudge + 'px');
-    stage.style.setProperty('--game-tour-content-top', gameTourContentTop + 'px');
     stage.style.setProperty('--game-extra-gap', gameExtraGap + 'px');
     var tutorialScreen = document.getElementById('screen-tutorial');
     function setGuideVar(name, value) {
